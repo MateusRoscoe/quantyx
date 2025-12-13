@@ -15,7 +15,12 @@
   - Set up consumer service in new app
   - Handle event processing and storage
 
-## `apps/event-display`
+## `apps/api-bff`
+
+- [ ] Create API to serve the data to the frontend
+  - Prevent SQL injection but allow highly flexible querying patterns
+
+## `apps/frontend`
 
 - [ ] Create frontend app to display events
   - Build UI to visualize consumed events
