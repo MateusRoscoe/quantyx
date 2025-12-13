@@ -46,3 +46,8 @@ Thumbs.db
 .github/instructions/nx.instructions.md
 
 test-output
+
+# Prisma
+**/src/generated/
+libs/postgres/src/generated/
+node_modules/.prisma/

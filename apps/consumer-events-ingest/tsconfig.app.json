@@ -20,6 +20,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/clickhouse/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/kafka/tsconfig.lib.json"
     },
     {

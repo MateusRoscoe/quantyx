@@ -32,7 +32,8 @@
         "libs/shared/*",
         "libs/kafka/*",
         "libs/shared-backend/*",
-        "libs/clickhouse/*"
+        "libs/clickhouse/*",
+        "libs/postgres/*"
       ]
     },
     {
@@ -64,7 +65,8 @@
         "libs/shared/*",
         "libs/kafka/*",
         "libs/shared-backend/*",
-        "libs/clickhouse/*"
+        "libs/clickhouse/*",
+        "libs/postgres/*"
       ],
       "options": {
         "typecheck": {

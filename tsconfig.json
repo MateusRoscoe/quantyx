@@ -23,6 +23,9 @@
     },
     {
       "path": "./apps/api-tenant-manager"
+    },
+    {
+      "path": "./libs/postgres"
     }
   ]
 }
