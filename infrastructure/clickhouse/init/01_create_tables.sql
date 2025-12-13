@@ -27,7 +27,6 @@ CREATE TABLE
         -- Metadata
         ip_address IPv4,
         user_agent String,
-        received_at DateTime64 (3),
         INDEX idx_event_name event_name TYPE bloom_filter GRANULARITY 1,
         INDEX idx_user_id user_id TYPE bloom_filter GRANULARITY 1
     ) ENGINE = MergeTree ()

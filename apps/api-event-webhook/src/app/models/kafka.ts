@@ -1,31 +1,26 @@
-import { Kafka } from 'kafkajs';
+import { Kafka, SASLOptions } from 'kafkajs';
 import type { EventMessage } from '@quantyx/shared';
 import { getLogger } from '../helpers/logger.js';
 
 const logger = getLogger('kafka');
 
-const EVENT_TOPIC = process.env.EVENT_TOPIC ?? '';
+import { environment } from '../helpers/env.js';
 
-if (!EVENT_TOPIC || EVENT_TOPIC.length === 0) {
-  throw new Error('EVENT_TOPIC is not defined in environment variables');
-}
+import { CompressionTypes } from 'kafkajs';
 
-import { CompressionTypes, CompressionCodecs } from 'kafkajs';
-import LZ4 from 'kafkajs-lz4';
-
-CompressionCodecs[CompressionTypes.LZ4] = new LZ4().codec;
-
-const eventsBuffer = [] as EventMessage[];
-const MAX_BUFFER_SIZE = process.env.EVENTS_MAX_BUFFER_SIZE
-  ? parseInt(process.env.EVENTS_MAX_BUFFER_SIZE)
-  : 100;
-const BUFFER_FLUSH_INTERVAL = process.env.EVENTS_BUFFER_FLUSH_INTERVAL
-  ? parseInt(process.env.EVENTS_BUFFER_FLUSH_INTERVAL)
-  : 5000;
+const eventsBuffer: EventMessage[] = [];
 
 const kafka = new Kafka({
-  clientId: 'my-app',
-  brokers: ['kafka1:9092', 'kafka2:9092'],
+  clientId: environment.KAFKA_CLIENT_ID,
+  brokers: environment.KAFKA_BROKERS.split(','),
+  ssl: environment.KAFKA_SSL_ENABLED,
+  sasl: environment.KAFKA_SASL_MECHANISM
+    ? ({
+        mechanism: environment.KAFKA_SASL_MECHANISM,
+        username: environment.KAFKA_SASL_USERNAME,
+        password: environment.KAFKA_SASL_PASSWORD,
+      } as SASLOptions)
+    : undefined,
 });
 
 const producer = kafka.producer();
@@ -44,7 +39,7 @@ export async function sendEvent(event: EventMessage | EventMessage[]) {
   } else {
     eventsBuffer.push(event);
   }
-  if (eventsBuffer.length >= MAX_BUFFER_SIZE) {
+  if (eventsBuffer.length >= environment.EVENTS_MAX_BUFFER_SIZE) {
     flushBuffer().catch((error) => {
       console.error('Error flushing events buffer:', error);
     });
@@ -58,7 +53,14 @@ const flushBuffer = async () => {
     isFlushing = true;
     logger.debug(`Flushing ${eventsBuffer.length} events to Kafka`);
     const eventsToSend = eventsBuffer.splice(0, eventsBuffer.length);
-    await sendEvent(eventsToSend);
+    await producer.send({
+      topic: environment.EVENT_TOPIC,
+      messages: eventsToSend.map((event) => ({
+        value: JSON.stringify(event),
+      })),
+      compression: CompressionTypes.GZIP,
+    });
+    logger.debug('Flush complete');
     isFlushing = false;
   }
   flushTimeout.refresh();
@@ -68,4 +70,4 @@ export const flushTimeout = setTimeout(async () => {
   flushBuffer().catch((error) => {
     logger.error('Error flushing events buffer:', error);
   });
-}, BUFFER_FLUSH_INTERVAL);
+}, environment.EVENTS_BUFFER_FLUSH_INTERVAL);

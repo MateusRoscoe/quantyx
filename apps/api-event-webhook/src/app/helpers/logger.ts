@@ -1,7 +1,8 @@
 import pino from 'pino';
+import { environment } from './env';
 
 const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: environment.LOG_LEVEL,
 });
 
 export const getLogger = (context: string) => {
