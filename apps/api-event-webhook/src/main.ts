@@ -11,6 +11,7 @@ import {
 } from 'fastify-type-provider-zod';
 import { getLogger } from './app/helpers/logger';
 import { environment } from './app/helpers/env';
+import { disconnectProducer } from './app/models/kafka';
 
 const logger = getLogger('main');
 
@@ -57,3 +58,20 @@ server.listen({ port, host }, (err) => {
     logger.info(`[ docs ] http://${host}:${port}/docs`);
   }
 });
+
+const SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const;
+
+for (const signal of SIGNALS) {
+  process.on(signal, async () => {
+    try {
+      logger.info(`Received ${signal}, closing server...`);
+      await server.close();
+      await disconnectProducer();
+      logger.info('Server closed gracefully.');
+      process.exit(0);
+    } catch (error) {
+      logger.error(error, 'Error during server shutdown');
+      process.exit(1);
+    }
+  });
+}
