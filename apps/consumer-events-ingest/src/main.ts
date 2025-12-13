@@ -1,1 +1,3 @@
-console.log('Hello World');
+import { AppCtrl } from './controllers/app-ctrl';
+
+AppCtrl.start();

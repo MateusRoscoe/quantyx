@@ -8,11 +8,13 @@ CREATE TABLE
         user_id String,
         session_id String,
         event_name LowCardinality (String),
-        timestamp DateTime64 (3),
-        date Date,
+        `timestamp` DateTime64 (3),
+        `date` Date,
         -- Standard dimensions
         country LowCardinality (String),
-        region String,
+        continent LowCardinality (String),
+        region LowCardinality (String),
+        `state` String,
         city String,
         device_type LowCardinality (String),
         platform LowCardinality (String),
@@ -31,9 +33,15 @@ CREATE TABLE
         INDEX idx_user_id user_id TYPE bloom_filter GRANULARITY 1
     ) ENGINE = MergeTree ()
 PARTITION BY
-    toYYYYMM (date)
+    toYYYYMM (`date`)
 ORDER BY
-    (tenant_id, date, event_name, user_id, timestamp) TTL date + INTERVAL 90 DAY SETTINGS index_granularity = 8192;
+    (
+        tenant_id,
+        `date`,
+        event_name,
+        user_id,
+        `timestamp`
+    ) TTL `date` + INTERVAL 90 DAY SETTINGS index_granularity = 8192;
 
 -- Users table (aggregated user data)
 CREATE TABLE
@@ -55,7 +63,7 @@ ORDER BY
 CREATE TABLE
     IF NOT EXISTS analytics.metrics_daily (
         tenant_id String,
-        date Date,
+        `date` Date,
         metric_type LowCardinality (String),
         dimension_name LowCardinality (String),
         dimension_value String,
@@ -63,11 +71,11 @@ CREATE TABLE
         unique_users AggregateFunction (uniq, String)
     ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
-    toYYYYMM (date)
+    toYYYYMM (`date`)
 ORDER BY
     (
         tenant_id,
-        date,
+        `date`,
         metric_type,
         dimension_name,
         dimension_value

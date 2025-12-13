@@ -1,4 +1,3 @@
-import type { EventMessage } from '@quantyx/shared';
 import { getLogger } from '@quantyx/shared-backend';
 import { kafka } from '@quantyx/kafka';
 
