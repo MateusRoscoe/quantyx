@@ -1,4 +1,4 @@
-import { sendEvent } from '../models/kafka';
+import { sendEvent, sendEventBulk } from '../models/kafka';
 import * as z from 'zod';
 
 import { EventMessageInput, MAX_USER_AGENT_LENGTH } from '@quantyx/shared';
@@ -32,6 +32,41 @@ export default async function (fastify: server) {
             undefined,
         };
         await sendEvent(eventData);
+        reply.status(204).send();
+      } catch (error) {
+        fastify.log.error(error, `Failed to send event to Kafka`);
+        reply
+          .status(500)
+          .send({ message: 'Failed to ingest event', error: 'Internal Error' });
+      }
+    },
+  });
+
+  fastify.route({
+    method: 'POST',
+    url: '/ingest-bulk',
+    schema: {
+      tags: ['Ingest'],
+      body: z.array(EventMessageInput),
+      response: {
+        204: z.null(),
+        400: ErrorResponseSchema,
+        500: z.object({
+          message: z.string(),
+          error: z.string(),
+        }),
+      },
+    },
+    handler: async (request, reply) => {
+      try {
+        const events = request.body.map((event) => ({
+          ...event,
+          ip_address: request.ip,
+          user_agent:
+            request.headers['user-agent']?.slice(0, MAX_USER_AGENT_LENGTH) ||
+            undefined,
+        }));
+        await sendEventBulk(events);
         reply.status(204).send();
       } catch (error) {
         fastify.log.error(error, `Failed to send event to Kafka`);
