@@ -9,7 +9,7 @@ import {
   validatorCompiler,
   ZodTypeProvider,
 } from 'fastify-type-provider-zod';
-import { getLogger } from './app/helpers/logger';
+import { getLogger } from '@quantyx/shared-backend';
 import { environment } from './app/helpers/env';
 import { disconnectProducer } from './app/models/kafka';
 

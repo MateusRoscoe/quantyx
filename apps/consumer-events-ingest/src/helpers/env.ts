@@ -4,13 +4,17 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
-  HOST: z.string().default('localhost'),
-  PORT: z.coerce.number().default(3000),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
-  EVENTS_MAX_BUFFER_SIZE: z.coerce.number().min(1).default(100),
-  EVENTS_BUFFER_FLUSH_INTERVAL: z.coerce.number().min(1000).default(5000),
   EVENT_TOPIC: z.string().min(1).default('event-webhook-ingestion'),
+  KAFKA_CONSUMER_GROUP_ID: z
+    .string()
+    .min(1)
+    .default('consumer-events-ingest-group'),
+  KAFKA_CONSUME_FROM_BEGINNING: z
+    .string()
+    .transform((val) => val === 'true')
+    .default(false),
 });
 
 type Env = z.infer<typeof envSchema>;

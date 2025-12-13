@@ -28,7 +28,7 @@
           "watchDepsName": "watch-deps"
         }
       },
-      "exclude": ["libs/shared/*"]
+      "exclude": ["libs/shared/*", "libs/kafka/*", "libs/shared-backend/*"]
     },
     {
       "plugin": "@nx/eslint/plugin",
@@ -55,7 +55,7 @@
     },
     {
       "plugin": "@nx/js/typescript",
-      "include": ["libs/shared/*"],
+      "include": ["libs/shared/*", "libs/kafka/*", "libs/shared-backend/*"],
       "options": {
         "typecheck": {
           "targetName": "typecheck"

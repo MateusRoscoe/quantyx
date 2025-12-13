@@ -9,6 +9,8 @@
     "@fastify/sensible": "~6.0.2"
   },
   "devDependencies": {
-    "@quantyx/shared": "workspace:*"
+    "@quantyx/shared": "workspace:*",
+    "@quantyx/shared-backend": "workspace:*",
+    "@quantyx/kafka": "workspace:*"
   }
 }

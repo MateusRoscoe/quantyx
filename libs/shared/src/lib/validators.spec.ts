@@ -26,7 +26,7 @@ describe('Validators', () => {
         ...basePayload,
         date: '2024-05-01',
         country: 'USA',
-        region: 'CA',
+        state: 'California',
         city: 'San Francisco',
         device_type: 'desktop',
         platform: 'web',
@@ -43,6 +43,8 @@ describe('Validators', () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
+        expect(result.data.country).toBe('USA');
+        expect(result.data.state).toBe('California');
         expect(result.data.props_str?.color).toBe('blue');
         expect(result.data.props_num?.count).toBe(3);
         expect(result.data.props_bool?.subscribed).toBe(true);
@@ -135,12 +137,76 @@ describe('Validators', () => {
         props_bool: { 3: true },
       });
 
-      console.log(result);
       expect(result.success).toBe(true);
       if (!result.success) throw new Error('Parsing failed unexpectedly');
       expect(result.data.props_str?.['1']).toBe('a');
       expect(result.data.props_num?.['2']).toBe(1);
       expect(result.data.props_bool?.['3']).toBe(true);
+    });
+
+    it('accepts valid ISO 3166-1 alpha-3 country codes', () => {
+      const validCodes = ['USA', 'GBR', 'BRA', 'CAN', 'FRA', 'DEU', 'JPN'];
+
+      for (const code of validCodes) {
+        const result = EventMessageInput.safeParse({
+          ...basePayload,
+          country: code,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.country).toBe(code);
+        }
+      }
+    });
+
+    it('rejects invalid country codes', () => {
+      const invalidCodes = ['US', 'United States', 'usa', 'XX', 'ABCD', '123'];
+
+      for (const code of invalidCodes) {
+        const result = EventMessageInput.safeParse({
+          ...basePayload,
+          country: code,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues.some((i) => i.path[0] === 'country')).toBe(
+            true
+          );
+        }
+      }
+    });
+
+    it('accepts state field with flexible string values', () => {
+      const states = ['California', 'CA', 'São Paulo', 'Ontario', 'Berlin'];
+
+      for (const state of states) {
+        const result = EventMessageInput.safeParse({
+          ...basePayload,
+          state,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.state).toBe(state);
+        }
+      }
+    });
+
+    it('rejects state values exceeding max length', () => {
+      const tooLong = 'a'.repeat(257);
+      const result = EventMessageInput.safeParse({
+        ...basePayload,
+        state: tooLong,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path[0] === 'state')).toBe(
+          true
+        );
+      }
     });
   });
 
@@ -194,6 +260,107 @@ describe('Validators', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.user_agent).toBe('Mozilla/5.0');
+      }
+    });
+
+    it('accepts valid continent values', () => {
+      const validContinents = [
+        'Asia',
+        'Europe',
+        'Africa',
+        'Oceania',
+        'Americas',
+        'Antarctica',
+        'Atlantic Ocean',
+        'Indian Ocean',
+      ];
+
+      for (const continent of validContinents) {
+        const result = EventMessage.safeParse({
+          ...basePayload,
+          ip_address: '192.168.1.1',
+          continent,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.continent).toBe(continent);
+        }
+      }
+    });
+
+    it('rejects invalid continent values', () => {
+      const result = EventMessage.safeParse({
+        ...basePayload,
+        ip_address: '192.168.1.1',
+        continent: 'Invalid Continent',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path[0] === 'continent')).toBe(
+          true
+        );
+      }
+    });
+
+    it('accepts valid region values', () => {
+      const validRegions = [
+        'South Asia',
+        'South East Europe',
+        'Northern Africa',
+        'Pacific',
+        'South West Europe',
+        'Southern Africa',
+        'West Indies',
+        'South America',
+        'South West Asia',
+        'Central Europe',
+        'Eastern Europe',
+        'Western Europe',
+        'Central America',
+        'Western Africa',
+        'South East Asia',
+        'Central Africa',
+        'North America',
+        'East Asia',
+        'Indian Ocean',
+        'Northern Europe',
+        'Eastern Africa',
+        'Southern Europe',
+        'Central Asia',
+        'Northern Asia',
+        'Antarctica',
+        'South Atlantic Ocean',
+        'Southern Indian Ocean',
+      ];
+
+      for (const region of validRegions) {
+        const result = EventMessage.safeParse({
+          ...basePayload,
+          ip_address: '192.168.1.1',
+          region,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.region).toBe(region);
+        }
+      }
+    });
+
+    it('rejects invalid region values', () => {
+      const result = EventMessage.safeParse({
+        ...basePayload,
+        ip_address: '192.168.1.1',
+        region: 'Invalid Region',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path[0] === 'region')).toBe(
+          true
+        );
       }
     });
   });

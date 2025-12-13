@@ -22,6 +22,15 @@
 - **Environment config**: Use Zod schema in `helpers/env.ts` for strict env var validation. Access via `environment` export.
 - **Error handling**: Uses `@fastify/sensible` for HTTP error utilities (see `plugins/sensible.ts`).
 
+## Testing Strategy
+
+- **Unit tests**: Located alongside code as `*.spec.ts` files. Use Jest with SWC for fast execution.
+- **Integration tests**: Use Supertest to test API endpoints (see `apps/api-event-webhook/src/app/app.spec.ts`).
+- **Mocking**: Use Jest mocks for external dependencies (e.g., Kafka producer in `models/kafka.ts`).
+- **Code coverage**: Configured in `jest.config.cts`. Aim for high coverage on critical logic.
+- **Running tests**: Use `npx nx test <project>` to run tests for a specific app/lib.
+- **Testcontainers**: Use Testcontainers for integration tests requiring external services (e.g., databases, Kafka).
+
 ## Conventions & Practices
 
 - **Strict schema validation**: All API payloads must be validated with Zod schemas from `libs/shared`.

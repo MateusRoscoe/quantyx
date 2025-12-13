@@ -2,6 +2,11 @@ packages:
   - 'packages/*'
   - 'apps/*'
   - 'libs/shared'
+  - 'libs/kafka'
+  - 'libs/shared-backend'
 onlyBuiltDependencies:
+  - 'cpu-features'
   - 'esbuild'
+  - 'protobufjs'
+  - 'ssh2'
   - 'unrs-resolver'

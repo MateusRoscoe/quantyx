@@ -1,6 +1,6 @@
-import { Kafka, SASLOptions } from 'kafkajs';
 import type { EventMessage } from '@quantyx/shared';
-import { getLogger } from '../helpers/logger.js';
+import { getLogger } from '@quantyx/shared-backend';
+import { kafka } from '@quantyx/kafka';
 
 const logger = getLogger('kafka');
 
@@ -9,19 +9,6 @@ import { environment } from '../helpers/env.js';
 import { CompressionTypes } from 'kafkajs';
 
 const eventsBuffer: EventMessage[] = [];
-
-const kafka = new Kafka({
-  clientId: environment.KAFKA_CLIENT_ID,
-  brokers: environment.KAFKA_BROKERS.split(','),
-  ssl: environment.KAFKA_SSL_ENABLED,
-  sasl: environment.KAFKA_SASL_MECHANISM
-    ? ({
-        mechanism: environment.KAFKA_SASL_MECHANISM,
-        username: environment.KAFKA_SASL_USERNAME,
-        password: environment.KAFKA_SASL_PASSWORD,
-      } as SASLOptions)
-    : undefined,
-});
 
 const producer = kafka.producer();
 

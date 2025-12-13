@@ -11,6 +11,12 @@
     },
     {
       "path": "./apps/consumer-events-ingest"
+    },
+    {
+      "path": "./libs/kafka"
+    },
+    {
+      "path": "./libs/shared-backend"
     }
   ]
 }

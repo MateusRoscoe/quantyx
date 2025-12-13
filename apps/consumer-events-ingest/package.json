@@ -103,5 +103,10 @@
       }
     }
   },
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "@quantyx/shared": "workspace:*",
+    "@quantyx/shared-backend": "workspace:*",
+    "@quantyx/kafka": "workspace:*"
+  }
 }

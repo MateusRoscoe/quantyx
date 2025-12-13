@@ -1,0 +1,17 @@
+import type { EventMessage } from '@quantyx/shared';
+import { getLogger } from '@quantyx/shared-backend';
+import { kafka } from '@quantyx/kafka';
+
+const logger = getLogger('kafka');
+
+import { environment } from '../helpers/env';
+
+const consumer = kafka.consumer({
+  groupId: environment.KAFKA_CONSUMER_GROUP_ID,
+});
+
+export async function getAndConnectConsumer() {
+  await consumer.connect();
+  logger.info('Kafka consumer connected');
+  return consumer;
+}
