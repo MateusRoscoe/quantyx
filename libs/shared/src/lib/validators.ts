@@ -25,10 +25,6 @@ export const EventMessageInput = z.object({
   event_name: z.string().min(1).max(256),
 
   timestamp: z.iso.datetime({ precision: 3 }),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
 
   // Standard dimensions
   country: CountryCode.optional(),

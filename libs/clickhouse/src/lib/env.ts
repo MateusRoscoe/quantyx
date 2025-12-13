@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  CLICKHOUSE_HOST: z.url().default('http://localhost:8123'),
+  CLICKHOUSE_URL: z.url().default('http://localhost:8123'),
   CLICKHOUSE_USER: z.string().min(1).default('default'),
   CLICKHOUSE_PASSWORD: z.string().default(''),
   CLICKHOUSE_DATABASE: z.string().min(1).default('analytics'),

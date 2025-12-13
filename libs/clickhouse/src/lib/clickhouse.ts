@@ -1,9 +1,8 @@
 import { createClient } from '@clickhouse/client';
 import { environment } from './env';
-import { success } from 'zod';
 
 export const clickhouse = createClient({
-  host: environment.CLICKHOUSE_HOST,
+  url: environment.CLICKHOUSE_URL,
   username: environment.CLICKHOUSE_USER,
   password: environment.CLICKHOUSE_PASSWORD,
   database: environment.CLICKHOUSE_DATABASE,
@@ -35,3 +34,32 @@ export async function clickhouseHealthCheck(): Promise<ConnPingResult> {
     };
   }
 }
+
+export type ClickHouseEvent = {
+  event_id: string;
+  tenant_id: string;
+  user_id: string;
+  session_id: string;
+  event_name: string;
+  timestamp: number; // Unix timestamp in seconds (ClickHouse will convert to DateTime64(3))
+  date: string; // YYYY-MM-DD format
+  // Standard dimensions
+  country: string;
+  continent: string;
+  region: string;
+  state: string;
+  city: string;
+  device_type: string;
+  platform: string;
+  browser: string;
+  browser_version: string;
+  os: string;
+  os_version: string;
+  // Custom properties (flexible schema)
+  props_str: Record<string, string>;
+  props_num: Record<string, number>;
+  props_bool: Record<string, number>; // UInt8 in ClickHouse (0 or 1)
+  // Metadata
+  ip_address: string; // IPv4 or IPv6 string
+  user_agent: string;
+};

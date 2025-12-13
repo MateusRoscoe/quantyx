@@ -15,6 +15,7 @@ const envSchema = z.object({
     .string()
     .transform((val) => val === 'true')
     .default(false),
+  KAFKA_SESSION_TIMEOUT_MS: z.number().min(10000).default(30000),
 });
 
 type Env = z.infer<typeof envSchema>;

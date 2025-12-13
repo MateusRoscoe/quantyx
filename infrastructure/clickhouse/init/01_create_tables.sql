@@ -27,7 +27,7 @@ CREATE TABLE
         props_num Map (String, Float64),
         props_bool Map (String, UInt8),
         -- Metadata
-        ip_address IPv4,
+        ip_address IPv6,
         user_agent String,
         INDEX idx_event_name event_name TYPE bloom_filter GRANULARITY 1,
         INDEX idx_user_id user_id TYPE bloom_filter GRANULARITY 1

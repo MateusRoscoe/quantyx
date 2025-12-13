@@ -7,6 +7,7 @@ import { environment } from '../helpers/env';
 
 const consumer = kafka.consumer({
   groupId: environment.KAFKA_CONSUMER_GROUP_ID,
+  sessionTimeout: environment.KAFKA_SESSION_TIMEOUT_MS,
 });
 
 export async function getAndConnectConsumer() {
