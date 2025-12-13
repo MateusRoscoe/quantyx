@@ -39,6 +39,7 @@
     "typescript-eslint": "^8.40.0"
   },
   "dependencies": {
+    "@clickhouse/client": "^1.14.0",
     "@fastify/autoload": "~6.0.3",
     "@fastify/sensible": "~6.0.2",
     "@fastify/swagger": "^9.6.1",

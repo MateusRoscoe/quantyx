@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@clickhouse/client':
+        specifier: ^1.14.0
+        version: 1.14.0
       '@fastify/autoload':
         specifier: ~6.0.3
         version: 6.0.3
@@ -166,6 +169,9 @@ importers:
 
   apps/consumer-events-ingest:
     devDependencies:
+      '@quantyx/clickhouse':
+        specifier: workspace:*
+        version: link:../../libs/clickhouse
       '@quantyx/kafka':
         specifier: workspace:*
         version: link:../../libs/kafka
@@ -175,6 +181,8 @@ importers:
       '@quantyx/shared-backend':
         specifier: workspace:*
         version: link:../../libs/shared-backend
+
+  libs/clickhouse: {}
 
   libs/kafka: {}
 
@@ -802,6 +810,13 @@ packages:
 
   '@borewit/text-codec@0.1.1':
     resolution: {integrity: sha512-5L/uBxmjaCIX5h8Z+uu+kA9BQLkc/Wl06UGR5ajNRxu+/XjonB5i8JpgFMrPj3LXTCPA0pv8yxUvbUi+QthGGA==}
+
+  '@clickhouse/client-common@1.14.0':
+    resolution: {integrity: sha512-CyUcv2iCkZ1A++vmOSufYRpHR3aAWVfbrWed7ATzf0yyx/BW/2SEqlL07vBpSRa3BIkQe/DSOHVv8JkWZpUOwQ==}
+
+  '@clickhouse/client@1.14.0':
+    resolution: {integrity: sha512-co2spjR7wZoZ3Ck0H/jv76bpiuO3oJHtOmq9/gxFiod2DcT9NFg01u/hXcG8MJFnEJuMB6e3vGqS6IOnLwHqRw==}
+    engines: {node: '>=16'}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -5008,6 +5023,12 @@ snapshots:
   '@bcoe/v8-coverage@0.2.3': {}
 
   '@borewit/text-codec@0.1.1': {}
+
+  '@clickhouse/client-common@1.14.0': {}
+
+  '@clickhouse/client@1.14.0':
+    dependencies:
+      '@clickhouse/client-common': 1.14.0
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:

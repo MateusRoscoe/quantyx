@@ -17,6 +17,9 @@
     },
     {
       "path": "./libs/shared-backend"
+    },
+    {
+      "path": "./libs/clickhouse"
     }
   ]
 }

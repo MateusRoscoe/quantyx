@@ -107,6 +107,7 @@
   "devDependencies": {
     "@quantyx/shared": "workspace:*",
     "@quantyx/shared-backend": "workspace:*",
-    "@quantyx/kafka": "workspace:*"
+    "@quantyx/kafka": "workspace:*",
+    "@quantyx/clickhouse": "workspace:*"
   }
 }

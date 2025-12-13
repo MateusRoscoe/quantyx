@@ -28,7 +28,12 @@
           "watchDepsName": "watch-deps"
         }
       },
-      "exclude": ["libs/shared/*", "libs/kafka/*", "libs/shared-backend/*"]
+      "exclude": [
+        "libs/shared/*",
+        "libs/kafka/*",
+        "libs/shared-backend/*",
+        "libs/clickhouse/*"
+      ]
     },
     {
       "plugin": "@nx/eslint/plugin",
@@ -55,7 +60,12 @@
     },
     {
       "plugin": "@nx/js/typescript",
-      "include": ["libs/shared/*", "libs/kafka/*", "libs/shared-backend/*"],
+      "include": [
+        "libs/shared/*",
+        "libs/kafka/*",
+        "libs/shared-backend/*",
+        "libs/clickhouse/*"
+      ],
       "options": {
         "typecheck": {
           "targetName": "typecheck"

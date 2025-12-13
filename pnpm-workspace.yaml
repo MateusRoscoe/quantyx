@@ -4,6 +4,7 @@ packages:
   - 'libs/shared'
   - 'libs/kafka'
   - 'libs/shared-backend'
+  - 'libs/clickhouse'
 onlyBuiltDependencies:
   - 'cpu-features'
   - 'esbuild'
