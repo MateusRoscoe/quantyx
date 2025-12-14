@@ -33,7 +33,8 @@
         "libs/kafka/*",
         "libs/shared-backend/*",
         "libs/clickhouse/*",
-        "libs/postgres/*"
+        "libs/postgres/*",
+        "libs/auth/*"
       ]
     },
     {
@@ -66,7 +67,8 @@
         "libs/kafka/*",
         "libs/shared-backend/*",
         "libs/clickhouse/*",
-        "libs/postgres/*"
+        "libs/postgres/*",
+        "libs/auth/*"
       ],
       "options": {
         "typecheck": {

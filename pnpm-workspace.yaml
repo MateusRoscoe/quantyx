@@ -1,17 +1,17 @@
 packages:
-  - packages/*
-  - apps/*
-  - libs/shared
-  - libs/kafka
-  - libs/shared-backend
-  - libs/clickhouse
-  - libs/postgres
-
+  - 'packages/*'
+  - 'apps/*'
+  - 'libs/shared'
+  - 'libs/kafka'
+  - 'libs/shared-backend'
+  - 'libs/clickhouse'
+  - 'libs/postgres'
+  - 'libs/auth'
 onlyBuiltDependencies:
   - '@prisma/engines'
-  - cpu-features
-  - esbuild
-  - prisma
-  - protobufjs
-  - ssh2
-  - unrs-resolver
+  - 'cpu-features'
+  - 'esbuild'
+  - 'prisma'
+  - 'protobufjs'
+  - 'ssh2'
+  - 'unrs-resolver'
