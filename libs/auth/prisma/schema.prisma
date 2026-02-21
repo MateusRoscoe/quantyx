@@ -1,46 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model Organization {
-  id        String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  name      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  projects  Project[]
-
-  @@map("organizations")
-}
-
-model Project {
-  id             String       @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  organizationId String       @db.Uuid
-  name           String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  deletedAt      DateTime?
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId], name: "idx_projects_organization_id")
-  @@map("projects")
-}
-
-// BetterAuth models
-
 model User {
-  id            String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  id            String    @id @default(ulid())
   name          String
   email         String
   emailVerified Boolean   @default(false)
@@ -55,14 +22,14 @@ model User {
 }
 
 model Session {
-  id        String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  id        String   @id
   expiresAt DateTime
   token     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
-  userId    String   @db.Uuid
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
@@ -71,10 +38,10 @@ model Session {
 }
 
 model Account {
-  id                    String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  id                    String    @id
   accountId             String
   providerId            String
-  userId                String    @db.Uuid
+  userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
@@ -91,7 +58,7 @@ model Account {
 }
 
 model Verification {
-  id         String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  id         String   @id
   identifier String
   value      String
   expiresAt  DateTime

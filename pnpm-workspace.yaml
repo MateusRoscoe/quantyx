@@ -1,17 +1,22 @@
 packages:
-  - 'packages/*'
-  - 'apps/*'
-  - 'libs/shared'
-  - 'libs/kafka'
-  - 'libs/shared-backend'
-  - 'libs/clickhouse'
-  - 'libs/postgres'
-  - 'libs/auth'
+  - packages/*
+  - apps/*
+  - libs/shared
+  - libs/kafka
+  - libs/shared-backend
+  - libs/clickhouse
+  - libs/postgres
+  - libs/auth
+
 onlyBuiltDependencies:
+  - '@prisma/client'
   - '@prisma/engines'
-  - 'cpu-features'
-  - 'esbuild'
-  - 'prisma'
-  - 'protobufjs'
-  - 'ssh2'
-  - 'unrs-resolver'
+  - '@swc/core'
+  - better-sqlite3
+  - cpu-features
+  - esbuild
+  - nx
+  - prisma
+  - protobufjs
+  - ssh2
+  - unrs-resolver

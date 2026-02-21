@@ -18,7 +18,7 @@
       "generate": {
         "executor": "nx:run-commands",
         "options": {
-          "command": "@better-auth/cli generate",
+          "command": "pnpm dlx @better-auth/cli generate",
           "cwd": "libs/auth"
         }
       }
