@@ -24,18 +24,18 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **Zod type provider + env validation** — Set up `fastify-type-provider-zod` and a `src/helpers/env.ts` env validator (matching the pattern in `api-event-webhook`)
 - [x] **CRUD routes: Organizations** — `GET /organizations`, `POST /organizations`, `GET /organizations/:id`, `PATCH /organizations/:id`, `DELETE /organizations/:id` (soft delete)
 - [x] **CRUD routes: Projects** — `GET /organizations/:orgId/projects`, `POST /organizations/:orgId/projects`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id` (soft delete)
-- [ ] **Auth middleware integration** — Protect routes once auth is wired up (see Auth section below)
+- [x] **Auth middleware integration** — Session-based auth via BetterAuth; all CRUD routes require a valid session cookie
 - [x] **Tenant API key management** — Generate, rotate, and revoke API keys per tenant/project
 
 ---
 
 ## Features — Auth (libs/auth)
 
-- [ ] **Expose BetterAuth routes** — Mount register, login, logout, and session endpoints (likely via `api-tenant-manager` or a dedicated auth app)
+- [x] **Expose BetterAuth routes** — Mounted at `/api/auth/*` in `api-tenant-manager` with email/password sign-up/sign-in
 - [ ] **OAuth provider configuration** — Configure at least one OAuth provider (e.g. GitHub or Google) in the BetterAuth config
 - [ ] **Email verification flow** — Add email verification on signup
 - [ ] **Password reset flow** — Add forgot-password / reset-password endpoints
-- [ ] **Auth middleware** — Create reusable Fastify middleware (plugin) that validates sessions/JWTs and attaches tenant context to requests
+- [x] **Auth middleware** — Session validation preHandler plugin in `api-tenant-manager`; skips `/healthz`, `/docs`, `/api/auth/*`
 
 ---
 
