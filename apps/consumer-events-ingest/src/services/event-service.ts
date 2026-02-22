@@ -5,9 +5,9 @@ export class EventService {
   static transformToClickHouseFormat(event: EventMessage): ClickHouseEvent {
     // Parse timestamp to ensure proper date extraction
     const timestampDate = new Date(event.timestamp);
-    const year = timestampDate.getFullYear();
-    const month = String(timestampDate.getMonth() + 1).padStart(2, '0');
-    const day = String(timestampDate.getDate()).padStart(2, '0');
+    const year = timestampDate.getUTCFullYear();
+    const month = String(timestampDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(timestampDate.getUTCDate()).padStart(2, '0');
     const validDate = `${year}-${month}-${day}`;
 
     return {
