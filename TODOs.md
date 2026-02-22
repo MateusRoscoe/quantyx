@@ -51,17 +51,19 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 - [ ] **API BFF** — Create API to serve data to the frontend with flexible querying (prevent SQL injection)
 - [ ] **Frontend** — Build UI to visualize events with real-time updates
+- [ ] **React SDK** — Client-side SDK to let end users track events directly from the browser (e.g. button clicks, page views, custom actions). Should provide hooks/components and auto-batch requests to the ingest API.
 
 ---
 
 ## Testing
 
+- [x] **Migrate from Jest to Vitest** — Replaced Jest + @swc/jest with Vitest v3 across all 6 projects. Uses `globals: true`, `server.deps.inline: true`, and a `resolve-ts-from-js` Vite plugin for Prisma 7 compatibility.
+- [x] **api-tenant-manager: integration tests** — 27 integration tests covering Organizations and Projects CRUD with Testcontainers Postgres.
 - [ ] **consumer-events-ingest: unit tests** — `src/services/event-service.ts` has zero test coverage. Add unit tests for event transformation logic.
 - [ ] **consumer-events-ingest: integration tests** — Add Testcontainers-based integration tests for batch processing (Kafka → ClickHouse)
 - [ ] **libs/kafka: tests** — No tests for the KafkaJS wrapper. Add unit tests with mocks and/or integration tests with Testcontainers.
 - [ ] **libs/shared-backend: tests** — No tests for the Pino logger factory. Add unit tests.
 - [ ] **libs/postgres: tests** — No tests for the Prisma client singleton. Add integration tests with Testcontainers Postgres.
-- [ ] **api-tenant-manager: integration tests** — Health check test exists; add route-level integration tests for Organizations and Projects CRUD (Testcontainers Postgres).
 
 ---
 
