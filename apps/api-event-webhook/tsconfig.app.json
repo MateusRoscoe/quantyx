@@ -19,6 +19,12 @@
   ],
   "references": [
     {
+      "path": "../../libs/redis/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/postgres/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/kafka/tsconfig.lib.json"
     },
     {

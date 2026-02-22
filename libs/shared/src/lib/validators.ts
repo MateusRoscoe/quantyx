@@ -16,7 +16,6 @@ export type CountryCode = z.infer<typeof CountryCode>;
 export const EventMessageInput = z.object({
   // Core identifiers
   event_id: z.uuidv7(),
-  tenant_id: z.uuidv4(),
   session_id: z.uuidv4(),
 
   // User identifier, flexible as this is not generated internally by Quantyx
@@ -63,6 +62,7 @@ const Region = z.enum(Array.from(regions)).describe('Geographical region');
 export type Region = z.infer<typeof Region>;
 
 export const EventMessage = EventMessageInput.extend({
+  project_id: z.uuidv4(),
   ip_address: z.ipv4().or(z.ipv6()),
   continent: Continent.optional(),
   region: Region.optional(),
@@ -102,3 +102,29 @@ export const ProjectResponse = z.object({
 
 export type ProjectBody = z.infer<typeof ProjectBody>;
 export type ProjectResponse = z.infer<typeof ProjectResponse>;
+
+// --- API Keys ---
+export const ApiKeyBody = z.object({
+  name: z.string().min(1).max(256),
+  expiresAt: z.string().datetime().optional(),
+});
+
+export const ApiKeyResponse = z.object({
+  id: z.string().uuid(),
+  projectId: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  name: z.string(),
+  prefix: z.string(),
+  lastUsedAt: z.string().datetime().nullable(),
+  expiresAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const ApiKeyCreatedResponse = ApiKeyResponse.extend({
+  key: z.string(),
+});
+
+export type ApiKeyBody = z.infer<typeof ApiKeyBody>;
+export type ApiKeyResponse = z.infer<typeof ApiKeyResponse>;
+export type ApiKeyCreatedResponse = z.infer<typeof ApiKeyCreatedResponse>;

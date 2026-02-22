@@ -34,7 +34,8 @@
         "libs/shared-backend/*",
         "libs/clickhouse/*",
         "libs/postgres/*",
-        "libs/auth/*"
+        "libs/auth/*",
+        "libs/redis/*"
       ]
     },
     {
@@ -69,7 +70,8 @@
         "libs/shared-backend/*",
         "libs/clickhouse/*",
         "libs/postgres/*",
-        "libs/auth/*"
+        "libs/auth/*",
+        "libs/redis/*"
       ],
       "options": {
         "typecheck": {

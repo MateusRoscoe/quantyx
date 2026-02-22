@@ -12,7 +12,7 @@ export class EventService {
 
     return {
       event_id: event.event_id,
-      tenant_id: event.tenant_id,
+      project_id: event.project_id,
       user_id: event.user_id,
       session_id: event.session_id,
       event_name: event.event_name,

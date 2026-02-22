@@ -26,6 +26,7 @@ export default async function (fastify: server) {
       try {
         const eventData = {
           ...request.body,
+          project_id: request.projectId,
           ip_address: request.ip,
           user_agent:
             request.headers['user-agent']?.slice(0, MAX_USER_AGENT_LENGTH) ||
@@ -61,6 +62,7 @@ export default async function (fastify: server) {
       try {
         const events = request.body.map((event) => ({
           ...event,
+          project_id: request.projectId,
           ip_address: request.ip,
           user_agent:
             request.headers['user-agent']?.slice(0, MAX_USER_AGENT_LENGTH) ||

@@ -4,6 +4,7 @@ import AutoLoad from '@fastify/autoload';
 
 import { connectProducer } from './models/kafka.js';
 import { getLogger } from '@quantyx/shared-backend';
+import { connectRedis } from '@quantyx/redis';
 
 const logger = getLogger('app');
 
@@ -13,6 +14,10 @@ export interface AppOptions {}
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
   connectProducer().catch((error) => {
     logger.error('Error connecting Kafka producer:', error);
+  });
+
+  connectRedis().catch((error) => {
+    logger.error('Error connecting Redis:', error);
   });
 
   // This loads all plugins defined in plugins

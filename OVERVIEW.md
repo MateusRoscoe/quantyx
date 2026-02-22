@@ -35,12 +35,17 @@ graph TB
         PG[("PostgreSQL<br/>quantyx DB<br/>:5432")]
     end
 
+    subgraph Caching
+        RD[("Redis<br/>:6379")]
+    end
+
     subgraph Shared Libs
         LS["libs/shared<br/>Zod schemas"]
-        LSB["libs/shared-backend<br/>Pino logger"]
+        LSB["libs/shared-backend<br/>Pino logger + API key utils"]
         LK["libs/kafka<br/>KafkaJS wrapper"]
         LC["libs/clickhouse<br/>CH client"]
         LP["libs/postgres<br/>Prisma 7 client"]
+        LR["libs/redis<br/>ioredis wrapper"]
         LA["libs/auth<br/>BetterAuth"]
     end
 
@@ -48,6 +53,8 @@ graph TB
     HTTP --> EW
     HTTP --> TM
 
+    EW -- "X-API-Key auth" --> RD
+    EW -- "X-API-Key fallback" --> PG
     EW -- "produce (gzip, buffered)" --> K
     K -- "consume (batch)" --> CE
     CE -- "insert (JSONEachRow)" --> CH
@@ -57,6 +64,8 @@ graph TB
     EW -.-> LS
     EW -.-> LSB
     EW -.-> LK
+    EW -.-> LP
+    EW -.-> LR
     CE -.-> LS
     CE -.-> LSB
     CE -.-> LK
@@ -73,14 +82,24 @@ graph TB
 sequenceDiagram
     participant C as Client
     participant EW as api-event-webhook
+    participant RD as Redis
+    participant PG as PostgreSQL
     participant B as Buffer
     participant K as Kafka
     participant CE as consumer-events-ingest
     participant CH as ClickHouse
 
-    C->>EW: POST /ingest (EventMessageInput)
-    EW->>EW: Zod validate
-    EW->>EW: Enrich (ip_address, user_agent)
+    C->>EW: POST /ingest + X-API-Key header
+    EW->>EW: Zod validate body
+    EW->>RD: Lookup API key hash
+    alt Cache hit
+        RD-->>EW: {projectId, organizationId}
+    else Cache miss
+        EW->>PG: Lookup API key hash
+        PG-->>EW: ApiKey record
+        EW->>RD: Cache result (TTL 5min)
+    end
+    EW->>EW: Inject project_id, ip_address, user_agent
     EW->>B: Add to buffer
     Note over B: Flush on size threshold<br/>or periodic interval
     B->>K: Produce batch (gzip)
@@ -96,13 +115,15 @@ sequenceDiagram
 
 ### api-event-webhook (port 3000)
 
-Event ingestion API. Validates incoming events, enriches them with request metadata, buffers them client-side, and produces to Kafka.
+Event ingestion API. Authenticates requests via per-project API keys, validates incoming events, enriches them with request metadata and project context, buffers them client-side, and produces to Kafka.
+
+**Authentication**: All `/ingest` and `/ingest-bulk` requests require an `X-API-Key` header. The key is hashed (SHA-256) and looked up in Redis (cache) then PostgreSQL (fallback). On success, `project_id` and `organization_id` are resolved and injected into the event. `/healthz` and `/docs` are unauthenticated.
 
 | Route | Method | Description |
 |---|---|---|
-| `/ingest` | POST | Single event ingestion |
-| `/ingest-bulk` | POST | Batch event ingestion (array) |
-| `/healthz` | GET | Kafka connectivity status |
+| `/ingest` | POST | Single event ingestion (requires `X-API-Key`) |
+| `/ingest-bulk` | POST | Batch event ingestion (requires `X-API-Key`) |
+| `/healthz` | GET | Kafka, Redis, Postgres connectivity status |
 | `/docs` | GET | Swagger UI |
 
 **Kafka producer behavior**:
@@ -120,6 +141,9 @@ Event ingestion API. Validates incoming events, enriches them with request metad
 | `EVENT_TOPIC` | `event-webhook-ingestion` | Kafka topic |
 | `EVENTS_MAX_BUFFER_SIZE` | `100` | Flush buffer when this size is reached |
 | `EVENTS_BUFFER_FLUSH_INTERVAL` | `5000` | Flush interval in ms |
+| `POSTGRES_URL` | *(required)* | PostgreSQL connection string |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
+| `API_KEY_CACHE_TTL_SECONDS` | `300` | API key cache TTL in Redis |
 | `KAFKA_BROKERS` | *(required)* | Comma-separated broker list |
 | `KAFKA_CLIENT_ID` | `api-event-webhook` | Kafka client ID |
 | `KAFKA_SSL_ENABLED` | `false` | Enable SSL |
@@ -145,6 +169,10 @@ Tenant/organization management API. CRUD operations for organizations and projec
 | `/projects/:id` | GET | Get project by ID |
 | `/projects/:id` | PATCH | Update project |
 | `/projects/:id` | DELETE | Soft-delete project |
+| `/projects/:projectId/api-keys` | GET | List API keys for project |
+| `/projects/:projectId/api-keys` | POST | Create API key (returns plaintext once) |
+| `/api-keys/:id` | GET | Get API key metadata |
+| `/api-keys/:id` | DELETE | Revoke (soft-delete) API key |
 | `/healthz` | GET | DB connectivity status |
 | `/docs` | GET | Swagger UI |
 
@@ -190,11 +218,12 @@ Kafka consumer that processes event messages in batches and persists them to Cli
 
 | Lib | Purpose |
 |---|---|
-| **shared** | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`), country/continent/region validators |
-| **shared-backend** | Pino logger factory with child logger context support |
+| **shared** | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`, `ApiKeyBody/Response/CreatedResponse`), country/continent/region validators |
+| **shared-backend** | Pino logger factory with child logger context support; API key crypto utilities (`generateApiKey`, `hashApiKey`) |
 | **kafka** | KafkaJS client wrapper with SASL support (plain, scram-sha-256/512, aws) |
 | **clickhouse** | ClickHouse client wrapper with compression, health check, `ClickHouseEvent` type definition |
 | **postgres** | Prisma 7 client singleton with `@prisma/adapter-pg` connection pooling |
+| **redis** | ioredis client wrapper with lazy connect, health check, connect/disconnect helpers |
 | **auth** | BetterAuth configured with Prisma adapter (scaffolded, no routes exposed yet) |
 
 ---
@@ -208,6 +237,8 @@ All IDs use database-generated UUIDv7.
 ```mermaid
 erDiagram
     Organization ||--o{ Project : "has many"
+    Organization ||--o{ ApiKey : "has many"
+    Project ||--o{ ApiKey : "has many"
     User ||--o{ Session : "has many"
     User ||--o{ Account : "has many"
 
@@ -265,6 +296,20 @@ erDiagram
         datetime updatedAt
     }
 
+    ApiKey {
+        uuid id PK "UUIDv7"
+        uuid projectId FK "cascade delete"
+        uuid organizationId FK "cascade delete"
+        string name
+        varchar_12 prefix "indexed"
+        string keyHash UK "SHA-256, unique"
+        datetime lastUsedAt "nullable"
+        datetime expiresAt "nullable"
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt "nullable, soft delete"
+    }
+
     Verification {
         uuid id PK "UUIDv7"
         string identifier "indexed"
@@ -281,7 +326,7 @@ erDiagram
 erDiagram
     events {
         String event_id
-        String tenant_id
+        String project_id
         String user_id
         String session_id
         LowCardinalityString event_name
@@ -306,7 +351,7 @@ erDiagram
     }
 
     users {
-        String tenant_id
+        String project_id
         String user_id
         DateTime64_3 first_seen
         DateTime64_3 last_seen
@@ -318,7 +363,7 @@ erDiagram
     }
 
     metrics_daily {
-        String tenant_id
+        String project_id
         Date date
         LowCardinalityString metric_type
         LowCardinalityString dimension_name
@@ -328,7 +373,7 @@ erDiagram
     }
 
     property_metadata {
-        String tenant_id
+        String project_id
         String property_name
         LowCardinalityString property_type
         DateTime64_3 first_seen
@@ -341,10 +386,10 @@ erDiagram
 
 | Table | Engine | Partition | Order By | Notes |
 |---|---|---|---|---|
-| `events` | MergeTree | Monthly (`YYYY-MM`) | tenant_id, date, event_name, user_id, timestamp | 90-day TTL, bloom filter on event_name & user_id |
-| `users` | ReplacingMergeTree | — | tenant_id, user_id | Deduplicates by updated_at |
-| `metrics_daily` | AggregatingMergeTree | Monthly | tenant_id, date, metric_type, dimension_name, dimension_value | Pre-aggregated daily metrics |
-| `property_metadata` | ReplacingMergeTree | — | tenant_id, property_name | Tracks property names/types per tenant |
+| `events` | MergeTree | Monthly (`YYYY-MM`) | project_id, date, event_name, user_id, timestamp | 90-day TTL, bloom filter on event_name & user_id |
+| `users` | ReplacingMergeTree | — | project_id, user_id | Deduplicates by updated_at |
+| `metrics_daily` | AggregatingMergeTree | Monthly | project_id, date, metric_type, dimension_name, dimension_value | Pre-aggregated daily metrics |
+| `property_metadata` | ReplacingMergeTree | — | project_id, property_name | Tracks property names/types per tenant |
 
 ---
 
@@ -353,12 +398,12 @@ erDiagram
 ```mermaid
 graph LR
     subgraph "EventMessageInput (HTTP input)"
-        A["event_id (UUIDv7)<br/>tenant_id (UUID)<br/>session_id (UUID)<br/>user_id (string)<br/>event_name (string)<br/>timestamp (ISO ms precision)"]
+        A["event_id (UUIDv7)<br/>session_id (UUID)<br/>user_id (string)<br/>event_name (string)<br/>timestamp (ISO ms precision)"]
         B["<i>Optional:</i><br/>date, country (ISO alpha-3)<br/>state, city<br/>device_type, platform<br/>browser, browser_version<br/>os, os_version<br/>props_str, props_num, props_bool"]
     end
 
     subgraph "EventMessage (after enrichment)"
-        C["+ ip_address (required)<br/>+ user_agent (max 1024)<br/>+ continent<br/>+ region"]
+        C["+ project_id (from API key)<br/>+ ip_address (required)<br/>+ user_agent (max 1024)<br/>+ continent<br/>+ region"]
     end
 
     subgraph "ClickHouseEvent (storage)"
@@ -381,6 +426,7 @@ graph LR
 | ClickHouse | `clickhouse/clickhouse-server:25.11-alpine` | 8123, 9000 | Analytics database |
 | PostgreSQL | `postgres:18-trixie` | 5432 | Tenant/auth database |
 | Kafka | `apache/kafka:4.1.1` | 29092 (host) | Event messaging |
+| Redis | `redis:7-alpine` | 6379 | API key cache |
 | Kafbat UI | `kafbat/kafka-ui:latest` | 8080 | Kafka management UI |
 
 ### CI/CD
@@ -402,10 +448,10 @@ All 3 apps: `node:lts-alpine` + pnpm, copy `dist/`, `pnpm install`, `node main.j
 | shared | 20 | Unit | None |
 | auth | 3 | Unit (mocked) | None |
 | clickhouse | 6 | Unit (mocked) | None |
-| api-tenant-manager | 27 | Integration | Testcontainers PostgreSQL |
-| api-event-webhook | 7 | Integration | Testcontainers Kafka |
+| api-tenant-manager | 38 | Integration | Testcontainers PostgreSQL |
+| api-event-webhook | 10 | Integration | Testcontainers Kafka, PostgreSQL, Redis |
 | consumer-events-ingest | 0 | — | — |
-| **Total** | **63** | | |
+| **Total** | **77** | | |
 
 Test framework: **Vitest 3** with `globals: true`, `pool: 'forks'`, `server.deps.inline: true`
 
@@ -423,3 +469,5 @@ Test framework: **Vitest 3** with `globals: true`, `pool: 'forks'`, `server.deps
 | `@prisma/adapter-pg` connection pooling | Native pg Pool without needing PgBouncer |
 | KRaft single-node Kafka | Simplified dev setup without ZooKeeper |
 | Nx monorepo with buildable libs | Independent builds and deploys per app |
+| Per-project API keys with SHA-256 hash | Keys stored as hashes (never plaintext); prefix for identification; Redis cache with 5-min TTL |
+| `project_id` injected server-side | Clients authenticate with API key, server resolves project; prevents spoofing |

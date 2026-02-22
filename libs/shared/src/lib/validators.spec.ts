@@ -2,11 +2,15 @@
 import { EventMessage, EventMessageInput } from './validators';
 const basePayload = {
   event_id: '018ea8e1-b5be-7462-aa55-5f9d0d10c9c8',
-  tenant_id: 'c0a80101-7e6c-48a3-9f25-0e6f5c0d4a1b',
   session_id: '7aa36cf5-1f5f-4f9a-9ee8-4c0c8b8c5f75',
   user_id: 'user-123',
   event_name: 'button_click',
   timestamp: '2024-05-01T12:00:00.123Z',
+};
+
+const baseEventMessage = {
+  ...basePayload,
+  project_id: 'c0a80101-7e6c-48a3-9f25-0e6f5c0d4a1b',
 };
 describe('Validators', () => {
   describe('EventMessageInput', () => {
@@ -58,13 +62,13 @@ describe('Validators', () => {
       const result = EventMessageInput.safeParse({
         ...basePayload,
         event_id: 'not-a-uuid',
-        tenant_id: '1234',
+        session_id: '1234',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
         const paths = result.error.issues.map((i) => i.path.join('.'));
         expect(paths).toEqual(
-          expect.arrayContaining(['event_id', 'tenant_id'])
+          expect.arrayContaining(['event_id', 'session_id'])
         );
       }
     });
@@ -182,7 +186,7 @@ describe('Validators', () => {
   describe('EventMessage', () => {
     it('rejects invalid IP addresses', () => {
       const result = EventMessage.safeParse({
-        ...basePayload,
+        ...baseEventMessage,
         ip_address: '999.999.999.999',
       });
       expect(result.success).toBe(false);
@@ -192,32 +196,32 @@ describe('Validators', () => {
         ).toBe(true);
       }
     });
-    it('rejects missing ip_address', () => {
+    it('rejects missing ip_address and project_id', () => {
       const result = EventMessage.safeParse({
         ...basePayload,
       });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(
-          result.error.issues.some((i) => i.path[0] === 'ip_address')
-        ).toBe(true);
+        const paths = result.error.issues.map((i) => i.path[0]);
+        expect(paths).toContain('ip_address');
+        expect(paths).toContain('project_id');
       }
     });
     it('accepts valid IPv4 and IPv6 addresses', () => {
       const ipv4Result = EventMessage.safeParse({
-        ...basePayload,
+        ...baseEventMessage,
         ip_address: '192.168.1.1',
       });
       expect(ipv4Result.success).toBe(true);
       const ipv6Result = EventMessage.safeParse({
-        ...basePayload,
+        ...baseEventMessage,
         ip_address: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
       });
       expect(ipv6Result.success).toBe(true);
     });
     it('accepts optional user_agent', () => {
       const result = EventMessage.safeParse({
-        ...basePayload,
+        ...baseEventMessage,
         ip_address: '192.168.1.1',
         user_agent: 'Mozilla/5.0',
       });
@@ -239,7 +243,7 @@ describe('Validators', () => {
       ];
       for (const continent of validContinents) {
         const result = EventMessage.safeParse({
-          ...basePayload,
+          ...baseEventMessage,
           ip_address: '192.168.1.1',
           continent,
         });
@@ -251,7 +255,7 @@ describe('Validators', () => {
     });
     it('rejects invalid continent values', () => {
       const result = EventMessage.safeParse({
-        ...basePayload,
+        ...baseEventMessage,
         ip_address: '192.168.1.1',
         continent: 'Invalid Continent',
       });
@@ -294,7 +298,7 @@ describe('Validators', () => {
       ];
       for (const region of validRegions) {
         const result = EventMessage.safeParse({
-          ...basePayload,
+          ...baseEventMessage,
           ip_address: '192.168.1.1',
           region,
         });
@@ -306,7 +310,7 @@ describe('Validators', () => {
     });
     it('rejects invalid region values', () => {
       const result = EventMessage.safeParse({
-        ...basePayload,
+        ...baseEventMessage,
         ip_address: '192.168.1.1',
         region: 'Invalid Region',
       });

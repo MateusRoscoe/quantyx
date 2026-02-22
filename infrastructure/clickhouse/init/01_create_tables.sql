@@ -4,7 +4,7 @@ CREATE DATABASE IF NOT EXISTS analytics;
 CREATE TABLE
     IF NOT EXISTS analytics.events (
         event_id String,
-        tenant_id String,
+        project_id String,
         user_id String,
         session_id String,
         event_name LowCardinality (String),
@@ -36,7 +36,7 @@ PARTITION BY
     toYYYYMM (`date`)
 ORDER BY
     (
-        tenant_id,
+        project_id,
         `date`,
         event_name,
         user_id,
@@ -46,7 +46,7 @@ ORDER BY
 -- Users table (aggregated user data)
 CREATE TABLE
     IF NOT EXISTS analytics.users (
-        tenant_id String,
+        project_id String,
         user_id String,
         first_seen DateTime64 (3),
         last_seen DateTime64 (3),
@@ -57,12 +57,12 @@ CREATE TABLE
         updated_at DateTime64 (3)
     ) ENGINE = ReplacingMergeTree (updated_at)
 ORDER BY
-    (tenant_id, user_id);
+    (project_id, user_id);
 
 -- Daily metrics (pre-aggregated for performance)
 CREATE TABLE
     IF NOT EXISTS analytics.metrics_daily (
-        tenant_id String,
+        project_id String,
         `date` Date,
         metric_type LowCardinality (String),
         dimension_name LowCardinality (String),
@@ -74,7 +74,7 @@ PARTITION BY
     toYYYYMM (`date`)
 ORDER BY
     (
-        tenant_id,
+        project_id,
         `date`,
         metric_type,
         dimension_name,
@@ -84,7 +84,7 @@ ORDER BY
 -- Property metadata (tracks all properties seen)
 CREATE TABLE
     IF NOT EXISTS analytics.property_metadata (
-        tenant_id String,
+        project_id String,
         property_name String,
         property_type LowCardinality (String),
         first_seen DateTime64 (3),
@@ -94,4 +94,4 @@ CREATE TABLE
         updated_at DateTime64 (3)
     ) ENGINE = ReplacingMergeTree (updated_at)
 ORDER BY
-    (tenant_id, property_name);
+    (project_id, property_name);

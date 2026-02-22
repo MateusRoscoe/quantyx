@@ -15,7 +15,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 - [x] **Missing Dockerfiles** — `consumer-events-ingest` and `api-tenant-manager` have no Dockerfiles (only `api-event-webhook` has one)
 - [x] **No Prisma migrations committed** — No `prisma/migrations/` directory exists; schema changes aren't tracked or reproducible
-- [x] **Redis unused** — Redis is defined in `docker-compose.yml` but no app references it. Either wire it up or remove it.
+- [x] **Redis unused** — Redis is now used by `api-event-webhook` for API key caching
 
 ---
 
@@ -25,7 +25,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **CRUD routes: Organizations** — `GET /organizations`, `POST /organizations`, `GET /organizations/:id`, `PATCH /organizations/:id`, `DELETE /organizations/:id` (soft delete)
 - [x] **CRUD routes: Projects** — `GET /organizations/:orgId/projects`, `POST /organizations/:orgId/projects`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id` (soft delete)
 - [ ] **Auth middleware integration** — Protect routes once auth is wired up (see Auth section below)
-- [ ] **Tenant API key management** — Generate, rotate, and revoke API keys per tenant/project
+- [x] **Tenant API key management** — Generate, rotate, and revoke API keys per tenant/project
 
 ---
 
@@ -41,8 +41,8 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 ## Features — api-event-webhook
 
-- [ ] **Tenant ID validation** — Before ingesting an event, verify the `tenant_id` exists in PostgreSQL. Reject unknown tenants with `400` or `403`.
-- [ ] **API key authentication** — Authenticate ingest requests using a per-tenant API key (header-based, e.g. `X-Api-Key`)
+- [x] **Project ID validation** — Before ingesting an event, verify the `project_id` exists in PostgreSQL. Reject unknown projects with `400` or `403`.
+- [x] **API key authentication** — Authenticate ingest requests using a per-project API key (`X-API-Key` header), resolved via Redis cache → PostgreSQL fallback
 - [ ] **Rate limiting / quota enforcement** — Enforce per-tenant ingestion rate limits and event quotas (Redis-backed or in-process)
 
 ---

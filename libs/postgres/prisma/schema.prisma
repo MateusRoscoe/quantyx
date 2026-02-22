@@ -20,6 +20,7 @@ model Organization {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   projects  Project[]
+  apiKeys   ApiKey[]
 
   @@map("organizations")
 }
@@ -32,9 +33,31 @@ model Project {
   updatedAt      DateTime     @updatedAt
   deletedAt      DateTime?
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  apiKeys        ApiKey[]
 
   @@index([organizationId], name: "idx_projects_organization_id")
   @@map("projects")
+}
+
+model ApiKey {
+  id             String       @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  projectId      String       @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  prefix         String       @db.VarChar(12)
+  keyHash        String       @unique
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([prefix])
+  @@index([projectId])
+  @@index([organizationId])
+  @@map("api_keys")
 }
 
 // BetterAuth models

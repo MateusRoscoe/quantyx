@@ -9,8 +9,13 @@ import { randomUUID } from 'node:crypto';
 import { app } from './app';
 import { connectProducer, disconnectProducer } from './models/kafka';
 import { environment } from './helpers/env';
+import { prisma } from '@quantyx/postgres';
+import { generateApiKey } from '@quantyx/shared-backend';
+import { disconnectRedis } from '@quantyx/redis';
 
 let server: FastifyInstance;
+let apiKey: string;
+let projectId: string;
 
 // Generate a proper UUIDv7
 function uuidv7(): string {
@@ -39,7 +44,6 @@ function uuidv7(): string {
 function makeEvent(overrides: Record<string, unknown> = {}) {
   return {
     event_id: uuidv7(),
-    tenant_id: randomUUID(),
     session_id: randomUUID(),
     user_id: 'test-user',
     event_name: 'page_view',
@@ -49,6 +53,28 @@ function makeEvent(overrides: Record<string, unknown> = {}) {
 }
 
 beforeAll(async () => {
+  // Create org → project → API key for testing
+  const org = await prisma.organization.create({
+    data: { name: 'Test Org' },
+  });
+  const project = await prisma.project.create({
+    data: { name: 'Test Project', organizationId: org.id },
+  });
+  projectId = project.id;
+
+  const generated = generateApiKey();
+  apiKey = generated.key;
+
+  await prisma.apiKey.create({
+    data: {
+      projectId: project.id,
+      organizationId: org.id,
+      name: 'Test Key',
+      prefix: generated.prefix,
+      keyHash: generated.keyHash,
+    },
+  });
+
   server = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);
@@ -59,11 +85,13 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await disconnectProducer();
+  await disconnectRedis();
+  await prisma.$disconnect();
   await server.close();
 });
 
 describe('GET /healthz', () => {
-  it('should return 200 with kafka connected status', async () => {
+  it('should return 200 with status', async () => {
     const response = await server.inject({
       method: 'GET',
       url: '/healthz',
@@ -77,7 +105,20 @@ describe('GET /healthz', () => {
 });
 
 describe('POST /ingest', () => {
-  it('should return 204 with valid payload', async () => {
+  it('should return 204 with valid payload and API key', async () => {
+    const event = makeEvent();
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/ingest',
+      payload: event,
+      headers: { 'x-api-key': apiKey },
+    });
+
+    expect(response.statusCode).toBe(204);
+  });
+
+  it('should return 401 without API key', async () => {
     const event = makeEvent();
 
     const response = await server.inject({
@@ -86,7 +127,50 @@ describe('POST /ingest', () => {
       payload: event,
     });
 
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('should return 401 with invalid API key', async () => {
+    const event = makeEvent();
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/ingest',
+      payload: event,
+      headers: { 'x-api-key': 'qx_invalid_key_here' },
+    });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('should return 401 with expired API key', async () => {
+    const org = await prisma.organization.create({
+      data: { name: 'Expired Org' },
+    });
+    const proj = await prisma.project.create({
+      data: { name: 'Expired Project', organizationId: org.id },
+    });
+    const expired = generateApiKey();
+    await prisma.apiKey.create({
+      data: {
+        projectId: proj.id,
+        organizationId: org.id,
+        name: 'Expired Key',
+        prefix: expired.prefix,
+        keyHash: expired.keyHash,
+        expiresAt: new Date(Date.now() - 86400000), // yesterday
+      },
+    });
+
+    const event = makeEvent();
+    const response = await server.inject({
+      method: 'POST',
+      url: '/ingest',
+      payload: event,
+      headers: { 'x-api-key': expired.key },
+    });
+
+    expect(response.statusCode).toBe(401);
   });
 
   it('should return 400 with invalid payload', async () => {
@@ -94,6 +178,7 @@ describe('POST /ingest', () => {
       method: 'POST',
       url: '/ingest',
       payload: { invalid: true },
+      headers: { 'x-api-key': apiKey },
     });
 
     expect(response.statusCode).toBe(400);
@@ -105,8 +190,9 @@ describe('POST /ingest', () => {
       url: '/ingest',
       payload: {
         event_name: 'test',
-        // missing event_id, tenant_id, session_id, user_id, timestamp
+        // missing event_id, session_id, user_id, timestamp
       },
+      headers: { 'x-api-key': apiKey },
     });
 
     expect(response.statusCode).toBe(400);
@@ -121,6 +207,7 @@ describe('POST /ingest-bulk', () => {
       method: 'POST',
       url: '/ingest-bulk',
       payload: events,
+      headers: { 'x-api-key': apiKey },
     });
 
     expect(response.statusCode).toBe(204);
@@ -131,6 +218,7 @@ describe('POST /ingest-bulk', () => {
       method: 'POST',
       url: '/ingest-bulk',
       payload: [{ invalid: true }],
+      headers: { 'x-api-key': apiKey },
     });
 
     expect(response.statusCode).toBe(400);
@@ -138,13 +226,14 @@ describe('POST /ingest-bulk', () => {
 });
 
 describe('Kafka message verification', () => {
-  it('should produce messages to Kafka topic', async () => {
+  it('should produce messages to Kafka topic with project_id', async () => {
     const event = makeEvent({ event_name: 'kafka_verify_test' });
 
     const response = await server.inject({
       method: 'POST',
       url: '/ingest',
       payload: event,
+      headers: { 'x-api-key': apiKey },
     });
     expect(response.statusCode).toBe(204);
 
@@ -207,6 +296,7 @@ describe('Kafka message verification', () => {
     const parsed = JSON.parse(matchingMessages[0]);
     expect(parsed.event_id).toBe(event.event_id);
     expect(parsed.user_id).toBe(event.user_id);
+    expect(parsed.project_id).toBe(projectId);
     expect(parsed.ip_address).toBeDefined();
   });
 });

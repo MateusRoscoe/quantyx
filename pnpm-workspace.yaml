@@ -7,6 +7,7 @@ packages:
   - libs/clickhouse
   - libs/postgres
   - libs/auth
+  - libs/redis
 
 onlyBuiltDependencies:
   - '@prisma/client'

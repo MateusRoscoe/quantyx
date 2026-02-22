@@ -37,7 +37,7 @@ export async function clickhouseHealthCheck(): Promise<ConnPingResult> {
 
 export type ClickHouseEvent = {
   event_id: string;
-  tenant_id: string;
+  project_id: string;
   user_id: string;
   session_id: string;
   event_name: string;

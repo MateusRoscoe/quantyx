@@ -12,6 +12,8 @@ import {
 import { getLogger } from '@quantyx/shared-backend';
 import { environment } from './app/helpers/env';
 import { disconnectProducer } from './app/models/kafka';
+import { disconnectRedis } from '@quantyx/redis';
+import { prisma } from '@quantyx/postgres';
 
 const logger = getLogger('main');
 
@@ -38,6 +40,16 @@ server.register(fastifySwagger, {
         'API for ingesting event data via webhooks into Quantyx platform.',
       version: 'latest',
     },
+    components: {
+      securitySchemes: {
+        apiKey: {
+          type: 'apiKey',
+          name: 'X-API-Key',
+          in: 'header',
+        },
+      },
+    },
+    security: [{ apiKey: [] }],
   },
   transform: jsonSchemaTransform,
 });
@@ -67,6 +79,8 @@ for (const signal of SIGNALS) {
       logger.info(`Received ${signal}, closing server...`);
       await server.close();
       await disconnectProducer();
+      await disconnectRedis();
+      await prisma.$disconnect();
       logger.info('Server closed gracefully.');
       process.exit(0);
     } catch (error) {
