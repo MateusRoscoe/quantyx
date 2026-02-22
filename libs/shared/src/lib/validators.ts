@@ -71,3 +71,34 @@ export const EventMessage = EventMessageInput.extend({
 
 export type EventMessageInput = z.infer<typeof EventMessageInput>;
 export type EventMessage = z.infer<typeof EventMessage>;
+
+// --- Organizations ---
+export const OrganizationBody = z.object({
+  name: z.string().min(1).max(256),
+});
+
+export const OrganizationResponse = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type OrganizationBody = z.infer<typeof OrganizationBody>;
+export type OrganizationResponse = z.infer<typeof OrganizationResponse>;
+
+// --- Projects ---
+export const ProjectBody = z.object({
+  name: z.string().min(1).max(256),
+});
+
+export const ProjectResponse = z.object({
+  id: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  name: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type ProjectBody = z.infer<typeof ProjectBody>;
+export type ProjectResponse = z.infer<typeof ProjectResponse>;

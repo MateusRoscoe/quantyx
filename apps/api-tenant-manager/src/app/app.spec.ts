@@ -1,16 +1,41 @@
 import Fastify, { FastifyInstance } from 'fastify';
+import {
+  serializerCompiler,
+  validatorCompiler,
+  ZodTypeProvider,
+} from 'fastify-type-provider-zod';
+
+jest.mock('@quantyx/postgres', () => ({
+  prisma: {
+    $connect: jest.fn().mockResolvedValue(undefined),
+    $queryRaw: jest.fn().mockResolvedValue([{ 1: 1 }]),
+  },
+}));
+
 import { app } from './app';
-describe('GET /', () => {
+
+describe('GET /healthz', () => {
   let server: FastifyInstance;
+
   beforeEach(() => {
-    server = Fastify();
+    server = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
+    server.setValidatorCompiler(validatorCompiler);
+    server.setSerializerCompiler(serializerCompiler);
     server.register(app);
   });
-  it('should respond with a message', async () => {
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  it('should return alive status', async () => {
     const response = await server.inject({
       method: 'GET',
-      url: '/',
+      url: '/healthz',
     });
-    expect(response.json()).toEqual({ message: 'Hello API' });
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.status).toBe('alive');
+    expect(body.db).toBeDefined();
   });
 });
