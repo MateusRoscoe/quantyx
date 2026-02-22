@@ -1,27 +1,57 @@
-# TODO
+# TODOs
 
-## `apps/api-event-webhook`
+Outstanding work items for the Quantyx project, organized by category and priority.
 
-- [ ] Add authentication to healthcheck route
-  - Implement x-api-key validation as a simple protection layer
-  - Prevent unnecessary Kafka connections
-- [ ] Add tenant validation for event publishing
-  - Verify tenant_id is registered in the system
-  - Check tenant has sufficient quota before accepting events
+---
 
-## `apps/event-consumer`
+## Bugs / Broken
 
-- [ ] Create app to consume Kafka events
-  - Set up consumer service in new app
-  - Handle event processing and storage
+- [ ] **CI pipeline misconfigured** — `.github/workflows/ci.yml` uses `npm ci` instead of `pnpm install` and targets Node 20 instead of Node 24 (see `.nvmrc`)
+- [ ] **Stale duplicate Prisma schema** — `libs/auth/prisma/schema.prisma` has a conflicting ID strategy (ulid) vs the main schema in `libs/postgres/prisma/schema.prisma` (uuidv7). Reconcile or remove the duplicate.
 
-## `apps/api-bff`
+## Infrastructure / DevOps
 
-- [ ] Create API to serve the data to the frontend
-  - Prevent SQL injection but allow highly flexible querying patterns
+- [ ] **Missing Dockerfiles** — `consumer-events-ingest` and `api-tenant-manager` have no Dockerfiles (only `api-event-webhook` has one)
+- [ ] **No Prisma migrations committed** — No `prisma/migrations/` directory exists; schema changes aren't tracked or reproducible
+- [ ] **Redis unused** — Redis is defined in `docker-compose.yml` but no app references it. Either wire it up or remove it.
 
-## `apps/frontend`
+## Features — api-tenant-manager
 
-- [ ] Create frontend app to display events
-  - Build UI to visualize consumed events
-  - Implement real-time updates
+- [ ] Zod type provider + env validation setup (like the other apps)
+- [ ] CRUD routes for Organizations
+- [ ] CRUD routes for Projects
+- [ ] Auth middleware integration (once auth is wired up)
+- [ ] Tenant API key management
+
+## Features — Auth (libs/auth)
+
+- [ ] Expose BetterAuth routes (register, login, logout, session)
+- [ ] OAuth provider configuration
+- [ ] Email verification flow
+- [ ] Password reset flow
+- [ ] Auth middleware for protecting API routes
+
+## Features — api-event-webhook
+
+- [ ] Tenant ID validation (verify tenant exists before ingesting)
+- [ ] API key authentication on ingest endpoints
+- [ ] Rate limiting / quota checking per tenant
+
+## Features — Future Apps
+
+- [ ] **API BFF** — Create API to serve data to the frontend with flexible querying (prevent SQL injection)
+- [ ] **Frontend** — Build UI to visualize events with real-time updates
+
+## Testing
+
+- [ ] `consumer-events-ingest` — Zero tests; need unit tests for `event-service.ts` transformation + integration tests for batch processing
+- [ ] `libs/kafka` — No tests
+- [ ] `libs/shared-backend` — No tests
+- [ ] `libs/postgres` — No tests
+- [ ] `api-tenant-manager` — Only placeholder test; needs real tests as routes are built
+
+## Observability
+
+- [ ] No metrics/monitoring beyond Pino logging
+- [ ] No structured health check aggregation across services
+- [ ] No alerting configuration
