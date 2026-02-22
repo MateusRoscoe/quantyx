@@ -1,12 +1,12 @@
-jest.mock('better-auth', () => ({
-  betterAuth: jest.fn().mockReturnValue({ id: 'auth-instance' }),
+vi.mock('better-auth', () => ({
+  betterAuth: vi.fn().mockReturnValue({ id: 'auth-instance' }),
 }));
 
-jest.mock('better-auth/adapters/prisma', () => ({
-  prismaAdapter: jest.fn().mockReturnValue('prisma-adapter'),
+vi.mock('better-auth/adapters/prisma', () => ({
+  prismaAdapter: vi.fn().mockReturnValue('prisma-adapter'),
 }));
 
-jest.mock('@quantyx/postgres', () => ({
+vi.mock('@quantyx/postgres', () => ({
   prisma: 'mock-prisma-client',
 }));
 

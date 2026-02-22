@@ -32,7 +32,7 @@ export default async function (fastify: server) {
             undefined,
         };
         await sendEvent(eventData);
-        reply.status(204).send();
+        reply.status(204).send(null);
       } catch (error) {
         fastify.log.error(error, `Failed to send event to Kafka`);
         reply
@@ -67,7 +67,7 @@ export default async function (fastify: server) {
             undefined,
         }));
         await sendEventBulk(events);
-        reply.status(204).send();
+        reply.status(204).send(null);
       } catch (error) {
         fastify.log.error(error, `Failed to send event to Kafka`);
         reply

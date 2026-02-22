@@ -2,13 +2,7 @@ import { KafkaContainer } from '@testcontainers/kafka';
 import { Kafka } from 'kafkajs';
 
 const TOPIC = 'event-webhook-ingestion';
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __KAFKA_CONTAINER__: Awaited<
-    ReturnType<KafkaContainer['start']>
-  >;
-}
+let container: Awaited<ReturnType<KafkaContainer['start']>>;
 
 async function waitForKafkaReady(brokers: string[], maxAttempts = 15) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -39,8 +33,8 @@ async function waitForKafkaReady(brokers: string[], maxAttempts = 15) {
   }
 }
 
-export default async function () {
-  const container = await new KafkaContainer('confluentinc/cp-kafka:7.5.0')
+export async function setup() {
+  container = await new KafkaContainer('confluentinc/cp-kafka:7.5.0')
     .withExposedPorts(9093)
     .withStartupTimeout(60_000)
     .start();
@@ -52,6 +46,8 @@ export default async function () {
   process.env.KAFKA_BROKERS = brokers;
   process.env.EVENTS_MAX_BUFFER_SIZE = '1';
   process.env.KAFKAJS_NO_PARTITIONER_WARNING = '1';
+}
 
-  globalThis.__KAFKA_CONTAINER__ = container;
+export async function teardown() {
+  await container?.stop();
 }

@@ -1,4 +1,4 @@
-jest.mock('./env', () => ({
+vi.mock('./env', () => ({
   environment: {
     CLICKHOUSE_URL: 'http://localhost:8123',
     CLICKHOUSE_USER: 'default',
@@ -8,20 +8,20 @@ jest.mock('./env', () => ({
   },
 }));
 
-jest.mock('@clickhouse/client', () => ({
-  createClient: jest.fn(() => ({
-    ping: jest.fn(),
+vi.mock('@clickhouse/client', () => ({
+  createClient: vi.fn(() => ({
+    ping: vi.fn(),
   })),
 }));
 
 import { createClient } from '@clickhouse/client';
 import { clickhouse, clickhouseHealthCheck } from './clickhouse';
 
-const mockPing = clickhouse.ping as jest.Mock;
+const mockPing = vi.mocked(clickhouse.ping);
 
 describe('clickhouse', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('createClient', () => {

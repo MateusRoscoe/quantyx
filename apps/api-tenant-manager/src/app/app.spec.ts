@@ -5,10 +5,10 @@ import {
   ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 
-jest.mock('@quantyx/postgres', () => ({
+vi.mock('@quantyx/postgres', () => ({
   prisma: {
-    $connect: jest.fn().mockResolvedValue(undefined),
-    $queryRaw: jest.fn().mockResolvedValue([{ 1: 1 }]),
+    $connect: vi.fn().mockResolvedValue(undefined),
+    $queryRaw: vi.fn().mockResolvedValue([{ 1: 1 }]),
   },
 }));
 

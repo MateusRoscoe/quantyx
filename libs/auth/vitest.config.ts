@@ -1,0 +1,11 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    name: 'auth',
+    environment: 'node',
+    globals: true,
+    include: ['src/**/*.spec.ts'],
+    coverage: { reportsDirectory: 'test-output/vitest/coverage', provider: 'v8' },
+  },
+});

@@ -2,15 +2,10 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { execSync } from 'child_process';
 import * as path from 'path';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __POSTGRES_CONTAINER__: Awaited<
-    ReturnType<PostgreSqlContainer['start']>
-  >;
-}
+let container: Awaited<ReturnType<PostgreSqlContainer['start']>>;
 
-export default async function () {
-  const container = await new PostgreSqlContainer('postgres:18-trixie')
+export async function setup() {
+  container = await new PostgreSqlContainer('postgres:18-trixie')
     .withDatabase('quantyx_test')
     .withUsername('postgres')
     .withPassword('postgres')
@@ -24,12 +19,14 @@ export default async function () {
   process.env.POSTGRES_URL = connectionUri;
 
   // Apply schema via migrations — run from libs/postgres so Prisma discovers prisma.config.ts
-  const postgresLibPath = path.resolve(__dirname, '../../libs/postgres');
-  execSync(`pnpm exec prisma migrate deploy`, {
+  const postgresLibPath = path.resolve(import.meta.dirname, '../../libs/postgres');
+  execSync('pnpm exec prisma migrate deploy', {
     env: { ...process.env },
     cwd: postgresLibPath,
     stdio: 'inherit',
   });
+}
 
-  globalThis.__POSTGRES_CONTAINER__ = container;
+export async function teardown() {
+  await container?.stop();
 }
