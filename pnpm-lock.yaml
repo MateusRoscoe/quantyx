@@ -102,6 +102,9 @@ importers:
       '@testcontainers/kafka':
         specifier: ^11.12.0
         version: 11.12.0
+      '@testcontainers/postgresql':
+        specifier: ^11.12.0
+        version: 11.12.0
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -1970,6 +1973,9 @@ packages:
 
   '@testcontainers/kafka@11.12.0':
     resolution: {integrity: sha512-8MxF9+Kzw+4/+xzORAFg/DrNEr74Gcrc6l8Wcw9Wp2jcH1wXWRsZ7tsTtsedz69q4gyZZRv/1pZa2SPLxXwuxw==}
+
+  '@testcontainers/postgresql@11.12.0':
+    resolution: {integrity: sha512-w4ZK0H+WIYBUBk57H9wCSxPMSMZUNsFpx2MZAX4iru0Aevz9HFWDfAhFLAu+/SwsHtEJUD7XfWUDlqBGC3OF0Q==}
 
   '@tokenizer/inflate@0.2.7':
     resolution: {integrity: sha512-MADQgmZT1eKjp06jpI2yozxaU9uVs4GzzgSL+uEq7bVcJ9V1ZXQkeGNql1fsSI0gMy1vhvNTNbUqrx+pZfJVmg==}
@@ -7319,6 +7325,15 @@ snapshots:
   '@testcontainers/kafka@11.12.0':
     dependencies:
       compare-versions: 6.1.1
+      testcontainers: 11.12.0
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - react-native-b4a
+      - supports-color
+
+  '@testcontainers/postgresql@11.12.0':
+    dependencies:
       testcontainers: 11.12.0
     transitivePeerDependencies:
       - bare-abort-controller

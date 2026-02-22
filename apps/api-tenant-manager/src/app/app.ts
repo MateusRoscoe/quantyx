@@ -22,5 +22,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
   fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'routes'),
     options: { ...opts },
+    ignorePattern: /.*\.spec\.ts$/,
   });
 }
