@@ -6,6 +6,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   DATABASE_URL: z.string().min(1),
+  BETTER_AUTH_SECRET: z.string().min(1),
 });
 
 type Env = z.infer<typeof envSchema>;

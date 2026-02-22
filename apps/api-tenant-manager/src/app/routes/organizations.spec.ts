@@ -6,8 +6,10 @@ import {
 } from 'fastify-type-provider-zod';
 import { prisma } from '@quantyx/postgres';
 import { app } from '../app';
+import { AuthContext, createAuthenticatedUser } from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
+let authCtx: AuthContext;
 
 beforeAll(async () => {
   server = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
@@ -15,6 +17,8 @@ beforeAll(async () => {
   server.setSerializerCompiler(serializerCompiler);
   server.register(app);
   await server.ready();
+
+  authCtx = await createAuthenticatedUser(server);
 });
 
 beforeEach(async () => {
@@ -22,13 +26,18 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await prisma.user.deleteMany({});
   await server.close();
   await prisma.$disconnect();
 });
 
 describe('GET /organizations', () => {
   it('returns empty list when no organizations exist', async () => {
-    const response = await server.inject({ method: 'GET', url: '/organizations' });
+    const response = await server.inject({
+      method: 'GET',
+      url: '/organizations',
+      headers: authCtx.headers,
+    });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual([]);
   });
@@ -38,11 +47,23 @@ describe('GET /organizations', () => {
     await prisma.organization.create({
       data: { name: 'Deleted', deletedAt: new Date() },
     });
-    const response = await server.inject({ method: 'GET', url: '/organizations' });
+    const response = await server.inject({
+      method: 'GET',
+      url: '/organizations',
+      headers: authCtx.headers,
+    });
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body).toHaveLength(1);
     expect(body[0].id).toBe(org.id);
+  });
+
+  it('returns 401 without session', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/organizations',
+    });
+    expect(response.statusCode).toBe(401);
   });
 });
 
@@ -52,6 +73,7 @@ describe('POST /organizations', () => {
       method: 'POST',
       url: '/organizations',
       payload: { name: 'Acme Corp' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(201);
     const body = response.json();
@@ -66,6 +88,7 @@ describe('POST /organizations', () => {
       method: 'POST',
       url: '/organizations',
       payload: { name: '' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(400);
   });
@@ -75,6 +98,7 @@ describe('POST /organizations', () => {
       method: 'POST',
       url: '/organizations',
       payload: {},
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(400);
   });
@@ -86,6 +110,7 @@ describe('GET /organizations/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/organizations/${org.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -99,6 +124,7 @@ describe('GET /organizations/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/organizations/00000000-0000-0000-0000-000000000000',
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -110,6 +136,7 @@ describe('GET /organizations/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/organizations/${org.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -122,6 +149,7 @@ describe('PATCH /organizations/:id', () => {
       method: 'PATCH',
       url: `/organizations/${org.id}`,
       payload: { name: 'New Name' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -134,6 +162,7 @@ describe('PATCH /organizations/:id', () => {
       method: 'PATCH',
       url: '/organizations/00000000-0000-0000-0000-000000000000',
       payload: { name: 'Anything' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -145,6 +174,7 @@ describe('DELETE /organizations/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: `/organizations/${org.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(204);
 
@@ -157,6 +187,7 @@ describe('DELETE /organizations/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: '/organizations/00000000-0000-0000-0000-000000000000',
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -168,6 +199,7 @@ describe('DELETE /organizations/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: `/organizations/${org.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });

@@ -6,8 +6,10 @@ import {
 } from 'fastify-type-provider-zod';
 import { prisma } from '@quantyx/postgres';
 import { app } from '../app';
+import { AuthContext, createAuthenticatedUser } from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
+let authCtx: AuthContext;
 
 beforeAll(async () => {
   server = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
@@ -15,6 +17,8 @@ beforeAll(async () => {
   server.setSerializerCompiler(serializerCompiler);
   server.register(app);
   await server.ready();
+
+  authCtx = await createAuthenticatedUser(server, 'apikeys-test@example.com');
 });
 
 beforeEach(async () => {
@@ -23,6 +27,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await prisma.user.deleteMany({});
   await server.close();
   await prisma.$disconnect();
 });
@@ -41,6 +46,7 @@ describe('GET /projects/:projectId/api-keys', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/projects/${project.id}/api-keys`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual([]);
@@ -71,6 +77,7 @@ describe('GET /projects/:projectId/api-keys', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/projects/${project.id}/api-keys`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -86,6 +93,7 @@ describe('POST /projects/:projectId/api-keys', () => {
       method: 'POST',
       url: `/projects/${project.id}/api-keys`,
       payload: { name: 'My Key' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(201);
     const body = response.json();
@@ -109,6 +117,7 @@ describe('POST /projects/:projectId/api-keys', () => {
       method: 'POST',
       url: `/projects/${project.id}/api-keys`,
       payload: { name: 'Expiring Key', expiresAt },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(201);
     const body = response.json();
@@ -120,6 +129,7 @@ describe('POST /projects/:projectId/api-keys', () => {
       method: 'POST',
       url: '/projects/00000000-0000-0000-0000-000000000000/api-keys',
       payload: { name: 'Ghost Key' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -130,12 +140,14 @@ describe('POST /projects/:projectId/api-keys', () => {
       method: 'POST',
       url: `/projects/${project.id}/api-keys`,
       payload: { name: 'Check Key' },
+      headers: authCtx.headers,
     });
     const created = createResponse.json();
 
     const getResponse = await server.inject({
       method: 'GET',
       url: `/api-keys/${created.id}`,
+      headers: authCtx.headers,
     });
     expect(getResponse.statusCode).toBe(200);
     const body = getResponse.json();
@@ -160,6 +172,7 @@ describe('GET /api-keys/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/api-keys/${apiKey.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -171,6 +184,7 @@ describe('GET /api-keys/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/api-keys/00000000-0000-0000-0000-000000000000',
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -192,6 +206,7 @@ describe('DELETE /api-keys/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: `/api-keys/${apiKey.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(204);
 
@@ -204,6 +219,7 @@ describe('DELETE /api-keys/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: '/api-keys/00000000-0000-0000-0000-000000000000',
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -224,6 +240,7 @@ describe('DELETE /api-keys/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: `/api-keys/${apiKey.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });

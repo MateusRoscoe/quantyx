@@ -115,6 +115,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@quantyx/auth": "workspace:*",
     "@quantyx/postgres": "workspace:*",
     "@quantyx/shared": "workspace:*",
     "@quantyx/shared-backend": "workspace:*"

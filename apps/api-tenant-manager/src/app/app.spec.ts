@@ -12,6 +12,15 @@ vi.mock('@quantyx/postgres', () => ({
   },
 }));
 
+vi.mock('@quantyx/auth', () => ({
+  auth: {
+    handler: vi.fn(),
+    api: {
+      getSession: vi.fn().mockResolvedValue(null),
+    },
+  },
+}));
+
 import { app } from './app';
 
 describe('GET /healthz', () => {

@@ -19,6 +19,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/auth/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared-backend/tsconfig.lib.json"
     },
     {

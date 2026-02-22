@@ -209,6 +209,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@quantyx/auth':
+        specifier: workspace:*
+        version: link:../../libs/auth
       '@quantyx/postgres':
         specifier: workspace:*
         version: link:../../libs/postgres

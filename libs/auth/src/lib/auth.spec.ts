@@ -24,6 +24,7 @@ describe('auth', () => {
   it('should create betterAuth with correct config', () => {
     expect(betterAuth).toHaveBeenCalledWith({
       database: 'prisma-adapter',
+      emailAndPassword: { enabled: true },
       experimental: { joins: true },
       advanced: { database: { generateId: false } },
     });

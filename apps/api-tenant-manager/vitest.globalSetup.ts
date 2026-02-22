@@ -17,6 +17,7 @@ export async function setup() {
   // Prisma CLI reads DATABASE_URL; runtime adapter reads POSTGRES_URL
   process.env.DATABASE_URL = connectionUri;
   process.env.POSTGRES_URL = connectionUri;
+  process.env.BETTER_AUTH_SECRET = 'test-secret-for-better-auth-at-least-32-chars';
 
   // Apply schema via migrations — run from libs/postgres so Prisma discovers prisma.config.ts
   const postgresLibPath = path.resolve(import.meta.dirname, '../../libs/postgres');

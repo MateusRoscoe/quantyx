@@ -6,8 +6,10 @@ import {
 } from 'fastify-type-provider-zod';
 import { prisma } from '@quantyx/postgres';
 import { app } from '../app';
+import { AuthContext, createAuthenticatedUser } from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
+let authCtx: AuthContext;
 
 beforeAll(async () => {
   server = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
@@ -15,6 +17,8 @@ beforeAll(async () => {
   server.setSerializerCompiler(serializerCompiler);
   server.register(app);
   await server.ready();
+
+  authCtx = await createAuthenticatedUser(server, 'projects-test@example.com');
 });
 
 beforeEach(async () => {
@@ -23,6 +27,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await prisma.user.deleteMany({});
   await server.close();
   await prisma.$disconnect();
 });
@@ -37,6 +42,7 @@ describe('GET /organizations/:orgId/projects', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/organizations/${org.id}/projects`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual([]);
@@ -55,6 +61,7 @@ describe('GET /organizations/:orgId/projects', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/organizations/${org1.id}/projects`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -74,6 +81,7 @@ describe('GET /organizations/:orgId/projects', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/organizations/${org.id}/projects`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -89,6 +97,7 @@ describe('POST /organizations/:orgId/projects', () => {
       method: 'POST',
       url: `/organizations/${org.id}/projects`,
       payload: { name: 'My Project' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(201);
     const body = response.json();
@@ -104,6 +113,7 @@ describe('POST /organizations/:orgId/projects', () => {
       method: 'POST',
       url: '/organizations/00000000-0000-0000-0000-000000000000/projects',
       payload: { name: 'Ghost Project' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -114,6 +124,7 @@ describe('POST /organizations/:orgId/projects', () => {
       method: 'POST',
       url: `/organizations/${org.id}/projects`,
       payload: {},
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(400);
   });
@@ -129,6 +140,7 @@ describe('GET /projects/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/projects/${project.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -141,6 +153,7 @@ describe('GET /projects/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/projects/00000000-0000-0000-0000-000000000000',
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -154,6 +167,7 @@ describe('GET /projects/:id', () => {
     const response = await server.inject({
       method: 'GET',
       url: `/projects/${project.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -170,6 +184,7 @@ describe('PATCH /projects/:id', () => {
       method: 'PATCH',
       url: `/projects/${project.id}`,
       payload: { name: 'New Name' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -181,6 +196,7 @@ describe('PATCH /projects/:id', () => {
       method: 'PATCH',
       url: '/projects/00000000-0000-0000-0000-000000000000',
       payload: { name: 'Anything' },
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -196,6 +212,7 @@ describe('DELETE /projects/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: `/projects/${project.id}`,
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(204);
 
@@ -208,6 +225,7 @@ describe('DELETE /projects/:id', () => {
     const response = await server.inject({
       method: 'DELETE',
       url: '/projects/00000000-0000-0000-0000-000000000000',
+      headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
   });
