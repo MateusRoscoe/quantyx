@@ -33,8 +33,8 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 - [x] **Expose BetterAuth routes** — Mounted at `/api/auth/*` in `api-tenant-manager` with email/password sign-up/sign-in
 - [ ] **OAuth provider configuration** — Configure at least one OAuth provider (e.g. GitHub or Google) in the BetterAuth config
-- [ ] **Email verification flow** — Add email verification on signup
-- [ ] **Password reset flow** — Add forgot-password / reset-password endpoints
+- [x] **Email verification flow** — Add email verification on signup
+- [x] **Password reset flow** — Add forgot-password / reset-password endpoints
 - [x] **Auth middleware** — Session validation preHandler plugin in `api-tenant-manager`; skips `/healthz`, `/docs`, `/api/auth/*`
 
 ---

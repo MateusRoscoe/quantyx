@@ -18,6 +18,13 @@ export async function setup() {
   process.env.DATABASE_URL = connectionUri;
   process.env.POSTGRES_URL = connectionUri;
   process.env.BETTER_AUTH_SECRET = 'test-secret-for-better-auth-at-least-32-chars';
+  process.env.BETTER_AUTH_URL = 'http://localhost:3001';
+  process.env.SMTP_HOST = 'localhost';
+  process.env.SMTP_PORT = '1025';
+  process.env.SMTP_SECURE = 'false';
+  process.env.SMTP_USER = 'test';
+  process.env.SMTP_PASS = 'test';
+  process.env.SMTP_FROM = 'test@quantyx.io';
 
   // Apply schema via migrations — run from libs/postgres so Prisma discovers prisma.config.ts
   const postgresLibPath = path.resolve(import.meta.dirname, '../../libs/postgres');
