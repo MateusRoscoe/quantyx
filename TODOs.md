@@ -16,6 +16,8 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **Missing Dockerfiles** — `consumer-events-ingest` and `api-tenant-manager` have no Dockerfiles (only `api-event-webhook` has one)
 - [x] **No Prisma migrations committed** — No `prisma/migrations/` directory exists; schema changes aren't tracked or reproducible
 - [x] **Redis unused** — Redis is now used by `api-event-webhook` for API key caching
+- [ ] **Dockerfile for web app** — `apps/interface/web` has no Dockerfile. Needs a Next.js standalone build (`output: 'standalone'` in next.config.js), different from the Node.js apps.
+- [ ] **Kubernetes deployment example** — Add a Kustomize-based deployment example so users can clone, build images, push to a private registry, and deploy. Operators/resources: Strimzi (Kafka), CNPG (PostgreSQL), Redis Operator, ClickHouse (operator TBD). Include base manifests for all apps + infrastructure, with image references users can override via Kustomize.
 
 ---
 
@@ -62,6 +64,9 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [ ] **OAuth provider sign-in** — Add Google/GitHub social login buttons once OAuth is configured
 - [ ] **Event analytics dashboard** — Build pages to visualize events from ClickHouse (requires API BFF)
 - [ ] **Dark mode** — Add theme toggle (CSS variables already support `.dark` class)
+- [ ] **`.env.example` for web app** — `apps/interface/web` is missing a `.env.example`. Should document `NEXT_PUBLIC_API_URL`.
+- [ ] **Breadcrumb navigation** — Dashboard has no breadcrumbs. Deep routes like `/organizations/:orgId/projects/:projectId/settings` require browser back button to navigate up. Add a breadcrumb component to the dashboard layout.
+- [ ] **Frontend tests** — `web` has zero test coverage. Add basic component/page tests with Vitest + React Testing Library or Playwright for E2E.
 
 ---
 
@@ -81,6 +86,12 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [ ] **libs/kafka: tests** — No tests for the KafkaJS wrapper. Add unit tests with mocks and/or integration tests with Testcontainers.
 - [ ] **libs/shared-backend: tests** — No tests for the Pino logger factory. Add unit tests.
 - [ ] **libs/postgres: tests** — No tests for the Prisma client singleton. Add integration tests with Testcontainers Postgres.
+
+---
+
+## Documentation
+
+- [ ] **Rewrite README.md** — The root README is outdated. Should cover: project description, prerequisites, quickstart (docker compose + nx serve), project structure, how to run tests, how to create a new org/project/API key end-to-end, and links to OVERVIEW.md for architecture details.
 
 ---
 

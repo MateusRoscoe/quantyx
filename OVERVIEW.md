@@ -523,24 +523,6 @@ All 3 apps: `node:lts-alpine` + pnpm, copy `dist/`, `pnpm install`, `node main.j
 
 ---
 
-## Test Coverage
-
-| Project | Tests | Type | Infrastructure |
-|---|---|---|---|
-| shared | 30 | Unit | None |
-| auth | 6 | Unit (mocked) | None |
-| clickhouse | 6 | Unit (mocked) | None |
-| consumer-events-ingest | 10 | Unit | None |
-| api-tenant-manager | 65 | Integration | Testcontainers PostgreSQL |
-| api-event-webhook | 11 | Integration | Testcontainers Kafka, PostgreSQL, Redis |
-| **Total** | **128** | | |
-
-Test framework: **Vitest 3** with `globals: true`, `server.deps.inline: true`
-- `api-tenant-manager`: `pool: 'forks'` (fixes pg pool teardown)
-- `api-event-webhook`: `pool: 'threads'` (default)
-
----
-
 ## Key Design Decisions
 
 | Decision | Rationale |
