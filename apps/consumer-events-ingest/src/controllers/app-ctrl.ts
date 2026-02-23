@@ -17,12 +17,7 @@ export class AppCtrl {
 
     consumer.run({
       autoCommit: false,
-      eachBatch: async ({
-        batch,
-        heartbeat,
-        resolveOffset,
-        commitOffsetsIfNecessary,
-      }) => {
+      eachBatch: async ({ batch, heartbeat }) => {
         logger.info(
           `Starting batch processing from topic ${batch.topic} with ${batch.messages.length} messages`
         );

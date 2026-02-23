@@ -6,7 +6,10 @@ import {
 } from 'fastify-type-provider-zod';
 import { prisma } from '@quantyx/postgres';
 import { app } from '../app';
-import { AuthContext, createAuthenticatedUser } from '../../test-utils/auth-helper';
+import {
+  AuthContext,
+  createAuthenticatedUser,
+} from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
 let authCtx: AuthContext;
@@ -212,7 +215,7 @@ describe('DELETE /api-keys/:id', () => {
 
     const record = await prisma.apiKey.findUnique({ where: { id: apiKey.id } });
     expect(record).not.toBeNull();
-    expect(record!.deletedAt).not.toBeNull();
+    expect(record?.deletedAt).not.toBeNull();
   });
 
   it('returns 404 for unknown id', async () => {

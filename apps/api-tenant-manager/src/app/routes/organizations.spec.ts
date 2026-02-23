@@ -6,7 +6,10 @@ import {
 } from 'fastify-type-provider-zod';
 import { prisma } from '@quantyx/postgres';
 import { app } from '../app';
-import { AuthContext, createAuthenticatedUser } from '../../test-utils/auth-helper';
+import {
+  AuthContext,
+  createAuthenticatedUser,
+} from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
 let authCtx: AuthContext;
@@ -144,7 +147,9 @@ describe('GET /organizations/:id', () => {
 
 describe('PATCH /organizations/:id', () => {
   it('updates the organization name and returns 200', async () => {
-    const org = await prisma.organization.create({ data: { name: 'Old Name' } });
+    const org = await prisma.organization.create({
+      data: { name: 'Old Name' },
+    });
     const response = await server.inject({
       method: 'PATCH',
       url: `/organizations/${org.id}`,
@@ -170,7 +175,9 @@ describe('PATCH /organizations/:id', () => {
 
 describe('DELETE /organizations/:id', () => {
   it('soft deletes and returns 204, record remains with deletedAt set', async () => {
-    const org = await prisma.organization.create({ data: { name: 'ToDelete' } });
+    const org = await prisma.organization.create({
+      data: { name: 'ToDelete' },
+    });
     const response = await server.inject({
       method: 'DELETE',
       url: `/organizations/${org.id}`,
@@ -178,9 +185,11 @@ describe('DELETE /organizations/:id', () => {
     });
     expect(response.statusCode).toBe(204);
 
-    const record = await prisma.organization.findUnique({ where: { id: org.id } });
+    const record = await prisma.organization.findUnique({
+      where: { id: org.id },
+    });
     expect(record).not.toBeNull();
-    expect(record!.deletedAt).not.toBeNull();
+    expect(record?.deletedAt).not.toBeNull();
   });
 
   it('returns 404 for unknown UUID', async () => {

@@ -6,7 +6,10 @@ import {
 } from 'fastify-type-provider-zod';
 import { prisma } from '@quantyx/postgres';
 import { app } from '../app';
-import { AuthContext, createAuthenticatedUser } from '../../test-utils/auth-helper';
+import {
+  AuthContext,
+  createAuthenticatedUser,
+} from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
 let authCtx: AuthContext;
@@ -216,9 +219,11 @@ describe('DELETE /projects/:id', () => {
     });
     expect(response.statusCode).toBe(204);
 
-    const record = await prisma.project.findUnique({ where: { id: project.id } });
+    const record = await prisma.project.findUnique({
+      where: { id: project.id },
+    });
     expect(record).not.toBeNull();
-    expect(record!.deletedAt).not.toBeNull();
+    expect(record?.deletedAt).not.toBeNull();
   });
 
   it('returns 404 for unknown UUID', async () => {

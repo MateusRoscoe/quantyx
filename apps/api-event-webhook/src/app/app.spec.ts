@@ -243,10 +243,12 @@ describe('Kafka message verification', () => {
     // Consume the message from Kafka
     const kafkaClient = new Kafka({
       clientId: 'test-consumer',
-      brokers: process.env.KAFKA_BROKERS!.split(','),
+      brokers: (process.env.KAFKA_BROKERS ?? '').split(','),
     });
 
-    const consumer = kafkaClient.consumer({ groupId: `test-group-${randomUUID()}` });
+    const consumer = kafkaClient.consumer({
+      groupId: `test-group-${randomUUID()}`,
+    });
     await consumer.connect();
     await consumer.subscribe({
       topic: environment.EVENT_TOPIC,
