@@ -1,22 +1,22 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-// If your Prisma file is located elsewhere, you can change the path
 import { prisma } from '@quantyx/postgres';
 import { createEmailTransport } from './email.js';
+import { authEnvironment } from './env.js';
 
 const emailTransport = createEmailTransport({
-  host: process.env.SMTP_HOST ?? 'localhost',
-  port: Number(process.env.SMTP_PORT ?? 587),
-  secure: process.env.SMTP_SECURE === 'true',
+  host: authEnvironment.SMTP_HOST,
+  port: authEnvironment.SMTP_PORT,
+  secure: authEnvironment.SMTP_SECURE,
   auth: {
-    user: process.env.SMTP_USER ?? '',
-    pass: process.env.SMTP_PASS ?? '',
+    user: authEnvironment.SMTP_USER,
+    pass: authEnvironment.SMTP_PASS,
   },
-  from: process.env.SMTP_FROM ?? 'noreply@quantyx.io',
+  from: authEnvironment.SMTP_FROM,
 });
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3001',
+  baseURL: authEnvironment.API_TENANT_MANAGER_EXTERNAL_URL,
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),

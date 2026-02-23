@@ -58,7 +58,8 @@ graph TB
     EW -- "produce (gzip, buffered)" --> K
     K -- "consume (batch)" --> CE
     CE -- "insert (JSONEachRow)" --> CH
-    TM -- "Prisma ORM" --> PG
+    TM -- "session auth (BetterAuth)" --> PG
+    TM -- "membership checks" --> PG
     LA -- "Prisma adapter" --> PG
 
     EW -.-> LS
@@ -155,28 +156,43 @@ Event ingestion API. Authenticates requests via per-project API keys, validates 
 
 ### api-tenant-manager (port 3001)
 
-Tenant/organization management API. CRUD operations for organizations and projects with soft-delete pattern.
+Tenant/organization management API. CRUD operations for organizations, projects, API keys, and organization members with soft-delete pattern and role-based authorization.
 
-| Route | Method | Description |
-|---|---|---|
-| `/organizations` | GET | List all active organizations |
-| `/organizations` | POST | Create organization |
-| `/organizations/:id` | GET | Get organization by ID |
-| `/organizations/:id` | PATCH | Update organization |
-| `/organizations/:id` | DELETE | Soft-delete organization |
-| `/organizations/:orgId/projects` | GET | List projects for org |
-| `/organizations/:orgId/projects` | POST | Create project under org |
-| `/projects/:id` | GET | Get project by ID |
-| `/projects/:id` | PATCH | Update project |
-| `/projects/:id` | DELETE | Soft-delete project |
-| `/projects/:projectId/api-keys` | GET | List API keys for project |
-| `/projects/:projectId/api-keys` | POST | Create API key (returns plaintext once) |
-| `/api-keys/:id` | GET | Get API key metadata |
-| `/api-keys/:id` | DELETE | Revoke (soft-delete) API key |
-| `/healthz` | GET | DB connectivity status |
-| `/docs` | GET | Swagger UI |
+**Authentication**: All routes require a valid BetterAuth session cookie (email/password). Email verification is required before sign-in. Password reset is supported via email. Public paths: `/healthz`, `/docs`, `/api/auth/*`.
 
-**Soft-delete pattern**: DELETE sets `deletedAt = now()`. All queries filter `WHERE deletedAt IS NULL`. Records remain in DB for audit trail.
+**Authorization**: Organization membership is enforced on all data routes via a `verifyOrgMembership` Fastify decorator. Projects and API keys inherit access from their parent organization. Role hierarchy: `owner > admin > member`.
+
+| Route | Method | Min Role | Description |
+|---|---|---|---|
+| `/organizations` | GET | member | List organizations the user belongs to |
+| `/organizations` | POST | *(any)* | Create organization (caller becomes owner) |
+| `/organizations/:id` | GET | member | Get organization by ID |
+| `/organizations/:id` | PATCH | admin | Update organization |
+| `/organizations/:id` | DELETE | admin | Soft-delete organization |
+| `/organizations/:orgId/projects` | GET | member | List projects for org |
+| `/organizations/:orgId/projects` | POST | member | Create project under org |
+| `/projects/:id` | GET | member | Get project by ID |
+| `/projects/:id` | PATCH | admin | Update project |
+| `/projects/:id` | DELETE | admin | Soft-delete project |
+| `/projects/:projectId/api-keys` | GET | member | List API keys for project |
+| `/projects/:projectId/api-keys` | POST | admin | Create API key (returns plaintext once) |
+| `/api-keys/:id` | GET | member | Get API key metadata |
+| `/api-keys/:id` | DELETE | admin | Revoke (soft-delete) API key |
+| `/organizations/:orgId/members` | GET | member | List organization members |
+| `/organizations/:orgId/members` | POST | admin | Add member by email |
+| `/organizations/:orgId/members/:id` | PATCH | owner | Update member role |
+| `/organizations/:orgId/members/:id` | DELETE | owner | Remove member |
+| `/api/auth/*` | * | *(public)* | BetterAuth routes (sign-up, sign-in, verify email, reset password) |
+| `/healthz` | GET | *(public)* | DB connectivity status |
+| `/docs` | GET | *(public)* | Swagger UI |
+
+**Soft-delete pattern**: DELETE sets `deletedAt = now()`. All queries filter `WHERE deletedAt IS NULL`. Records remain in DB for audit trail. Organization members are hard-deleted (no soft-delete).
+
+**Plugin load order** (`@fastify/autoload`, numeric prefix):
+1. `01-sensible.ts` — `@fastify/sensible` (HTTP error utilities)
+2. `02-auth-routes.ts` — BetterAuth route handler at `/api/auth/*`
+3. `03-session-auth.ts` — Session validation preHandler (populates `request.userId`, `request.userEmail`, `request.userName`); skips public paths
+4. `04-authorization.ts` — Decorates `fastify.verifyOrgMembership(request, orgId, { minRole? })` for route-level authorization
 
 **Environment variables**:
 
@@ -187,6 +203,19 @@ Tenant/organization management API. CRUD operations for organizations and projec
 | `LOG_LEVEL` | `info` | debug, info, warn, error |
 | `DATABASE_URL` | *(required)* | PostgreSQL connection string |
 
+Auth-related env vars (validated by `libs/auth`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `API_TENANT_MANAGER_EXTERNAL_URL` | `http://localhost:3001` | Externally-reachable URL of api-tenant-manager; used by BetterAuth to build email verification and password reset links |
+| `BETTER_AUTH_SECRET` | *(required)* | BetterAuth session secret |
+| `SMTP_HOST` | *(required)* | SMTP host for email verification/reset |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_SECURE` | `false` | Use TLS for SMTP |
+| `SMTP_USER` | *(required)* | SMTP username |
+| `SMTP_PASS` | *(required)* | SMTP password |
+| `SMTP_FROM` | *(required)* | From address for emails |
+
 ---
 
 ### consumer-events-ingest
@@ -195,7 +224,7 @@ Kafka consumer that processes event messages in batches and persists them to Cli
 
 - Batch processing with heartbeat management (heartbeat every `SESSION_TIMEOUT / 3`)
 - Auto-commit disabled; offset committed only after successful ClickHouse insert
-- Transforms events: ISO timestamps to Unix seconds, booleans to UInt8
+- Transforms events: ISO timestamps to Unix seconds (using UTC date methods), booleans to UInt8
 
 **Environment variables**:
 
@@ -218,13 +247,13 @@ Kafka consumer that processes event messages in batches and persists them to Cli
 
 | Lib | Purpose |
 |---|---|
-| **shared** | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`, `ApiKeyBody/Response/CreatedResponse`), country/continent/region validators |
+| **shared** | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`, `ApiKeyBody/Response/CreatedResponse`), membership (`MemberRole`, `AddMemberBody`, `UpdateMemberRoleBody`, `MemberResponse`), country/continent/region validators |
 | **shared-backend** | Pino logger factory with child logger context support; API key crypto utilities (`generateApiKey`, `hashApiKey`) |
 | **kafka** | KafkaJS client wrapper with SASL support (plain, scram-sha-256/512, aws) |
 | **clickhouse** | ClickHouse client wrapper with compression, health check, `ClickHouseEvent` type definition |
 | **postgres** | Prisma 7 client singleton with `@prisma/adapter-pg` connection pooling |
 | **redis** | ioredis client wrapper with lazy connect, health check, connect/disconnect helpers |
-| **auth** | BetterAuth configured with Prisma adapter (scaffolded, no routes exposed yet) |
+| **auth** | BetterAuth singleton with Prisma adapter. Owns its own Zod-validated env (`API_TENANT_MANAGER_EXTERNAL_URL`, `BETTER_AUTH_SECRET`, `SMTP_*`). Supports email/password auth, email verification (send on sign-up, auto sign-in after verification), password reset via SMTP. |
 
 ---
 
@@ -238,9 +267,11 @@ All IDs use database-generated UUIDv7.
 erDiagram
     Organization ||--o{ Project : "has many"
     Organization ||--o{ ApiKey : "has many"
+    Organization ||--o{ OrganizationMember : "has many"
     Project ||--o{ ApiKey : "has many"
     User ||--o{ Session : "has many"
     User ||--o{ Account : "has many"
+    User ||--o{ OrganizationMember : "has many"
 
     Organization {
         uuid id PK "UUIDv7"
@@ -257,6 +288,15 @@ erDiagram
         datetime createdAt
         datetime updatedAt
         datetime deletedAt "nullable, soft delete"
+    }
+
+    OrganizationMember {
+        uuid id PK "UUIDv7"
+        uuid userId FK "cascade delete"
+        uuid organizationId FK "cascade delete"
+        varchar_16 role "owner, admin, or member"
+        datetime createdAt
+        datetime updatedAt
     }
 
     User {
@@ -319,6 +359,10 @@ erDiagram
         datetime updatedAt
     }
 ```
+
+**Key indexes**:
+- `OrganizationMember`: unique composite `(userId, organizationId)`, indexes on `organizationId` and `userId`
+- `ApiKey`: unique `keyHash`, indexes on `prefix`, `projectId`, `organizationId`
 
 ### ClickHouse (Analytics)
 
@@ -445,15 +489,17 @@ All 3 apps: `node:lts-alpine` + pnpm, copy `dist/`, `pnpm install`, `node main.j
 
 | Project | Tests | Type | Infrastructure |
 |---|---|---|---|
-| shared | 20 | Unit | None |
-| auth | 3 | Unit (mocked) | None |
+| shared | 30 | Unit | None |
+| auth | 6 | Unit (mocked) | None |
 | clickhouse | 6 | Unit (mocked) | None |
-| api-tenant-manager | 38 | Integration | Testcontainers PostgreSQL |
-| api-event-webhook | 10 | Integration | Testcontainers Kafka, PostgreSQL, Redis |
-| consumer-events-ingest | 0 | — | — |
-| **Total** | **77** | | |
+| consumer-events-ingest | 10 | Unit | None |
+| api-tenant-manager | 65 | Integration | Testcontainers PostgreSQL |
+| api-event-webhook | 11 | Integration | Testcontainers Kafka, PostgreSQL, Redis |
+| **Total** | **128** | | |
 
-Test framework: **Vitest 3** with `globals: true`, `pool: 'forks'`, `server.deps.inline: true`
+Test framework: **Vitest 3** with `globals: true`, `server.deps.inline: true`
+- `api-tenant-manager`: `pool: 'forks'` (fixes pg pool teardown)
+- `api-event-webhook`: `pool: 'threads'` (default)
 
 ---
 
@@ -471,3 +517,8 @@ Test framework: **Vitest 3** with `globals: true`, `pool: 'forks'`, `server.deps
 | Nx monorepo with buildable libs | Independent builds and deploys per app |
 | Per-project API keys with SHA-256 hash | Keys stored as hashes (never plaintext); prefix for identification; Redis cache with 5-min TTL |
 | `project_id` injected server-side | Clients authenticate with API key, server resolves project; prevents spoofing |
+| Custom membership model (not BetterAuth org plugin) | Avoids parallel org system conflicting with existing `Organization` model, routes, and tests |
+| Role as `VARCHAR(16)` validated by Zod enum | Avoids Postgres enum migration hassle when adding roles later |
+| Authorization via Fastify decorator, not global preHandler | Org ID comes from different sources (`:orgId` param, entity lookup); explicit per-route calls are clearer |
+| Hard-delete for memberships | No audit trail need; soft-delete would complicate every authorization query |
+| BetterAuth with email verification | Requires email verification before sign-in; password reset via SMTP; session cookies for auth |

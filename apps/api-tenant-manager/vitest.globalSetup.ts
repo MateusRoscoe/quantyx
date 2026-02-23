@@ -18,7 +18,7 @@ export async function setup() {
   process.env.DATABASE_URL = connectionUri;
   process.env.POSTGRES_URL = connectionUri;
   process.env.BETTER_AUTH_SECRET = 'test-secret-for-better-auth-at-least-32-chars';
-  process.env.BETTER_AUTH_URL = 'http://localhost:3001';
+  process.env.API_TENANT_MANAGER_EXTERNAL_URL = 'http://localhost:3001';
   process.env.SMTP_HOST = 'localhost';
   process.env.SMTP_PORT = '1025';
   process.env.SMTP_SECURE = 'false';
