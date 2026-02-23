@@ -32,6 +32,9 @@
     },
     {
       "path": "./libs/redis"
+    },
+    {
+      "path": "./apps/interface/web"
     }
   ]
 }

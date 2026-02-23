@@ -13,6 +13,7 @@ A multi-tenant event analytics platform. Users send behavioral events (page view
 ```mermaid
 graph TB
     subgraph Clients
+        WEB["web<br/><b>:4200</b><br/>Next.js"]
         SDK["React SDK<br/><i>(planned)</i>"]
         HTTP["HTTP Client"]
     end
@@ -49,6 +50,7 @@ graph TB
         LA["libs/auth<br/>BetterAuth"]
     end
 
+    WEB -- "session auth + CORS" --> TM
     SDK --> EW
     HTTP --> EW
     HTTP --> TM
@@ -189,6 +191,7 @@ Tenant/organization management API. CRUD operations for organizations, projects,
 **Soft-delete pattern**: DELETE sets `deletedAt = now()`. All queries filter `WHERE deletedAt IS NULL`. Records remain in DB for audit trail. Organization members are hard-deleted (no soft-delete).
 
 **Plugin load order** (`@fastify/autoload`, numeric prefix):
+0. `00-cors.ts` — `@fastify/cors` with `credentials: true`, origin from `WEB_APP_URL`
 1. `01-sensible.ts` — `@fastify/sensible` (HTTP error utilities)
 2. `02-auth-routes.ts` — BetterAuth route handler at `/api/auth/*`
 3. `03-session-auth.ts` — Session validation preHandler (populates `request.userId`, `request.userEmail`, `request.userName`); skips public paths
@@ -202,6 +205,7 @@ Tenant/organization management API. CRUD operations for organizations, projects,
 | `PORT` | `3001` | Bind port |
 | `LOG_LEVEL` | `info` | debug, info, warn, error |
 | `DATABASE_URL` | *(required)* | PostgreSQL connection string |
+| `WEB_APP_URL` | `http://localhost:4200` | Frontend origin for CORS |
 
 Auth-related env vars (validated by `libs/auth`):
 
@@ -215,6 +219,40 @@ Auth-related env vars (validated by `libs/auth`):
 | `SMTP_USER` | *(required)* | SMTP username |
 | `SMTP_PASS` | *(required)* | SMTP password |
 | `SMTP_FROM` | *(required)* | From address for emails |
+
+---
+
+### web (port 4200)
+
+Next.js App Router frontend for authentication and tenant management. Communicates directly with `api-tenant-manager` via session cookies + CORS.
+
+**Stack**: Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, TanStack Query, BetterAuth React client.
+
+**Auth pages**: Login, Register, Verify Email, Forgot Password, Reset Password.
+
+**Dashboard pages**: Organizations (list/create), Organization detail (projects list/create), Organization settings (edit/delete), Members (list/add/role change/remove), Project detail (API keys list/create/delete), Project settings (edit/delete).
+
+| Route | Description |
+|---|---|
+| `/login` | Sign in with email + password |
+| `/register` | Create account |
+| `/verify-email` | Email verification info |
+| `/forgot-password` | Request password reset |
+| `/reset-password` | Set new password (with token) |
+| `/organizations` | List + create organizations |
+| `/organizations/:orgId` | Org detail with projects list |
+| `/organizations/:orgId/settings` | Edit/delete organization |
+| `/organizations/:orgId/members` | Manage members |
+| `/organizations/:orgId/projects/:projectId` | Project detail with API keys |
+| `/organizations/:orgId/projects/:projectId/settings` | Edit/delete project |
+
+**Session guard**: Dashboard layout uses `useSession()` from BetterAuth React client; redirects to `/login` if unauthenticated.
+
+**Environment variables**:
+
+| Variable | Default | Description |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3001` | api-tenant-manager URL |
 
 ---
 
@@ -247,7 +285,7 @@ Kafka consumer that processes event messages in batches and persists them to Cli
 
 | Lib | Purpose |
 |---|---|
-| **shared** | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`, `ApiKeyBody/Response/CreatedResponse`), membership (`MemberRole`, `AddMemberBody`, `UpdateMemberRoleBody`, `MemberResponse`), country/continent/region validators |
+| **shared** | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`, `ApiKeyBody/Response/CreatedResponse`), membership (`MemberRole`, `AddMemberBody`, `UpdateMemberRoleBody`, `MemberResponse`), country/continent/region validators. Country data is a generated static file (`country-data.ts`) with no Node-only dependencies — browser-compatible. |
 | **shared-backend** | Pino logger factory with child logger context support; API key crypto utilities (`generateApiKey`, `hashApiKey`) |
 | **kafka** | KafkaJS client wrapper with SASL support (plain, scram-sha-256/512, aws) |
 | **clickhouse** | ClickHouse client wrapper with compression, health check, `ClickHouseEvent` type definition |
@@ -522,3 +560,5 @@ Test framework: **Vitest 3** with `globals: true`, `server.deps.inline: true`
 | Authorization via Fastify decorator, not global preHandler | Org ID comes from different sources (`:orgId` param, entity lookup); explicit per-route calls are clearer |
 | Hard-delete for memberships | No audit trail need; soft-delete would complicate every authorization query |
 | BetterAuth with email verification | Requires email verification before sign-in; password reset via SMTP; session cookies for auth |
+| Direct API calls from frontend (no BFF) | Frontend uses `credentials: 'include'` + `@fastify/cors` with session cookies. Simpler than a proxy layer for MVP. |
+| Generated static country data | Replaced Node-only `country-code-lookup` with a script that fetches from restcountries.com and generates a pure TS file. Keeps `@quantyx/shared` browser-compatible. |

@@ -51,3 +51,7 @@ test-output
 **/src/generated/
 libs/postgres/src/generated/
 node_modules/.prisma/
+
+# Next.js
+.next
+out

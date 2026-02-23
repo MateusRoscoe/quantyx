@@ -1,11 +1,9 @@
 import * as z from 'zod';
-import { countries } from 'country-code-lookup';
-
-const codeSet = new Set(countries.map((c) => c.iso3));
+import { ISO3_CODES, CONTINENTS, REGIONS } from './country-data.js';
 
 export const CountryCode = z
   .string()
-  .refine((val) => codeSet.has(val), {
+  .refine((val) => ISO3_CODES.has(val), {
     message:
       'Invalid country code. Must be a valid ISO 3166-1 alpha-3 code (e.g., USA, GBR, BRA)',
   })
@@ -49,15 +47,13 @@ export const EventMessageInput = z.object({
 
 export const MAX_USER_AGENT_LENGTH = 1024;
 
-const continentSet = new Set(countries.map((c) => c.continent));
 export const Continent = z
-  .enum(Array.from(continentSet))
+  .enum(CONTINENTS)
   .describe('Continent name');
 
 export type Continent = z.infer<typeof Continent>;
 
-const regions = new Set(countries.map((c) => c.region));
-const Region = z.enum(Array.from(regions)).describe('Geographical region');
+const Region = z.enum(REGIONS).describe('Geographical region');
 
 export type Region = z.infer<typeof Region>;
 

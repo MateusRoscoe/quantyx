@@ -48,10 +48,26 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 ---
 
+## Features — web (Frontend)
+
+- [x] **Next.js App Router scaffolding** — `apps/interface/web` with shadcn/ui, Tailwind CSS v4, TanStack Query
+- [x] **Auth pages** — Login, Register, Verify Email, Forgot Password, Reset Password
+- [x] **Dashboard shell** — Sidebar layout with session guard (BetterAuth React client)
+- [x] **Organizations CRUD** — List, create, edit, delete (with confirmation)
+- [x] **Projects CRUD** — List, create, edit, delete (with confirmation)
+- [x] **API Keys management** — List, create (show-once + copy), delete
+- [x] **Members management** — List, add, role change, remove
+- [x] **CORS support** — `@fastify/cors` added to api-tenant-manager with `WEB_APP_URL` env var
+- [x] **Browser-compatible shared lib** — Replaced `country-code-lookup` with generated static `country-data.ts`
+- [ ] **OAuth provider sign-in** — Add Google/GitHub social login buttons once OAuth is configured
+- [ ] **Event analytics dashboard** — Build pages to visualize events from ClickHouse (requires API BFF)
+- [ ] **Dark mode** — Add theme toggle (CSS variables already support `.dark` class)
+
+---
+
 ## Features — Future Apps
 
 - [ ] **API BFF** — Create API to serve data to the frontend with flexible querying (prevent SQL injection)
-- [ ] **Frontend** — Build UI to visualize events with real-time updates
 - [ ] **React SDK** — Client-side SDK to let end users track events directly from the browser (e.g. button clicks, page views, custom actions). Should provide hooks/components and auto-batch requests to the ingest API.
 
 ---
