@@ -32,10 +32,12 @@ export default async function (fastify: server) {
       params: OrgIdParamsSchema,
       response: {
         200: z.array(ProjectResponse),
+        403: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
     },
     handler: async (request) => {
+      await fastify.verifyOrgMembership(request, request.params.orgId);
       const projects = await prisma.project.findMany({
         where: { organizationId: request.params.orgId, deletedAt: null },
         orderBy: { createdAt: 'desc' },
@@ -54,6 +56,7 @@ export default async function (fastify: server) {
       response: {
         201: ProjectResponse,
         400: ErrorResponseSchema,
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -65,6 +68,7 @@ export default async function (fastify: server) {
       if (!org) {
         return reply.notFound('Organization not found');
       }
+      await fastify.verifyOrgMembership(request, org.id);
       const project = await prisma.project.create({
         data: {
           name: request.body.name,
@@ -83,6 +87,7 @@ export default async function (fastify: server) {
       params: IdParamsSchema,
       response: {
         200: ProjectResponse,
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -94,6 +99,7 @@ export default async function (fastify: server) {
       if (!project) {
         return reply.notFound('Project not found');
       }
+      await fastify.verifyOrgMembership(request, project.organizationId);
       return toResponse(project);
     },
   });
@@ -107,6 +113,7 @@ export default async function (fastify: server) {
       body: ProjectBody.partial(),
       response: {
         200: ProjectResponse,
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -118,6 +125,9 @@ export default async function (fastify: server) {
       if (!existing) {
         return reply.notFound('Project not found');
       }
+      await fastify.verifyOrgMembership(request, existing.organizationId, {
+        minRole: 'admin',
+      });
       const project = await prisma.project.update({
         where: { id: request.params.id },
         data: request.body,
@@ -134,6 +144,7 @@ export default async function (fastify: server) {
       params: IdParamsSchema,
       response: {
         204: z.null(),
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -145,6 +156,9 @@ export default async function (fastify: server) {
       if (!existing) {
         return reply.notFound('Project not found');
       }
+      await fastify.verifyOrgMembership(request, existing.organizationId, {
+        minRole: 'admin',
+      });
       await prisma.project.update({
         where: { id: request.params.id },
         data: { deletedAt: new Date() },

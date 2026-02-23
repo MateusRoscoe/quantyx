@@ -34,9 +34,12 @@ export default async function (fastify: server) {
         500: ErrorResponseSchema,
       },
     },
-    handler: async () => {
+    handler: async (request) => {
       const orgs = await prisma.organization.findMany({
-        where: { deletedAt: null },
+        where: {
+          deletedAt: null,
+          members: { some: { userId: request.userId } },
+        },
         orderBy: { createdAt: 'desc' },
       });
       return orgs.map(toResponse);
@@ -56,8 +59,18 @@ export default async function (fastify: server) {
       },
     },
     handler: async (request, reply) => {
-      const org = await prisma.organization.create({
-        data: { name: request.body.name },
+      const org = await prisma.$transaction(async (tx) => {
+        const created = await tx.organization.create({
+          data: { name: request.body.name },
+        });
+        await tx.organizationMember.create({
+          data: {
+            userId: request.userId,
+            organizationId: created.id,
+            role: 'owner',
+          },
+        });
+        return created;
       });
       return reply.status(201).send(toResponse(org));
     },
@@ -71,6 +84,7 @@ export default async function (fastify: server) {
       params: ParamsSchema,
       response: {
         200: OrganizationResponse,
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -82,6 +96,7 @@ export default async function (fastify: server) {
       if (!org) {
         return reply.notFound('Organization not found');
       }
+      await fastify.verifyOrgMembership(request, org.id);
       return toResponse(org);
     },
   });
@@ -95,6 +110,7 @@ export default async function (fastify: server) {
       body: OrganizationBody.partial(),
       response: {
         200: OrganizationResponse,
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -106,6 +122,9 @@ export default async function (fastify: server) {
       if (!existing) {
         return reply.notFound('Organization not found');
       }
+      await fastify.verifyOrgMembership(request, existing.id, {
+        minRole: 'admin',
+      });
       const org = await prisma.organization.update({
         where: { id: request.params.id },
         data: request.body,
@@ -122,6 +141,7 @@ export default async function (fastify: server) {
       params: ParamsSchema,
       response: {
         204: z.null(),
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -133,6 +153,9 @@ export default async function (fastify: server) {
       if (!existing) {
         return reply.notFound('Organization not found');
       }
+      await fastify.verifyOrgMembership(request, existing.id, {
+        minRole: 'admin',
+      });
       await prisma.organization.update({
         where: { id: request.params.id },
         data: { deletedAt: new Date() },

@@ -9,6 +9,7 @@ import { app } from '../app';
 import {
   AuthContext,
   createAuthenticatedUser,
+  createOrgWithOwner,
 } from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
@@ -36,7 +37,7 @@ afterAll(async () => {
 });
 
 async function createOrg(name = 'Test Org') {
-  return prisma.organization.create({ data: { name } });
+  return createOrgWithOwner(authCtx.userId, name);
 }
 
 describe('GET /organizations/:orgId/projects', () => {
@@ -90,6 +91,16 @@ describe('GET /organizations/:orgId/projects', () => {
     const body = response.json();
     expect(body).toHaveLength(1);
     expect(body[0].id).toBe(visible.id);
+  });
+
+  it('returns 403 for non-member', async () => {
+    const org = await prisma.organization.create({ data: { name: 'Other' } });
+    const response = await server.inject({
+      method: 'GET',
+      url: `/organizations/${org.id}/projects`,
+      headers: authCtx.headers,
+    });
+    expect(response.statusCode).toBe(403);
   });
 });
 
@@ -174,6 +185,19 @@ describe('GET /projects/:id', () => {
     });
     expect(response.statusCode).toBe(404);
   });
+
+  it('returns 403 for non-member', async () => {
+    const org = await prisma.organization.create({ data: { name: 'Other' } });
+    const project = await prisma.project.create({
+      data: { name: 'Secret', organizationId: org.id },
+    });
+    const response = await server.inject({
+      method: 'GET',
+      url: `/projects/${project.id}`,
+      headers: authCtx.headers,
+    });
+    expect(response.statusCode).toBe(403);
+  });
 });
 
 describe('PATCH /projects/:id', () => {
@@ -192,6 +216,29 @@ describe('PATCH /projects/:id', () => {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.name).toBe('New Name');
+  });
+
+  it('returns 403 for members (requires admin)', async () => {
+    const org = await prisma.organization.create({
+      data: { name: 'Restricted' },
+    });
+    await prisma.organizationMember.create({
+      data: {
+        userId: authCtx.userId,
+        organizationId: org.id,
+        role: 'member',
+      },
+    });
+    const project = await prisma.project.create({
+      data: { name: 'Proj', organizationId: org.id },
+    });
+    const response = await server.inject({
+      method: 'PATCH',
+      url: `/projects/${project.id}`,
+      payload: { name: 'Anything' },
+      headers: authCtx.headers,
+    });
+    expect(response.statusCode).toBe(403);
   });
 
   it('returns 404 for unknown UUID', async () => {

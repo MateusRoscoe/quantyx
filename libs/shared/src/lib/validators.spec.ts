@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { EventMessage, EventMessageInput } from './validators';
+import {
+  EventMessage,
+  EventMessageInput,
+  MemberRole,
+  AddMemberBody,
+  UpdateMemberRoleBody,
+  MemberResponse,
+} from './validators';
 const basePayload = {
   event_id: '018ea8e1-b5be-7462-aa55-5f9d0d10c9c8',
   session_id: '7aa36cf5-1f5f-4f9a-9ee8-4c0c8b8c5f75',
@@ -320,6 +327,101 @@ describe('Validators', () => {
           true
         );
       }
+    });
+  });
+
+  describe('MemberRole', () => {
+    it('accepts valid roles', () => {
+      for (const role of ['owner', 'admin', 'member']) {
+        expect(MemberRole.safeParse(role).success).toBe(true);
+      }
+    });
+
+    it('rejects invalid roles', () => {
+      expect(MemberRole.safeParse('superadmin').success).toBe(false);
+      expect(MemberRole.safeParse('').success).toBe(false);
+    });
+  });
+
+  describe('AddMemberBody', () => {
+    it('accepts valid body with admin role', () => {
+      const result = AddMemberBody.safeParse({
+        email: 'user@example.com',
+        role: 'admin',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts valid body with member role', () => {
+      const result = AddMemberBody.safeParse({
+        email: 'user@example.com',
+        role: 'member',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects owner role', () => {
+      const result = AddMemberBody.safeParse({
+        email: 'user@example.com',
+        role: 'owner',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects invalid email', () => {
+      const result = AddMemberBody.safeParse({
+        email: 'not-an-email',
+        role: 'member',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('UpdateMemberRoleBody', () => {
+    it('accepts admin and member roles', () => {
+      expect(
+        UpdateMemberRoleBody.safeParse({ role: 'admin' }).success,
+      ).toBe(true);
+      expect(
+        UpdateMemberRoleBody.safeParse({ role: 'member' }).success,
+      ).toBe(true);
+    });
+
+    it('rejects owner role', () => {
+      expect(
+        UpdateMemberRoleBody.safeParse({ role: 'owner' }).success,
+      ).toBe(false);
+    });
+  });
+
+  describe('MemberResponse', () => {
+    it('accepts a valid member response', () => {
+      const result = MemberResponse.safeParse({
+        id: 'c0a80101-7e6c-48a3-9f25-0e6f5c0d4a1b',
+        userId: 'd1b90202-8f7d-49b4-a036-1f7f6d1e5b2c',
+        organizationId: 'e2ca0303-9a8e-4ac5-b147-2a8a7e2f6c3d',
+        role: 'owner',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        user: {
+          id: 'd1b90202-8f7d-49b4-a036-1f7f6d1e5b2c',
+          name: 'Test User',
+          email: 'test@example.com',
+        },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects missing user object', () => {
+      const result = MemberResponse.safeParse({
+        id: 'c0a80101-7e6c-48a3-9f25-0e6f5c0d4a1b',
+        userId: 'd1b90202-8f7d-49b4-a036-1f7f6d1e5b2c',
+        organizationId: 'e2ca0303-9a8e-4ac5-b147-2a8a7e2f6c3d',
+        role: 'member',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      });
+      expect(result.success).toBe(false);
     });
   });
 });

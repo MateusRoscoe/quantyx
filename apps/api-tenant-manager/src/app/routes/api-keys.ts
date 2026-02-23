@@ -45,10 +45,18 @@ export default async function (fastify: server) {
       params: ProjectIdParams,
       response: {
         200: z.array(ApiKeyResponse),
+        403: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
     },
-    handler: async (request) => {
+    handler: async (request, reply) => {
+      const project = await prisma.project.findFirst({
+        where: { id: request.params.projectId, deletedAt: null },
+      });
+      if (!project) {
+        return reply.notFound('Project not found');
+      }
+      await fastify.verifyOrgMembership(request, project.organizationId);
       const apiKeys = await prisma.apiKey.findMany({
         where: {
           projectId: request.params.projectId,
@@ -70,6 +78,7 @@ export default async function (fastify: server) {
       response: {
         201: ApiKeyCreatedResponse,
         400: ErrorResponseSchema,
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -81,6 +90,9 @@ export default async function (fastify: server) {
       if (!project) {
         return reply.notFound('Project not found');
       }
+      await fastify.verifyOrgMembership(request, project.organizationId, {
+        minRole: 'admin',
+      });
 
       const { key, prefix, keyHash } = generateApiKey();
 
@@ -112,6 +124,7 @@ export default async function (fastify: server) {
       params: IdParams,
       response: {
         200: ApiKeyResponse,
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -123,6 +136,7 @@ export default async function (fastify: server) {
       if (!apiKey) {
         return reply.notFound('API key not found');
       }
+      await fastify.verifyOrgMembership(request, apiKey.organizationId);
       return toResponse(apiKey);
     },
   });
@@ -135,6 +149,7 @@ export default async function (fastify: server) {
       params: IdParams,
       response: {
         204: z.null(),
+        403: ErrorResponseSchema,
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
@@ -146,6 +161,9 @@ export default async function (fastify: server) {
       if (!existing) {
         return reply.notFound('API key not found');
       }
+      await fastify.verifyOrgMembership(request, existing.organizationId, {
+        minRole: 'admin',
+      });
       await prisma.apiKey.update({
         where: { id: request.params.id },
         data: { deletedAt: new Date() },

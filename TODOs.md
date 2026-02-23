@@ -26,6 +26,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **CRUD routes: Projects** — `GET /organizations/:orgId/projects`, `POST /organizations/:orgId/projects`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id` (soft delete)
 - [x] **Auth middleware integration** — Session-based auth via BetterAuth; all CRUD routes require a valid session cookie
 - [x] **Tenant API key management** — Generate, rotate, and revoke API keys per tenant/project
+- [x] **Organization membership & authorization** — Join table (`OrganizationMember`) with role-based access control (owner/admin/member). All routes enforce membership checks; projects and API keys inherit access from parent org.
 
 ---
 

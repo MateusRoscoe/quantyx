@@ -128,3 +128,34 @@ export const ApiKeyCreatedResponse = ApiKeyResponse.extend({
 export type ApiKeyBody = z.infer<typeof ApiKeyBody>;
 export type ApiKeyResponse = z.infer<typeof ApiKeyResponse>;
 export type ApiKeyCreatedResponse = z.infer<typeof ApiKeyCreatedResponse>;
+
+// --- Organization Members ---
+export const MemberRole = z.enum(['owner', 'admin', 'member']);
+export type MemberRole = z.infer<typeof MemberRole>;
+
+export const AddMemberBody = z.object({
+  email: z.string().email(),
+  role: MemberRole.exclude(['owner']),
+});
+
+export const UpdateMemberRoleBody = z.object({
+  role: MemberRole.exclude(['owner']),
+});
+
+export const MemberResponse = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  role: MemberRole,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  user: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    email: z.string().email(),
+  }),
+});
+
+export type AddMemberBody = z.infer<typeof AddMemberBody>;
+export type UpdateMemberRoleBody = z.infer<typeof UpdateMemberRoleBody>;
+export type MemberResponse = z.infer<typeof MemberResponse>;

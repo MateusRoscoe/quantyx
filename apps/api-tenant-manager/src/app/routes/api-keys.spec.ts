@@ -9,6 +9,7 @@ import { app } from '../app';
 import {
   AuthContext,
   createAuthenticatedUser,
+  createOrgWithOwner,
 } from '../../test-utils/auth-helper';
 
 let server: FastifyInstance;
@@ -36,7 +37,7 @@ afterAll(async () => {
 });
 
 async function createOrgAndProject() {
-  const org = await prisma.organization.create({ data: { name: 'Test Org' } });
+  const org = await createOrgWithOwner(authCtx.userId, 'Test Org');
   const project = await prisma.project.create({
     data: { name: 'Test Project', organizationId: org.id },
   });
@@ -87,6 +88,19 @@ describe('GET /projects/:projectId/api-keys', () => {
     expect(body).toHaveLength(1);
     expect(body[0].name).toBe('Active Key');
   });
+
+  it('returns 403 for non-member', async () => {
+    const org = await prisma.organization.create({ data: { name: 'Other' } });
+    const project = await prisma.project.create({
+      data: { name: 'Proj', organizationId: org.id },
+    });
+    const response = await server.inject({
+      method: 'GET',
+      url: `/projects/${project.id}/api-keys`,
+      headers: authCtx.headers,
+    });
+    expect(response.statusCode).toBe(403);
+  });
 });
 
 describe('POST /projects/:projectId/api-keys', () => {
@@ -135,6 +149,29 @@ describe('POST /projects/:projectId/api-keys', () => {
       headers: authCtx.headers,
     });
     expect(response.statusCode).toBe(404);
+  });
+
+  it('returns 403 for members (requires admin)', async () => {
+    const org = await prisma.organization.create({
+      data: { name: 'Restricted' },
+    });
+    await prisma.organizationMember.create({
+      data: {
+        userId: authCtx.userId,
+        organizationId: org.id,
+        role: 'member',
+      },
+    });
+    const project = await prisma.project.create({
+      data: { name: 'Proj', organizationId: org.id },
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/api-keys`,
+      payload: { name: 'Key' },
+      headers: authCtx.headers,
+    });
+    expect(response.statusCode).toBe(403);
   });
 
   it('subsequent GET does not include key field', async () => {
@@ -216,6 +253,37 @@ describe('DELETE /api-keys/:id', () => {
     const record = await prisma.apiKey.findUnique({ where: { id: apiKey.id } });
     expect(record).not.toBeNull();
     expect(record?.deletedAt).not.toBeNull();
+  });
+
+  it('returns 403 for members (requires admin)', async () => {
+    const org = await prisma.organization.create({
+      data: { name: 'Restricted' },
+    });
+    await prisma.organizationMember.create({
+      data: {
+        userId: authCtx.userId,
+        organizationId: org.id,
+        role: 'member',
+      },
+    });
+    const project = await prisma.project.create({
+      data: { name: 'Proj', organizationId: org.id },
+    });
+    const apiKey = await prisma.apiKey.create({
+      data: {
+        projectId: project.id,
+        organizationId: org.id,
+        name: 'Key',
+        prefix: 'qx_member12',
+        keyHash: 'hash_member_del',
+      },
+    });
+    const response = await server.inject({
+      method: 'DELETE',
+      url: `/api-keys/${apiKey.id}`,
+      headers: authCtx.headers,
+    });
+    expect(response.statusCode).toBe(403);
   });
 
   it('returns 404 for unknown id', async () => {
