@@ -16,7 +16,11 @@ export async function connectProducer() {
   await producer.connect();
 }
 
+let isDisconnecting = false;
+
 export async function disconnectProducer() {
+  if (isDisconnecting) return;
+  isDisconnecting = true;
   if (flushTimeout) {
     clearTimeout(flushTimeout);
   }
