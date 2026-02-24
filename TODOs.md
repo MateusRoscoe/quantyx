@@ -16,7 +16,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **Missing Dockerfiles** — `consumer-events-ingest` and `api-tenant-manager` have no Dockerfiles (only `api-event-webhook` has one)
 - [x] **No Prisma migrations committed** — No `prisma/migrations/` directory exists; schema changes aren't tracked or reproducible
 - [x] **Redis unused** — Redis is now used by `api-event-webhook` for API key caching
-- [ ] **Dockerfile for web app** — `apps/interface/web` has no Dockerfile. Needs a Next.js standalone build (`output: 'standalone'` in next.config.js), different from the Node.js apps.
+- [x] **Dockerfile for web app** — Next.js standalone Dockerfile for `apps/interface/web` with `output: 'standalone'` and `outputFileTracingRoot` for monorepo support
 - [ ] **Kubernetes deployment example** — Add a Kustomize-based deployment example so users can clone, build images, push to a private registry, and deploy. Operators/resources: Strimzi (Kafka), CNPG (PostgreSQL), Redis Operator, ClickHouse (operator TBD). Include base manifests for all apps + infrastructure, with image references users can override via Kustomize.
 
 ---
