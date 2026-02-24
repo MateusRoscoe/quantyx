@@ -55,3 +55,9 @@ node_modules/.prisma/
 # Next.js
 .next
 out
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.e2e-state.json

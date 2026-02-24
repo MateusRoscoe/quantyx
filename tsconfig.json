@@ -35,6 +35,9 @@
     },
     {
       "path": "./apps/interface/web"
+    },
+    {
+      "path": "./apps/interface/web-e2e"
     }
   ]
 }

@@ -32,6 +32,9 @@ jobs:
 
       - run: corepack enable && pnpm install --frozen-lockfile
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       - run: npx nx-cloud record -- npx nx format:check  --base="remotes/origin/main"
       - run: npx nx run-many -t lint test build typecheck e2e-ci

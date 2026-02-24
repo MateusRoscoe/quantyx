@@ -10,7 +10,8 @@ describe('cn', () => {
   });
 
   it('filters out falsy values', () => {
-    expect(cn('foo', false && 'bar', undefined, null, 'baz')).toBe('foo baz');
+    const condition = false;
+    expect(cn('foo', condition && 'bar', undefined, null, 'baz')).toBe('foo baz');
   });
 
   it('handles conditional classes via clsx syntax', () => {
