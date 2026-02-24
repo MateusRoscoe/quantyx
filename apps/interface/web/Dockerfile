@@ -2,7 +2,7 @@
 #
 # Run the container with `npx nx docker:run web -p 3000:3000`.
 #
-FROM docker.io/node:lts-alpine
+FROM docker.io/node:24-alpine
 
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0

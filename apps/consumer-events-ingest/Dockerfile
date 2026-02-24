@@ -2,7 +2,7 @@
 #
 # Run the container with `npx nx docker:run consumer-events-ingest`.
 #
-FROM docker.io/node:lts-alpine
+FROM docker.io/node:24-alpine
 
 RUN corepack enable
 
