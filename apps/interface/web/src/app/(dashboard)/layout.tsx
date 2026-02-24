@@ -19,6 +19,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Building2, LogOut } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Breadcrumbs } from '@/components/breadcrumbs';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function DashboardLayout({
   children,
@@ -91,6 +93,10 @@ export default function DashboardLayout({
         <header className="flex h-12 items-center gap-2 border-b px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
+          <Breadcrumbs />
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
         <main className="flex-1 p-6">{children}</main>
       </SidebarInset>

@@ -63,10 +63,10 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **Browser-compatible shared lib** — Replaced `country-code-lookup` with generated static `country-data.ts`
 - [ ] **OAuth provider sign-in** — Add Google/GitHub social login buttons once OAuth is configured
 - [ ] **Event analytics dashboard** — Build pages to visualize events from ClickHouse (requires API BFF)
-- [ ] **Dark mode** — Add theme toggle (CSS variables already support `.dark` class)
-- [ ] **`.env.example` for web app** — `apps/interface/web` is missing a `.env.example`. Should document `NEXT_PUBLIC_API_URL`.
-- [ ] **Breadcrumb navigation** — Dashboard has no breadcrumbs. Deep routes like `/organizations/:orgId/projects/:projectId/settings` require browser back button to navigate up. Add a breadcrumb component to the dashboard layout.
-- [ ] **Frontend tests** — `web` has zero test coverage. Add basic component/page tests with Vitest + React Testing Library or Playwright for E2E.
+- [x] **Dark mode** — Add theme toggle (CSS variables already support `.dark` class)
+- [x] **`.env.example` for web app** — `apps/interface/web` is missing a `.env.example`. Should document `NEXT_PUBLIC_API_URL`.
+- [x] **Breadcrumb navigation** — Dashboard has no breadcrumbs. Deep routes like `/organizations/:orgId/projects/:projectId/settings` require browser back button to navigate up. Add a breadcrumb component to the dashboard layout.
+- [x] **Frontend tests** — 49 tests with Vitest + React Testing Library covering API client, utility functions, TanStack Query hooks, and components (theme toggle, breadcrumbs).
 
 ---
 

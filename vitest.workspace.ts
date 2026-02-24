@@ -7,4 +7,5 @@ export default defineWorkspace([
   'libs/shared/vitest.config.ts',
   'libs/auth/vitest.config.ts',
   'libs/clickhouse/vitest.config.ts',
+  'apps/interface/web/vitest.config.ts',
 ]);
