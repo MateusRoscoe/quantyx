@@ -314,6 +314,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.71.2(react@19.2.3))
+      '@quantyx/react-sdk':
+        specifier: workspace:*
+        version: link:../../../libs/react-sdk
       '@tailwindcss/postcss':
         specifier: ^4.2.1
         version: 4.2.1

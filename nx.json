@@ -35,8 +35,7 @@
         "libs/clickhouse/*",
         "libs/postgres/*",
         "libs/auth/*",
-        "libs/redis/*",
-        "libs/react-sdk/*"
+        "libs/redis/*"
       ]
     },
     {
@@ -72,8 +71,7 @@
         "libs/clickhouse/*",
         "libs/postgres/*",
         "libs/auth/*",
-        "libs/redis/*",
-        "libs/react-sdk/*"
+        "libs/redis/*"
       ],
       "options": {
         "typecheck": {

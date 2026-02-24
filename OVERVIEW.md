@@ -14,7 +14,7 @@ A multi-tenant event analytics platform. Users send behavioral events (page view
 graph TB
     subgraph Clients
         WEB["web<br/><b>:4200</b><br/>Next.js"]
-        SDK["React SDK<br/><i>(planned)</i>"]
+        SDK["React SDK<br/><b>@quantyx/react-sdk</b>"]
         HTTP["HTTP Client"]
     end
 
@@ -48,10 +48,11 @@ graph TB
         LP["libs/postgres<br/>Prisma 7 client"]
         LR["libs/redis<br/>ioredis wrapper"]
         LA["libs/auth<br/>BetterAuth"]
+        LSDK["libs/react-sdk<br/>Browser event tracking"]
     end
 
     WEB -- "session auth + CORS" --> TM
-    SDK --> EW
+    SDK -- "X-API-Key auto-batched" --> EW
     HTTP --> EW
     HTTP --> TM
 
@@ -292,6 +293,7 @@ Kafka consumer that processes event messages in batches and persists them to Cli
 | **postgres** | Prisma 7 client singleton with `@prisma/adapter-pg` connection pooling |
 | **redis** | ioredis client wrapper with lazy connect, health check, connect/disconnect helpers |
 | **auth** | BetterAuth singleton with Prisma adapter. Owns its own Zod-validated env (`API_TENANT_MANAGER_EXTERNAL_URL`, `BETTER_AUTH_SECRET`, `SMTP_*`). Supports email/password auth, email verification (send on sign-up, auto sign-in after verification), password reset via SMTP. |
+| **react-sdk** | Browser event tracking SDK. Vanilla JS core (`QuantyxClient`) with auto-batching, UUIDv7 event IDs, session management (`sessionStorage`), and browser/device auto-detection (Client Hints + UA fallback). React bindings (`QuantyxProvider`, `useTrack`, `useIdentify`) via separate `@quantyx/react-sdk/react` entry point. Sends batched events to `api-event-webhook` via `POST /ingest-bulk` with `X-API-Key` header. Uses `navigator.sendBeacon()` on page hide for reliable delivery. React is an optional peer dependency — core works without it. |
 
 ---
 
@@ -544,3 +546,4 @@ All 3 apps: `node:lts-alpine` + pnpm, copy `dist/`, `pnpm install`, `node main.j
 | BetterAuth with email verification | Requires email verification before sign-in; password reset via SMTP; session cookies for auth |
 | Direct API calls from frontend (no BFF) | Frontend uses `credentials: 'include'` + `@fastify/cors` with session cookies. Simpler than a proxy layer for MVP. |
 | Generated static country data | Replaced Node-only `country-code-lookup` with a script that fetches from restcountries.com and generates a pure TS file. Keeps `@quantyx/shared` browser-compatible. |
+| React SDK: vanilla core + React bindings | Separate entry points (`@quantyx/react-sdk` and `@quantyx/react-sdk/react`) so the core works without React. React is an optional peer dep. UUIDs use `crypto.getRandomValues()` only (not `crypto.randomUUID()`) for non-secure-context compatibility. `sendBeacon` on page hide ensures events aren't lost during navigation. |

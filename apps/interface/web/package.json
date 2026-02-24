@@ -23,7 +23,8 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@quantyx/react-sdk": "workspace:*"
   },
   "devDependencies": {
     "shadcn": "^3.8.5",

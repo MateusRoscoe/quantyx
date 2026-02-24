@@ -1,4 +1,5 @@
 import { ThemeToggle } from '@/components/theme-toggle';
+import { AuthPageTracker } from './page-tracker';
 
 export default function AuthLayout({
   children,
@@ -7,6 +8,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-muted p-4">
+      <AuthPageTracker />
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>

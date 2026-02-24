@@ -5,6 +5,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from '@/lib/auth-client';
 import {
+  usePageView,
+  useAnalyticsIdentify,
+  useAnalyticsTrack,
+} from '@/hooks/use-analytics';
+import {
   SidebarProvider,
   Sidebar,
   SidebarContent,
@@ -30,12 +35,22 @@ export default function DashboardLayout({
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const track = useAnalyticsTrack();
+  const identify = useAnalyticsIdentify();
+
+  usePageView();
 
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/login');
     }
   }, [isPending, session, router]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      identify(session.user.id);
+    }
+  }, [session?.user?.id, identify]);
 
   if (isPending) {
     return (
@@ -75,6 +90,7 @@ export default function DashboardLayout({
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={async () => {
+                  track('sign_out');
                   await signOut();
                   router.push('/login');
                 }}
