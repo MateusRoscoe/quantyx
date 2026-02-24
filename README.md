@@ -6,19 +6,19 @@ For full architecture details, data models, and design decisions, see [OVERVIEW.
 
 ## Prerequisites
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| [Node.js](https://nodejs.org/) | 24.x | See `.nvmrc` — use `nvm use` or `fnm use` |
-| [pnpm](https://pnpm.io/) | 10.30+ | Corepack: `corepack enable && corepack prepare` |
-| [Docker](https://www.docker.com/) | 24+ | Required for infrastructure services |
-| [Docker Compose](https://docs.docker.com/compose/) | v2+ | Included with Docker Desktop |
+| Tool                                               | Version | Notes                                           |
+| -------------------------------------------------- | ------- | ----------------------------------------------- |
+| [Node.js](https://nodejs.org/)                     | 24.x    | See `.nvmrc` — use `nvm use` or `fnm use`       |
+| [pnpm](https://pnpm.io/)                           | 10.30+  | Corepack: `corepack enable && corepack prepare` |
+| [Docker](https://www.docker.com/)                  | 24+     | Required for infrastructure services            |
+| [Docker Compose](https://docs.docker.com/compose/) | v2+     | Included with Docker Desktop                    |
 
 ## Getting Started
 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-org/quantyx.git
+git clone https://github.com/MateusRoscoe/quantyx.git
 cd quantyx
 nvm use          # switches to Node 24
 pnpm install     # installs deps + generates Prisma client
@@ -45,13 +45,13 @@ Wait for all services to be healthy:
 docker compose ps   # all should show "healthy" or "running"
 ```
 
-| Service | Port | UI |
-|---------|------|-----|
-| PostgreSQL | 5432 | — |
-| ClickHouse | 8123 (HTTP), 9000 (native) | — |
-| Kafka | 29092 (host access) | — |
-| Redis | 6379 | — |
-| Kafbat UI | 8080 | http://localhost:8080 |
+| Service    | Port                       | UI                    |
+| ---------- | -------------------------- | --------------------- |
+| PostgreSQL | 5432                       | —                     |
+| ClickHouse | 8123 (HTTP), 9000 (native) | —                     |
+| Kafka      | 29092 (host access)        | —                     |
+| Redis      | 6379                       | —                     |
+| Kafbat UI  | 8080                       | http://localhost:8080 |
 
 ### 3. Configure app environment variables
 
