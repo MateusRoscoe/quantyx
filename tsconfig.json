@@ -38,6 +38,9 @@
     },
     {
       "path": "./apps/interface/web-e2e"
+    },
+    {
+      "path": "./libs/react-sdk"
     }
   ]
 }

@@ -395,6 +395,12 @@ importers:
 
   libs/postgres: {}
 
+  libs/react-sdk:
+    dependencies:
+      react:
+        specifier: '>=18'
+        version: 19.2.3
+
   libs/redis: {}
 
   libs/shared: {}

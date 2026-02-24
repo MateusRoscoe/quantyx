@@ -73,7 +73,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 ## Features — Future Apps
 
 - [ ] **API BFF** — Create API to serve data to the frontend with flexible querying (prevent SQL injection)
-- [ ] **React SDK** — Client-side SDK to let end users track events directly from the browser (e.g. button clicks, page views, custom actions). Should provide hooks/components and auto-batch requests to the ingest API.
+- [x] **React SDK** — Client-side SDK to let end users track events directly from the browser (e.g. button clicks, page views, custom actions). Should provide hooks/components and auto-batch requests to the ingest API.
 
 ---
 

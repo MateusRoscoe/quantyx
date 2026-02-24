@@ -8,4 +8,5 @@ export default defineWorkspace([
   'libs/auth/vitest.config.ts',
   'libs/clickhouse/vitest.config.ts',
   'apps/interface/web/vitest.config.ts',
+  'libs/react-sdk/vitest.config.ts',
 ]);

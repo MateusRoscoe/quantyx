@@ -8,6 +8,7 @@ packages:
   - 'libs/postgres'
   - 'libs/auth'
   - 'libs/redis'
+  - 'libs/react-sdk'
   - 'apps/interface/*'
 onlyBuiltDependencies:
   - '@prisma/client'
