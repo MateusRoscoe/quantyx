@@ -83,8 +83,8 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **Migrate from Jest to Vitest** — Replaced Jest + @swc/jest with Vitest v3 across all 6 projects. Uses `globals: true`, `server.deps.inline: true`, and a `resolve-ts-from-js` Vite plugin for Prisma 7 compatibility.
 - [x] **api-tenant-manager: integration tests** — 27 integration tests covering Organizations and Projects CRUD with Testcontainers Postgres.
 - [x] **web: E2E tests** — Playwright E2E tests (`apps/interface/web-e2e`) covering auth flows (login, register, verify email, sign out, forgot password) and organization CRUD (create, read, update, delete). Uses Testcontainers PostgreSQL, starts both web app and api-tenant-manager via Playwright `webServer`. CI integration via `e2e-ci` target.
-- [ ] **consumer-events-ingest: unit tests** — `src/services/event-service.ts` has zero test coverage. Add unit tests for event transformation logic.
-- [ ] **consumer-events-ingest: integration tests** — Add Testcontainers-based integration tests for batch processing (Kafka → ClickHouse)
+- [x] **consumer-events-ingest: unit tests** — 11 unit tests for `EventService.transformToClickHouseFormat()` covering all field mappings, defaults, and edge cases.
+- [x] **consumer-events-ingest: integration tests** — 4 integration tests with Testcontainers (Kafka + ClickHouse) verifying full pipeline: single event, batch, defaults, and malformed message recovery.
 - [ ] **libs/kafka: tests** — No tests for the KafkaJS wrapper. Add unit tests with mocks and/or integration tests with Testcontainers.
 - [ ] **libs/shared-backend: tests** — No tests for the Pino logger factory. Add unit tests.
 - [ ] **libs/postgres: tests** — No tests for the Prisma client singleton. Add integration tests with Testcontainers Postgres.
