@@ -61,6 +61,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [x] **Members management** — List, add, role change, remove
 - [x] **CORS support** — `@fastify/cors` added to api-tenant-manager with `WEB_APP_URL` env var
 - [x] **Browser-compatible shared lib** — Replaced `country-code-lookup` with generated static `country-data.ts`
+- [x] **Analytics instrumentation** — Integrated `@quantyx/react-sdk` with conditional `QuantyxProvider`, safe no-op wrapper hooks, and automatic `page_view` + `sign_out` + `identify` tracking
 - [ ] **OAuth provider sign-in** — Add Google/GitHub social login buttons once OAuth is configured
 - [ ] **Event analytics dashboard** — Build pages to visualize events from ClickHouse (requires API BFF)
 - [x] **Dark mode** — Add theme toggle (CSS variables already support `.dark` class)
@@ -73,7 +74,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 ## Features — Future Apps
 
 - [ ] **API BFF** — Create API to serve data to the frontend with flexible querying (prevent SQL injection)
-- [x] **React SDK** — Client-side SDK to let end users track events directly from the browser (e.g. button clicks, page views, custom actions). Should provide hooks/components and auto-batch requests to the ingest API.
+- [x] **React SDK** — Client-side SDK (`@quantyx/react-sdk`) to let end users track events directly from the browser. Publishable to npm with compiled `dist/` output; workspace consumers use `@quantyx/source` export condition for source resolution.
 
 ---
 

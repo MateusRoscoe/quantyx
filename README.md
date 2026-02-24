@@ -1,104 +1,260 @@
-# New Nx Repository
+# Quantyx
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+A multi-tenant event analytics platform. Users send behavioral events (page views, clicks, custom actions) via HTTP, which flow through Kafka into ClickHouse for analytics, with tenant and organization management backed by PostgreSQL.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+For full architecture details, data models, and design decisions, see [OVERVIEW.md](./OVERVIEW.md).
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Prerequisites
 
-## Generate a library
+| Tool | Version | Notes |
+|------|---------|-------|
+| [Node.js](https://nodejs.org/) | 24.x | See `.nvmrc` — use `nvm use` or `fnm use` |
+| [pnpm](https://pnpm.io/) | 10.30+ | Corepack: `corepack enable && corepack prepare` |
+| [Docker](https://www.docker.com/) | 24+ | Required for infrastructure services |
+| [Docker Compose](https://docs.docker.com/compose/) | v2+ | Included with Docker Desktop |
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+## Getting Started
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/your-org/quantyx.git
+cd quantyx
+nvm use          # switches to Node 24
+pnpm install     # installs deps + generates Prisma client
 ```
 
-## Run tasks
+### 2. Start infrastructure
 
-To build the library use:
+```bash
+# Create a root .env from the example
+cp .env.example .env
+# Fill in CLICKHOUSE_PASSWORD, POSTGRES_PASSWORD, and BETTER_AUTH_SECRET
+# Example:
+#   CLICKHOUSE_PASSWORD=clickhouse
+#   POSTGRES_PASSWORD=password
+#   BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 
-```sh
-npx nx build pkg1
+# Start ClickHouse, PostgreSQL, Kafka, Redis, and Kafbat UI
+docker compose up -d
 ```
 
-To run any task with Nx use:
+Wait for all services to be healthy:
 
-```sh
-npx nx <target> <project-name>
+```bash
+docker compose ps   # all should show "healthy" or "running"
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+| Service | Port | UI |
+|---------|------|-----|
+| PostgreSQL | 5432 | — |
+| ClickHouse | 8123 (HTTP), 9000 (native) | — |
+| Kafka | 29092 (host access) | — |
+| Redis | 6379 | — |
+| Kafbat UI | 8080 | http://localhost:8080 |
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 3. Configure app environment variables
 
-## Versioning and releasing
+Each app has its own `.env.example`. Copy and fill them in:
 
-To version and release the library use
+```bash
+# api-event-webhook
+cp apps/api-event-webhook/.env.example apps/api-event-webhook/.env
+# Defaults work if your Postgres password is "password":
+#   KAFKA_BROKERS=localhost:29092
+#   POSTGRES_URL=postgresql://admin:password@localhost:5432/quantyx
+#   REDIS_URL=redis://localhost:6379
+
+# api-tenant-manager
+cp apps/api-tenant-manager/.env.example apps/api-tenant-manager/.env
+# Required: set DATABASE_URL and BETTER_AUTH_SECRET
+#   DATABASE_URL=postgresql://admin:password@localhost:5432/quantyx
+#   BETTER_AUTH_SECRET=<same value as root .env>
+# SMTP vars can be left empty for local dev (email verification won't send)
+
+# consumer-events-ingest — uses Kafka/ClickHouse env vars from libs,
+# no app-level .env needed for defaults
+
+# web
+cp apps/interface/web/.env.example apps/interface/web/.env
+# Defaults work as-is:
+#   NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+### 4. Run database migrations
+
+```bash
+npx nx run postgres:prisma-migrate
+```
+
+This applies all Prisma migrations to your local PostgreSQL.
+
+### 5. Start the apps
+
+Open separate terminals (or use a process manager):
+
+```bash
+# Terminal 1 — Event ingestion API (port 3000)
+npx nx serve api-event-webhook
+
+# Terminal 2 — Tenant management API (port 3001)
+npx nx serve api-tenant-manager
+
+# Terminal 3 — Kafka consumer
+npx nx serve consumer-events-ingest
+
+# Terminal 4 — Web frontend (port 4200)
+npx nx dev web
+```
+
+Once running:
+
+- **Web app**: http://localhost:4200
+- **Tenant Manager Swagger**: http://localhost:3001/docs
+- **Event Webhook Swagger**: http://localhost:3000/docs
+- **Kafbat UI**: http://localhost:8080
+
+### 6. Create your first organization, project, and API key
+
+1. Open http://localhost:4200 and register a new account
+2. Create an organization, then create a project inside it
+3. Go to the project page and create an API key — copy the plaintext key (shown once)
+4. Test event ingestion:
+
+```bash
+curl -X POST http://localhost:3000/ingest \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{
+    "event_id": "550e8400-e29b-41d4-a716-446655440000",
+    "session_id": "550e8400-e29b-41d4-a716-446655440001",
+    "user_id": "user-123",
+    "event_name": "button_click",
+    "timestamp": "2025-01-01T00:00:00.000Z"
+  }'
+```
+
+### 7. (Optional) Enable web analytics tracking
+
+To have the web app send `page_view` and `sign_out` events to the ingest API:
+
+```bash
+# In apps/interface/web/.env:
+NEXT_PUBLIC_QUANTYX_API_KEY=<your API key from step 6>
+NEXT_PUBLIC_QUANTYX_INGEST_URL=http://localhost:3000
+```
+
+Restart the web app after setting these. Analytics is fully optional — the app works without them.
+
+## Project Structure
 
 ```
-npx nx release
+quantyx/
+├── apps/
+│   ├── api-event-webhook/       # Fastify — event ingestion (port 3000)
+│   ├── api-tenant-manager/      # Fastify — tenant/org management (port 3001)
+│   ├── consumer-events-ingest/  # Kafka consumer → ClickHouse
+│   └── interface/
+│       ├── web/                 # Next.js frontend (port 4200)
+│       └── web-e2e/             # Playwright E2E tests
+├── libs/
+│   ├── shared/                  # Zod schemas (browser-compatible)
+│   ├── shared-backend/          # Pino logger, API key crypto
+│   ├── kafka/                   # KafkaJS client wrapper
+│   ├── clickhouse/              # ClickHouse client wrapper
+│   ├── postgres/                # Prisma client + schema
+│   ├── redis/                   # ioredis wrapper
+│   ├── auth/                    # BetterAuth config
+│   └── react-sdk/               # Browser event tracking SDK (publishable)
+├── infrastructure/
+│   └── clickhouse/init/         # ClickHouse init SQL scripts
+├── docker-compose.yaml
+├── nx.json
+├── OVERVIEW.md                  # Full architecture documentation
+└── TODOs.md                     # Outstanding work items
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+## Common Commands
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+# Build / test / lint a specific project
+npx nx build <project>
+npx nx test <project>
+npx nx lint <project>
 
-## Keep TypeScript project references up to date
+# Run a single test file
+npx nx test <project> -- --testPathPattern=<pattern>
 
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
+# Typecheck across the workspace
+npx nx run-many -t typecheck
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+# Serve an app in dev mode
+npx nx serve <project>
 
-```sh
+# Prisma operations
+npx nx run postgres:prisma-generate    # regenerate client
+npx nx run postgres:prisma-migrate     # apply migrations
+npx nx run postgres:prisma-studio      # open Prisma Studio GUI
+
+# Sync TypeScript project references
 npx nx sync
+
+# Visualize project dependency graph
+npx nx graph
+
+# Run only affected tasks (useful in PRs)
+npx nx affected -t test lint build
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+## Running Tests
 
-```sh
-npx nx sync:check
+Tests use [Vitest](https://vitest.dev/). Some projects require Docker for Testcontainers-based integration tests.
+
+```bash
+# Unit tests (no Docker needed)
+npx nx test shared              # 20 tests — Zod schemas
+npx nx test auth                # 3 tests — auth config
+npx nx test clickhouse          # 6 tests — client wrapper
+npx nx test react-sdk           # 15 tests — SDK + React hooks
+
+# Integration tests (need Docker)
+npx nx test api-tenant-manager  # 38 tests — PostgreSQL via Testcontainers
+npx nx test api-event-webhook   # 10 tests — Kafka + PostgreSQL + Redis via Testcontainers
+
+# Frontend tests (no Docker needed)
+npx nx test web                 # 49 tests — React Testing Library
+
+# E2E tests (need Docker, starts apps automatically)
+npx nx e2e web-e2e              # Playwright — auth flows + org CRUD
+
+# Run all tests
+npx nx run-many -t test
+
+# Run with coverage
+npx nx test <project> -- --coverage
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+## Contributing
 
-## Nx Cloud
+1. Create a feature branch from `main`
+2. Make your changes
+3. Run `npx nx affected -t test lint typecheck` to validate
+4. Open a pull request
 
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+### Code Conventions
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- **Validation**: All API payloads validated with Zod schemas from `libs/shared`
+- **Tests**: Co-located as `*.spec.ts` files; Vitest with `globals: true`
+- **Linting**: ESLint flat config with `@nx/enforce-module-boundaries`
+- **Formatting**: Prettier with single quotes
+- **Fastify plugins**: Numeric prefix for deterministic autoload order (`01-sensible.ts`, `02-auth.ts`, etc.)
+- **Imports**: Use `.js` extensions in library source (Node ESM / `nodenext` convention)
 
-### Set up CI (non-Github Actions CI)
+### Scaffolding
 
-**Note:** This is only required if your CI provider is not GitHub Actions.
+Generate new projects with Nx:
 
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+```bash
+npx nx g @nx/node:app apps/my-new-app
+npx nx g @nx/js:lib libs/my-new-lib
 ```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)

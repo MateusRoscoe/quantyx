@@ -52,6 +52,7 @@ graph TB
     end
 
     WEB -- "session auth + CORS" --> TM
+    WEB -- "uses @quantyx/react-sdk" --> SDK
     SDK -- "X-API-Key auto-batched" --> EW
     HTTP --> EW
     HTTP --> TM
@@ -249,11 +250,15 @@ Next.js App Router frontend for authentication and tenant management. Communicat
 
 **Session guard**: Dashboard layout uses `useSession()` from BetterAuth React client; redirects to `/login` if unauthenticated.
 
+**Analytics instrumentation**: Integrated with `@quantyx/react-sdk`. The `QuantyxProvider` is conditionally rendered in `providers.tsx` (only when `NEXT_PUBLIC_QUANTYX_API_KEY` is set). Safe no-op wrapper hooks (`useAnalyticsTrack`, `useAnalyticsIdentify`, `usePageView`) in `src/hooks/use-analytics.ts` gracefully degrade when the SDK is unconfigured. Tracked events: `page_view` on every pathname change (dashboard + auth), `sign_out` on sign-out click, and `identify(userId)` when the dashboard session loads.
+
 **Environment variables**:
 
 | Variable | Default | Description |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3001` | api-tenant-manager URL |
+| `NEXT_PUBLIC_QUANTYX_API_KEY` | *(optional)* | API key for event tracking; omit to disable analytics |
+| `NEXT_PUBLIC_QUANTYX_INGEST_URL` | `http://localhost:3000` | api-event-webhook URL for SDK |
 
 ---
 
@@ -293,7 +298,7 @@ Kafka consumer that processes event messages in batches and persists them to Cli
 | **postgres** | Prisma 7 client singleton with `@prisma/adapter-pg` connection pooling |
 | **redis** | ioredis client wrapper with lazy connect, health check, connect/disconnect helpers |
 | **auth** | BetterAuth singleton with Prisma adapter. Owns its own Zod-validated env (`API_TENANT_MANAGER_EXTERNAL_URL`, `BETTER_AUTH_SECRET`, `SMTP_*`). Supports email/password auth, email verification (send on sign-up, auto sign-in after verification), password reset via SMTP. |
-| **react-sdk** | Browser event tracking SDK. Vanilla JS core (`QuantyxClient`) with auto-batching, UUIDv7 event IDs, session management (`sessionStorage`), and browser/device auto-detection (Client Hints + UA fallback). React bindings (`QuantyxProvider`, `useTrack`, `useIdentify`) via separate `@quantyx/react-sdk/react` entry point. Sends batched events to `api-event-webhook` via `POST /ingest-bulk` with `X-API-Key` header. Uses `navigator.sendBeacon()` on page hide for reliable delivery. React is an optional peer dependency — core works without it. |
+| **react-sdk** | Publishable browser event tracking SDK (`@quantyx/react-sdk`). Vanilla JS core (`QuantyxClient`) with auto-batching, UUIDv7 event IDs, session management (`sessionStorage`), and browser/device auto-detection (Client Hints + UA fallback). React bindings (`QuantyxProvider`, `useTrack`, `useIdentify`) via separate `@quantyx/react-sdk/react` entry point. Sends batched events to `api-event-webhook` via `POST /ingest-bulk` with `X-API-Key` header. Uses `navigator.sendBeacon()` on page hide for reliable delivery. React is an optional peer dependency — core works without it. Built with `tsc` to `dist/` (JS + declarations); `@quantyx/source` export condition enables workspace source resolution. |
 
 ---
 
@@ -547,3 +552,5 @@ All 3 apps: `node:lts-alpine` + pnpm, copy `dist/`, `pnpm install`, `node main.j
 | Direct API calls from frontend (no BFF) | Frontend uses `credentials: 'include'` + `@fastify/cors` with session cookies. Simpler than a proxy layer for MVP. |
 | Generated static country data | Replaced Node-only `country-code-lookup` with a script that fetches from restcountries.com and generates a pure TS file. Keeps `@quantyx/shared` browser-compatible. |
 | React SDK: vanilla core + React bindings | Separate entry points (`@quantyx/react-sdk` and `@quantyx/react-sdk/react`) so the core works without React. React is an optional peer dep. UUIDs use `crypto.getRandomValues()` only (not `crypto.randomUUID()`) for non-secure-context compatibility. `sendBeacon` on page hide ensures events aren't lost during navigation. |
+| React SDK: publishable with `@quantyx/source` condition | Package exports point to compiled `dist/` output for registry consumers and Next.js Turbopack (which lacks `extensionAlias` support). Workspace consumers using `nodenext` resolution get source `.ts` files via the `@quantyx/source` custom export condition configured in `tsconfig.base.json`. |
+| Conditional analytics provider | `QuantyxProvider` only renders when `NEXT_PUBLIC_QUANTYX_API_KEY` is set. Safe no-op wrapper hooks (`useAnalyticsTrack`, `useAnalyticsIdentify`, `usePageView`) allow instrumentation code to exist in layouts without breaking the app when analytics is disabled. |
