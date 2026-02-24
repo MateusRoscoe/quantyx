@@ -93,7 +93,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 ## Documentation
 
-- [ ] **Rewrite README.md** — The root README is outdated. Should cover: project description, prerequisites, quickstart (docker compose + nx serve), project structure, how to run tests, how to create a new org/project/API key end-to-end, and links to OVERVIEW.md for architecture details.
+- [x] **Rewrite README.md** — Replaced Nx boilerplate with full local dev setup guide: prerequisites, infrastructure setup, env config, migrations, app startup, end-to-end API key test, project structure, common commands, and test catalog.
 
 ---
 
