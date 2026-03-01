@@ -5,7 +5,7 @@ const envSchema = z.object({
     .enum(['development', 'production', 'test'])
     .default('development'),
   HOST: z.string().default('localhost'),
-  PORT: z.coerce.number().default(3000),
+  PORT: z.coerce.number().default(3002),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
   EVENTS_MAX_BUFFER_SIZE: z.coerce.number().min(1).default(100),

@@ -94,7 +94,7 @@ This applies all Prisma migrations to your local PostgreSQL.
 Open separate terminals (or use a process manager):
 
 ```bash
-# Terminal 1 — Event ingestion API (port 3000)
+# Terminal 1 — Event ingestion API (port 3002)
 npx nx serve api-event-webhook
 
 # Terminal 2 — Tenant management API (port 3001)
@@ -103,26 +103,26 @@ npx nx serve api-tenant-manager
 # Terminal 3 — Kafka consumer
 npx nx serve consumer-events-ingest
 
-# Terminal 4 — Web frontend (port 4200)
+# Terminal 4 — Web frontend (port 3000)
 npx nx dev web
 ```
 
 Once running:
 
-- **Web app**: http://localhost:4200
+- **Web app**: http://localhost:3000
 - **Tenant Manager Swagger**: http://localhost:3001/docs
-- **Event Webhook Swagger**: http://localhost:3000/docs
+- **Event Webhook Swagger**: http://localhost:3002/docs
 - **Kafbat UI**: http://localhost:8080
 
 ### 6. Create your first organization, project, and API key
 
-1. Open http://localhost:4200 and register a new account
+1. Open http://localhost:3000 and register a new account
 2. Create an organization, then create a project inside it
 3. Go to the project page and create an API key — copy the plaintext key (shown once)
 4. Test event ingestion:
 
 ```bash
-curl -X POST http://localhost:3000/ingest \
+curl -X POST http://localhost:3002/ingest \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
   -d '{
@@ -141,7 +141,7 @@ To have the web app send `page_view` and `sign_out` events to the ingest API:
 ```bash
 # In apps/interface/web/.env:
 NEXT_PUBLIC_QUANTYX_API_KEY=<your API key from step 6>
-NEXT_PUBLIC_QUANTYX_INGEST_URL=http://localhost:3000
+NEXT_PUBLIC_QUANTYX_INGEST_URL=http://localhost:3002
 ```
 
 Restart the web app after setting these. Analytics is fully optional — the app works without them.
@@ -151,11 +151,11 @@ Restart the web app after setting these. Analytics is fully optional — the app
 ```
 quantyx/
 ├── apps/
-│   ├── api-event-webhook/       # Fastify — event ingestion (port 3000)
+│   ├── api-event-webhook/       # Fastify — event ingestion (port 3002)
 │   ├── api-tenant-manager/      # Fastify — tenant/org management (port 3001)
 │   ├── consumer-events-ingest/  # Kafka consumer → ClickHouse
 │   └── interface/
-│       ├── web/                 # Next.js frontend (port 4200)
+│       ├── web/                 # Next.js frontend (port 3000)
 │       └── web-e2e/             # Playwright E2E tests
 ├── libs/
 │   ├── shared/                  # Zod schemas (browser-compatible)

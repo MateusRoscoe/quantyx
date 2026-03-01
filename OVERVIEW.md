@@ -13,13 +13,13 @@ A multi-tenant event analytics platform. Users send behavioral events (page view
 ```mermaid
 graph TB
     subgraph Clients
-        WEB["web<br/><b>:4200</b><br/>Next.js"]
+        WEB["web<br/><b>:3000</b><br/>Next.js"]
         SDK["React SDK<br/><b>@quantyx/react-sdk</b>"]
         HTTP["HTTP Client"]
     end
 
     subgraph API Layer
-        EW["api-event-webhook<br/><b>:3000</b><br/>Fastify"]
+        EW["api-event-webhook<br/><b>:3002</b><br/>Fastify"]
         TM["api-tenant-manager<br/><b>:3001</b><br/>Fastify"]
     end
 
@@ -118,7 +118,7 @@ sequenceDiagram
 
 ## Apps
 
-### api-event-webhook (port 3000)
+### api-event-webhook (port 3002)
 
 Event ingestion API. Authenticates requests via per-project API keys, validates incoming events, enriches them with request metadata and project context, buffers them client-side, and produces to Kafka.
 
@@ -207,7 +207,7 @@ Tenant/organization management API. CRUD operations for organizations, projects,
 | `PORT` | `3001` | Bind port |
 | `LOG_LEVEL` | `info` | debug, info, warn, error |
 | `DATABASE_URL` | *(required)* | PostgreSQL connection string |
-| `WEB_APP_URL` | `http://localhost:4200` | Frontend origin for CORS |
+| `WEB_APP_URL` | `http://localhost:3000` | Frontend origin for CORS |
 
 Auth-related env vars (validated by `libs/auth`):
 
@@ -224,7 +224,7 @@ Auth-related env vars (validated by `libs/auth`):
 
 ---
 
-### web (port 4200)
+### web (port 3000)
 
 Next.js App Router frontend for authentication and tenant management. Communicates directly with `api-tenant-manager` via session cookies + CORS.
 
@@ -258,7 +258,7 @@ Next.js App Router frontend for authentication and tenant management. Communicat
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3001` | api-tenant-manager URL |
 | `NEXT_PUBLIC_QUANTYX_API_KEY` | *(optional)* | API key for event tracking; omit to disable analytics |
-| `NEXT_PUBLIC_QUANTYX_INGEST_URL` | `http://localhost:3000` | api-event-webhook URL for SDK |
+| `NEXT_PUBLIC_QUANTYX_INGEST_URL` | `http://localhost:3002` | api-event-webhook URL for SDK |
 
 ---
 

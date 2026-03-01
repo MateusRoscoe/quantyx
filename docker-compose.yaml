@@ -90,6 +90,13 @@ services:
     depends_on:
       - kafka
 
+  mailhog:
+    image: mailhog/mailhog
+    container_name: quantyx-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
 volumes:
   clickhouse-data:
   postgres-data:
