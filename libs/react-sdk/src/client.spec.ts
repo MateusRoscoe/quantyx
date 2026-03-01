@@ -52,10 +52,10 @@ describe('QuantyxClient', () => {
       user_id: '',
     });
     // autoDetect is off, so no platform field
-    expect(body[0]!['platform']).toBeUndefined();
-    expect(body[0]!['event_id']).toBeDefined();
-    expect(body[0]!['session_id']).toBeDefined();
-    expect(body[0]!['timestamp']).toBeDefined();
+    expect(body[0]['platform']).toBeUndefined();
+    expect(body[0]['event_id']).toBeDefined();
+    expect(body[0]['session_id']).toBeDefined();
+    expect(body[0]['timestamp']).toBeDefined();
 
     await client.shutdown();
   });
@@ -100,7 +100,7 @@ describe('QuantyxClient', () => {
     const body = JSON.parse(
       (fetchSpy.mock.calls[0] as [string, RequestInit])[1].body as string,
     ) as Array<Record<string, unknown>>;
-    expect(body[0]!['user_id']).toBe('user-42');
+    expect(body[0]['user_id']).toBe('user-42');
 
     await client.shutdown();
   });
@@ -115,7 +115,7 @@ describe('QuantyxClient', () => {
     const body = JSON.parse(
       (fetchSpy.mock.calls[0] as [string, RequestInit])[1].body as string,
     ) as Array<Record<string, unknown>>;
-    expect(body[0]!['event_name']).toBe('final_event');
+    expect(body[0]['event_name']).toBe('final_event');
   });
 
   it('handles fetch errors gracefully', async () => {

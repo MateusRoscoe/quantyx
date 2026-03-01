@@ -20,7 +20,7 @@ describe('EventService', () => {
       const event = makeEvent({
         country: 'US',
         continent: 'North America',
-        region: 'Northern America',
+        region: 'North America',
         state: 'California',
         city: 'San Francisco',
         device_type: 'desktop',
@@ -43,11 +43,13 @@ describe('EventService', () => {
         user_id: 'user-123',
         session_id: '550e8400-e29b-41d4-a716-446655440001',
         event_name: 'page_view',
-        timestamp: Math.floor(new Date('2025-06-15T14:30:00.000Z').getTime() / 1000),
+        timestamp: Math.floor(
+          new Date('2025-06-15T14:30:00.000Z').getTime() / 1000
+        ),
         date: '2025-06-15',
         country: 'US',
         continent: 'North America',
-        region: 'Northern America',
+        region: 'North America',
         state: 'California',
         city: 'San Francisco',
         device_type: 'desktop',
@@ -82,7 +84,9 @@ describe('EventService', () => {
     });
 
     it('defaults missing ip_address to "::"', () => {
-      const event = makeEvent({ ip_address: undefined } as Partial<EventMessage>);
+      const event = makeEvent({
+        ip_address: undefined,
+      } as Partial<EventMessage>);
 
       const result = EventService.transformToClickHouseFormat(event);
 
@@ -119,8 +123,12 @@ describe('EventService', () => {
       const nye = makeEvent({ timestamp: '2024-12-31T23:59:59.000Z' });
       const newYear = makeEvent({ timestamp: '2025-01-01T00:00:00.000Z' });
 
-      expect(EventService.transformToClickHouseFormat(nye).date).toBe('2024-12-31');
-      expect(EventService.transformToClickHouseFormat(newYear).date).toBe('2025-01-01');
+      expect(EventService.transformToClickHouseFormat(nye).date).toBe(
+        '2024-12-31'
+      );
+      expect(EventService.transformToClickHouseFormat(newYear).date).toBe(
+        '2025-01-01'
+      );
     });
 
     it('converts timestamp to Unix seconds (not milliseconds)', () => {

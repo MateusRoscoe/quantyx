@@ -6,5 +6,6 @@ export default fp(async function (fastify) {
   await fastify.register(cors, {
     origin: environment.WEB_APP_URL,
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 });

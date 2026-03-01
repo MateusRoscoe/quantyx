@@ -104,6 +104,11 @@
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
     },
+    "typecheck": {
+      "options": {
+        "command": "tsc --build --emitDeclarationOnly --force"
+      }
+    },
     "test": {
       "dependsOn": ["^build"]
     },

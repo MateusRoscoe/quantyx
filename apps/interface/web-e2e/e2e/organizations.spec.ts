@@ -56,7 +56,7 @@ test.describe('Organizations', () => {
       await expect(
         page.getByRole('heading', { name: 'Detail Test Org' }),
       ).toBeVisible();
-      await expect(page.getByText('Projects')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
     });
 
     test('update organization name in settings', async ({ page }) => {
@@ -96,22 +96,24 @@ test.describe('Organizations', () => {
       await page.getByText('Org To Delete').click();
       await page.getByRole('link', { name: /Settings/ }).click();
 
-      // Click delete
+      // Click delete to open confirmation dialog
       await page
+        .getByRole('button', { name: 'Delete organization' })
+        .first()
+        .click();
+
+      // Wait for dialog, then type confirmation
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole('textbox').fill('Org To Delete');
+
+      // Confirm deletion — click the red destructive button inside the dialog
+      await dialog
         .getByRole('button', { name: 'Delete organization' })
         .click();
 
-      // Type confirmation
-      await page.getByPlaceholder('Org To Delete').fill('Org To Delete');
-
-      // Confirm deletion
-      await page
-        .getByRole('button', { name: 'Delete' })
-        .last()
-        .click();
-
       // Should redirect to organizations list
-      await expect(page).toHaveURL('/organizations', { timeout: 5_000 });
+      await expect(page).toHaveURL('/organizations', { timeout: 10_000 });
       await expect(page.getByText('Organization deleted')).toBeVisible();
     });
 

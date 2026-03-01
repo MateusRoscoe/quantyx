@@ -231,7 +231,7 @@ describe('PATCH /organizations/:orgId/members/:id', () => {
 
     const response = await server.inject({
       method: 'PATCH',
-      url: `/organizations/${org.id}/members/${ownerMembership!.id}`,
+      url: `/organizations/${org.id}/members/${ownerMembership?.id}`,
       payload: { role: 'admin' },
       headers: ownerCtx.headers,
     });
@@ -287,7 +287,7 @@ describe('DELETE /organizations/:orgId/members/:id', () => {
 
     const response = await server.inject({
       method: 'DELETE',
-      url: `/organizations/${org.id}/members/${ownerMembership!.id}`,
+      url: `/organizations/${org.id}/members/${ownerMembership?.id}`,
       headers: ownerCtx.headers,
     });
     expect(response.statusCode).toBe(403);

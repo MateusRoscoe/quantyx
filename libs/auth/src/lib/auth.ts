@@ -17,6 +17,7 @@ const emailTransport = createEmailTransport({
 
 export const auth = betterAuth({
   baseURL: authEnvironment.API_TENANT_MANAGER_EXTERNAL_URL,
+  trustedOrigins: [authEnvironment.WEB_APP_URL],
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),

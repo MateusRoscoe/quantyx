@@ -1,8 +1,10 @@
+import { dirname, resolve } from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 
 const baseURL = 'http://localhost:3000';
 const apiURL = 'http://localhost:3001';
+const workspaceRoot = resolve(dirname(__filename), '../../..');
 
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './e2e' }),
@@ -16,12 +18,11 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  globalSetup: require.resolve('./global-setup'),
-  globalTeardown: require.resolve('./global-teardown'),
   webServer: [
     {
       command: 'npx nx dev web',
       url: baseURL,
+      cwd: workspaceRoot,
       reuseExistingServer: true,
       timeout: 120_000,
       env: { NEXT_PUBLIC_API_URL: apiURL },
@@ -29,6 +30,7 @@ export default defineConfig({
     {
       command: 'npx nx serve api-tenant-manager',
       url: `${apiURL}/healthz`,
+      cwd: workspaceRoot,
       reuseExistingServer: true,
       timeout: 120_000,
     },

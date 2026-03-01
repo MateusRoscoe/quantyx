@@ -25,7 +25,7 @@ async function pollClickHouse(
   projectId: string,
   expectedCount: number,
   timeoutMs = 15_000,
-  intervalMs = 500,
+  intervalMs = 500
 ): Promise<Record<string, unknown>[]> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -35,15 +35,17 @@ async function pollClickHouse(
       format: 'JSONEachRow',
     });
     const rows = await result.json<Record<string, unknown>[]>();
-    if (rows.length >= expectedCount) return rows;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (rows.length >= expectedCount) return rows as any;
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error(
-    `Timed out waiting for ${expectedCount} row(s) with project_id=${projectId}`,
+    `Timed out waiting for ${expectedCount} row(s) with project_id=${projectId}`
   );
 }
 
 beforeAll(async () => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const brokers = process.env.KAFKA_BROKERS!.split(',');
 
   // Test producer — independent KafkaJS instance
@@ -65,8 +67,8 @@ beforeAll(async () => {
 
   // Start the consumer once — dynamic import so module-level env reads
   // happen after globalSetup has set process.env
-  const { AppCtrl } = await import('./app-ctrl');
-  const { getAndConnectConsumer } = await import('../models/kafka');
+  const { AppCtrl } = await import('./app-ctrl.js');
+  const { getAndConnectConsumer } = await import('../models/kafka.js');
 
   await AppCtrl.start();
 
@@ -105,7 +107,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
   it('batch of events all land in ClickHouse', async () => {
     const projectId = randomUUID();
     const events = Array.from({ length: 5 }, () =>
-      makeEventMessage({ project_id: projectId }),
+      makeEventMessage({ project_id: projectId })
     );
 
     await producer.send({
@@ -124,6 +126,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
 
   it('event with only required fields gets correct defaults in ClickHouse', async () => {
     // Omit ip_address to verify the '::' default
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { ip_address: _, ...eventWithoutIp } = makeEventMessage();
     const event = eventWithoutIp;
 

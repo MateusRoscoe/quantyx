@@ -66,7 +66,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader className="p-4">
-          <Link href="/dashboard" className="text-lg font-bold">
+          <Link href="/organizations" className="text-lg font-bold">
             Quantyx
           </Link>
         </SidebarHeader>

@@ -8,6 +8,11 @@ const envSchema = z.object({
     .describe(
       'Externally-reachable URL of api-tenant-manager; used by BetterAuth to build email verification and password reset links',
     ),
+  WEB_APP_URL: z
+    .string()
+    .url()
+    .default('http://localhost:4200')
+    .describe('URL of the frontend app; used as a trusted origin for Better Auth'),
   BETTER_AUTH_SECRET: z.string().min(1),
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().default(587),

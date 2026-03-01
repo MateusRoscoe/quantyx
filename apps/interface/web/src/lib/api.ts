@@ -14,13 +14,15 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const headers: HeadersInit = { ...options.headers };
+  if (options.body) {
+    (headers as Record<string, string>)['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!res.ok) {

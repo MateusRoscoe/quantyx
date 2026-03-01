@@ -5,6 +5,7 @@ export default defineConfig({
     name: 'react-sdk',
     environment: 'jsdom',
     globals: true,
+    watch: false,
     include: ['src/**/*.spec.ts', 'src/**/*.spec.tsx'],
     coverage: { reportsDirectory: 'test-output/vitest/coverage', provider: 'v8' },
   },

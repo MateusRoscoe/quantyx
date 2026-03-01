@@ -23,22 +23,13 @@
           "assets": [
             "apps/api-tenant-manager/src/assets"
           ],
-          "esbuildOptions": {
-            "sourcemap": true,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
+          "esbuildConfig": "tools/esbuild/prisma-cjs-fix.js",
+          "sourcemap": true
         },
         "configurations": {
           "development": {},
           "production": {
-            "esbuildOptions": {
-              "sourcemap": false,
-              "outExtension": {
-                ".js": ".js"
-              }
-            }
+            "sourcemap": false
           }
         }
       },

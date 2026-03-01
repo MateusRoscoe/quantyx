@@ -40,7 +40,7 @@ describe('useTrack', () => {
       result.current('page_view', { props_str: { path: '/' } });
     });
 
-    const mockInstance = vi.mocked(QuantyxClient).mock.results[0]!.value as {
+    const mockInstance = vi.mocked(QuantyxClient).mock.results[0]?.value as {
       track: ReturnType<typeof vi.fn>;
     };
     expect(mockInstance.track).toHaveBeenCalledWith('page_view', { props_str: { path: '/' } });
@@ -55,7 +55,7 @@ describe('useIdentify', () => {
       result.current('user-123');
     });
 
-    const mockInstance = vi.mocked(QuantyxClient).mock.results[0]!.value as {
+    const mockInstance = vi.mocked(QuantyxClient).mock.results[0]?.value as {
       identify: ReturnType<typeof vi.fn>;
     };
     expect(mockInstance.identify).toHaveBeenCalledWith('user-123');
@@ -84,7 +84,7 @@ describe('QuantyxProvider', () => {
       </QuantyxProvider>,
     );
 
-    const mockInstance = vi.mocked(QuantyxClient).mock.results[0]!.value as {
+    const mockInstance = vi.mocked(QuantyxClient).mock.results[0]?.value as {
       shutdown: ReturnType<typeof vi.fn>;
     };
 

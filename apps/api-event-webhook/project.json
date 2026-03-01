@@ -17,23 +17,14 @@
         "main": "apps/api-event-webhook/src/main.ts",
         "tsConfig": "apps/api-event-webhook/tsconfig.app.json",
         "assets": ["apps/api-event-webhook/src/assets"],
-        "esbuildOptions": {
-          "sourcemap": true,
-          "outExtension": {
-            ".js": ".js"
-          }
-        }
+        "esbuildConfig": "tools/esbuild/prisma-cjs-fix.js",
+        "sourcemap": true
       },
       "configurations": {
         "development": {},
         "production": {
           "generateLockfile": true,
-          "esbuildOptions": {
-            "sourcemap": false,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
+          "sourcemap": false
         }
       }
     },

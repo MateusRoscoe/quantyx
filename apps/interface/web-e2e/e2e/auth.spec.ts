@@ -62,10 +62,9 @@ test.describe('Auth', () => {
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     // Sonner toast should appear with error
-    await expect(page.getByRole('status')).toContainText(
-      /invalid|credentials|error/i,
-      { timeout: 5_000 },
-    );
+    await expect(
+      page.locator('[data-sonner-toast]').first(),
+    ).toContainText(/invalid|credentials|error/i, { timeout: 5_000 });
   });
 
   test('sign out returns to login', async ({ page, createVerifiedUser }) => {

@@ -15,7 +15,7 @@ describe('generateUUIDv7', () => {
       ids.push(generateUUIDv7());
     }
     for (let i = 1; i < ids.length; i++) {
-      expect(ids[i]! >= ids[i - 1]!).toBe(true);
+      expect(ids[i] >= ids[i - 1]).toBe(true);
     }
   });
 });

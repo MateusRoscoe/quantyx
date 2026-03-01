@@ -19,6 +19,7 @@ export default defineConfig({
     name: 'api-event-webhook',
     environment: 'node',
     globals: true,
+    watch: false,
     include: ['src/**/*.spec.ts'],
     globalSetup: ['./vitest.globalSetup.ts'],
     testTimeout: 30_000,

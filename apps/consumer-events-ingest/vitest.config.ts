@@ -19,6 +19,7 @@ export default defineConfig({
     name: 'consumer-events-ingest',
     environment: 'node',
     globals: true,
+    watch: false,
     include: ['src/**/*.spec.ts'],
     globalSetup: ['./vitest.globalSetup.ts'],
     pool: 'forks',

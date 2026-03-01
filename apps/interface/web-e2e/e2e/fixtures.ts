@@ -1,10 +1,16 @@
 import { test as base, expect, type Page } from '@playwright/test';
-import { prisma } from '@quantyx/postgres';
+import pg from 'pg';
+
+const { Pool } = pg;
 
 export interface TestUser {
   email: string;
   password: string;
   name: string;
+}
+
+function getPool() {
+  return new Pool({ connectionString: process.env.DATABASE_URL });
 }
 
 /**
@@ -23,20 +29,38 @@ async function registerUser(page: Page, user: TestUser): Promise<void> {
 }
 
 async function verifyEmailInDb(email: string): Promise<string> {
-  const dbUser = await prisma.user.findUniqueOrThrow({ where: { email } });
-  await prisma.user.update({
-    where: { id: dbUser.id },
-    data: { emailVerified: true },
-  });
-  return dbUser.id;
+  const pool = getPool();
+  try {
+    const { rows } = await pool.query(
+      'SELECT id FROM "user" WHERE email = $1',
+      [email],
+    );
+    if (rows.length === 0) throw new Error(`User not found: ${email}`);
+    const userId = rows[0].id;
+    await pool.query(
+      'UPDATE "user" SET "emailVerified" = true WHERE id = $1',
+      [userId],
+    );
+    return userId;
+  } finally {
+    await pool.end();
+  }
 }
 
 async function deleteUserData(userId: string): Promise<void> {
-  // Delete in dependency order
-  await prisma.organizationMember.deleteMany({ where: { userId } });
-  await prisma.session.deleteMany({ where: { userId } });
-  await prisma.account.deleteMany({ where: { userId } });
-  await prisma.user.delete({ where: { id: userId } });
+  const pool = getPool();
+  try {
+    // Delete in dependency order
+    await pool.query(
+      'DELETE FROM "organization_members" WHERE "userId" = $1',
+      [userId],
+    );
+    await pool.query('DELETE FROM "session" WHERE "userId" = $1', [userId]);
+    await pool.query('DELETE FROM "account" WHERE "userId" = $1', [userId]);
+    await pool.query('DELETE FROM "user" WHERE id = $1', [userId]);
+  } finally {
+    await pool.end();
+  }
 }
 
 type Fixtures = {
