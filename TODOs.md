@@ -42,8 +42,9 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 ## Features — ClickHouse
 
-- [ ] **Materialized views for `users` table** — Incrementally populate `analytics.users` (first_seen, last_seen, total_events) via a materialized view on `events` inserts
-- [ ] **Materialized views for `metrics_daily` table** — Incrementally populate `analytics.metrics_daily` pre-aggregated table via a materialized view on `events` inserts
+- [x] **Materialized views for `users` table** — Incrementally populate `analytics.users` (first_seen, last_seen, total_events) via a materialized view on `events` inserts
+- [x] **Materialized views for `metrics_daily` table** — Incrementally populate `analytics.metrics_daily` pre-aggregated table via a materialized view on `events` inserts
+- [ ] **Automated property promotion** — Detect high-traffic custom properties in Map columns (`props_str`, `props_num`, `props_bool`) and promote them to dedicated `MATERIALIZED` columns for 2-25x query speedup. Includes tracking table, configurable thresholds, manual promotion support, and Grafana visibility. Detailed plan saved at `memory/plan-property-promotion.md`. Depends on the querying API being built first so promotion integrates with dynamic query resolution.
 
 ---
 
@@ -68,7 +69,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [ ] **Structured health checks** — Add a consistent health check per service that verifies connectivity to Kafka, ClickHouse, and Postgres.
 - [ ] **Alerting configuration** — Define alert rules for error rates, consumer lag, and service downtime.
 - [ ] **Consumer lag monitoring** — Track Kafka consumer group lag to detect ingestion pipeline slowdowns
-- [ ] **Add Grafana dashboards** — Create a Grafana deployment in the docker-compose.yaml and premade dashboards to visualize metrics from ClickHouse
+- [x] **Add Grafana dashboards** — Grafana added to docker-compose (port 3003, anonymous auth, ClickHouse datasource auto-provisioned). Pre-built "Quantyx Analytics" dashboard with panels for: overview stats, users, sessions, metrics daily (time series, pie charts, bar chart), and property metadata.
 
 ---
 
