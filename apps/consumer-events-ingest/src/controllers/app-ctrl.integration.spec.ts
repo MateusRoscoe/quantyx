@@ -151,6 +151,352 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
     expect(row.props_bool).toEqual({});
   });
 
+  it('materialized view populates analytics.users on event insert', async () => {
+    const projectId = randomUUID();
+    const userId = `user-${randomUUID().slice(0, 8)}`;
+
+    const events = [
+      makeEventMessage({
+        project_id: projectId,
+        user_id: userId,
+        event_name: 'page_view',
+        props_str: { path: '/home' },
+        props_num: { score: 42 },
+        props_bool: { is_premium: true },
+      }),
+      makeEventMessage({
+        project_id: projectId,
+        user_id: userId,
+        event_name: 'click',
+      }),
+    ];
+
+    await producer.send({
+      topic: TOPIC,
+      messages: events.map((e) => ({ value: JSON.stringify(e) })),
+    });
+
+    // Wait for events to land in the events table
+    await pollClickHouse(projectId, 2);
+
+    // Poll the users aggregate table
+    const deadline = Date.now() + 15_000;
+    let userRows: Record<string, unknown>[] = [];
+    while (Date.now() < deadline) {
+      const result = await ch.query({
+        query: `
+          SELECT
+            project_id,
+            user_id,
+            minMerge(first_seen) AS first_seen,
+            maxMerge(last_seen) AS last_seen,
+            sumMerge(total_events) AS total_events
+          FROM analytics.users
+          WHERE project_id = {projectId:String} AND user_id = {userId:String}
+          GROUP BY project_id, user_id
+        `,
+        query_params: { projectId, userId },
+        format: 'JSONEachRow',
+      });
+      userRows = await result.json<Record<string, unknown>[]>();
+      if (userRows.length > 0) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    expect(userRows).toHaveLength(1);
+    expect(userRows[0].project_id).toBe(projectId);
+    expect(userRows[0].user_id).toBe(userId);
+    expect(Number(userRows[0].total_events)).toBe(2);
+    // first_seen and last_seen should be valid date strings
+    expect(userRows[0].first_seen).toBeDefined();
+    expect(userRows[0].last_seen).toBeDefined();
+  });
+
+  it('anonymous events (empty user_id) are excluded from analytics.users', async () => {
+    const projectId = randomUUID();
+
+    const event = makeEventMessage({
+      project_id: projectId,
+      user_id: '',
+      event_name: 'page_view',
+    });
+
+    await producer.send({
+      topic: TOPIC,
+      messages: [{ value: JSON.stringify(event) }],
+    });
+
+    await pollClickHouse(projectId, 1);
+
+    // Give MV a moment to process, then check users is empty for this project
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const result = await ch.query({
+      query: `
+        SELECT count() AS cnt
+        FROM analytics.users
+        WHERE project_id = {projectId:String}
+      `,
+      query_params: { projectId },
+      format: 'JSONEachRow',
+    });
+    const rows = await result.json<{ cnt: string }[]>();
+    expect(Number(rows[0].cnt)).toBe(0);
+  });
+
+  it('materialized view populates analytics.metrics_daily with dimension rows', async () => {
+    const projectId = randomUUID();
+    const userId = `user-${randomUUID().slice(0, 8)}`;
+
+    const events = [
+      makeEventMessage({
+        project_id: projectId,
+        user_id: userId,
+        event_name: 'page_view',
+        browser: 'Chrome',
+        props_str: { path: '/about' },
+      }),
+      makeEventMessage({
+        project_id: projectId,
+        user_id: userId,
+        event_name: 'click',
+        browser: 'Chrome',
+      }),
+    ];
+
+    await producer.send({
+      topic: TOPIC,
+      messages: events.map((e) => ({ value: JSON.stringify(e) })),
+    });
+
+    await pollClickHouse(projectId, 2);
+
+    // Poll metrics_daily for the 'overall' dimension
+    const deadline = Date.now() + 15_000;
+    let metricRows: Record<string, unknown>[] = [];
+    while (Date.now() < deadline) {
+      const result = await ch.query({
+        query: `
+          SELECT
+            dimension_name,
+            dimension_value,
+            sumMerge(event_count) AS event_count
+          FROM analytics.metrics_daily
+          WHERE project_id = {projectId:String}
+          GROUP BY dimension_name, dimension_value
+          ORDER BY dimension_name, event_count DESC
+        `,
+        query_params: { projectId },
+        format: 'JSONEachRow',
+      });
+      metricRows = await result.json<Record<string, unknown>[]>();
+      if (metricRows.length >= 3) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    // Should have overall, event_name (page_view, click), browser (Chrome), path (/about)
+    const dimensions = metricRows.map((r) => r.dimension_name);
+    expect(dimensions).toContain('overall');
+    expect(dimensions).toContain('event_name');
+    expect(dimensions).toContain('browser');
+
+    // Overall count should be 2
+    const overall = metricRows.find((r) => r.dimension_name === 'overall');
+    expect(Number(overall?.event_count)).toBe(2);
+
+    // Browser=Chrome should be 2
+    const browser = metricRows.find(
+      (r) => r.dimension_name === 'browser' && r.dimension_value === 'Chrome'
+    );
+    expect(Number(browser?.event_count)).toBe(2);
+
+    // Path=/about should be 1 (only page_view has path)
+    const pathRow = metricRows.find(
+      (r) => r.dimension_name === 'path' && r.dimension_value === '/about'
+    );
+    expect(Number(pathRow?.event_count)).toBe(1);
+  });
+
+  it('materialized view populates analytics.property_metadata for custom props', async () => {
+    const projectId = randomUUID();
+
+    const event = makeEventMessage({
+      project_id: projectId,
+      event_name: 'purchase',
+      props_str: { item_name: 'Widget' },
+      props_num: { price: 19.99 },
+      props_bool: { gift_wrapped: true },
+    });
+
+    await producer.send({
+      topic: TOPIC,
+      messages: [{ value: JSON.stringify(event) }],
+    });
+
+    await pollClickHouse(projectId, 1);
+
+    // Poll property_metadata
+    const deadline = Date.now() + 15_000;
+    let propRows: Record<string, unknown>[] = [];
+    while (Date.now() < deadline) {
+      const result = await ch.query({
+        query: `
+          SELECT
+            property_name,
+            property_type,
+            sumMerge(event_count) AS event_count,
+            anyMerge(example_value) AS example_value
+          FROM analytics.property_metadata
+          WHERE project_id = {projectId:String}
+          GROUP BY property_name, property_type
+          ORDER BY property_name
+        `,
+        query_params: { projectId },
+        format: 'JSONEachRow',
+      });
+      propRows = await result.json<Record<string, unknown>[]>();
+      if (propRows.length >= 3) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    expect(propRows).toHaveLength(3);
+
+    const strProp = propRows.find((r) => r.property_name === 'item_name');
+    expect(strProp?.property_type).toBe('string');
+    expect(strProp?.example_value).toBe('Widget');
+    expect(Number(strProp?.event_count)).toBe(1);
+
+    const numProp = propRows.find((r) => r.property_name === 'price');
+    expect(numProp?.property_type).toBe('number');
+    expect(Number(numProp?.event_count)).toBe(1);
+
+    const boolProp = propRows.find((r) => r.property_name === 'gift_wrapped');
+    expect(boolProp?.property_type).toBe('boolean');
+    expect(Number(boolProp?.event_count)).toBe(1);
+  });
+
+  it('materialized view populates analytics.sessions with aggregated session data', async () => {
+    const projectId = randomUUID();
+    const sessionId = randomUUID();
+    const userId = `user-${randomUUID().slice(0, 8)}`;
+
+    const events = [
+      makeEventMessage({
+        project_id: projectId,
+        session_id: sessionId,
+        user_id: userId,
+        event_name: 'page_view',
+        browser: 'Firefox',
+        os: 'Linux',
+        device_type: 'desktop',
+        country: 'BR',
+        continent: 'SA',
+        region: 'SP',
+      }),
+      makeEventMessage({
+        project_id: projectId,
+        session_id: sessionId,
+        user_id: userId,
+        event_name: 'page_view',
+        browser: 'Firefox',
+        os: 'Linux',
+        device_type: 'desktop',
+        country: 'BR',
+      }),
+      makeEventMessage({
+        project_id: projectId,
+        session_id: sessionId,
+        user_id: userId,
+        event_name: 'click',
+        browser: 'Firefox',
+        os: 'Linux',
+        device_type: 'desktop',
+        country: 'BR',
+      }),
+    ];
+
+    await producer.send({
+      topic: TOPIC,
+      messages: events.map((e) => ({ value: JSON.stringify(e) })),
+    });
+
+    await pollClickHouse(projectId, 3);
+
+    // Poll the sessions aggregate table
+    const deadline = Date.now() + 15_000;
+    let sessionRows: Record<string, unknown>[] = [];
+    while (Date.now() < deadline) {
+      const result = await ch.query({
+        query: `
+          SELECT
+            session_id,
+            anyLastMerge(user_id) AS user_id,
+            minMerge(started_at) AS started_at,
+            maxMerge(ended_at) AS ended_at,
+            sumMerge(total_events) AS total_events,
+            sumMerge(page_views) AS page_views,
+            anyMerge(browser) AS browser,
+            anyMerge(os) AS os,
+            anyMerge(device_type) AS device_type,
+            anyMerge(country) AS country
+          FROM analytics.sessions
+          WHERE project_id = {projectId:String} AND session_id = {sessionId:String}
+          GROUP BY project_id, session_id
+        `,
+        query_params: { projectId, sessionId },
+        format: 'JSONEachRow',
+      });
+      sessionRows = await result.json<Record<string, unknown>[]>();
+      if (sessionRows.length > 0) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    expect(sessionRows).toHaveLength(1);
+    const row = sessionRows[0];
+    expect(row.session_id).toBe(sessionId);
+    expect(row.user_id).toBe(userId);
+    expect(Number(row.total_events)).toBe(3);
+    expect(Number(row.page_views)).toBe(2);
+    expect(row.browser).toBe('Firefox');
+    expect(row.os).toBe('Linux');
+    expect(row.device_type).toBe('desktop');
+    expect(row.country).toBe('BR');
+    expect(row.started_at).toBeDefined();
+    expect(row.ended_at).toBeDefined();
+  });
+
+  it('sessions with empty session_id are excluded from analytics.sessions', async () => {
+    const projectId = randomUUID();
+
+    const event = makeEventMessage({
+      project_id: projectId,
+      session_id: '',
+      event_name: 'page_view',
+    });
+
+    await producer.send({
+      topic: TOPIC,
+      messages: [{ value: JSON.stringify(event) }],
+    });
+
+    await pollClickHouse(projectId, 1);
+
+    // Give MV a moment to process, then check sessions is empty for this project
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const result = await ch.query({
+      query: `
+        SELECT count() AS cnt
+        FROM analytics.sessions
+        WHERE project_id = {projectId:String}
+      `,
+      query_params: { projectId },
+      format: 'JSONEachRow',
+    });
+    const rows = await result.json<{ cnt: string }[]>();
+    expect(Number(rows[0].cnt)).toBe(0);
+  });
+
   it('malformed message in batch — consumer logs error and continues', async () => {
     const projectId = randomUUID();
     const malformed = 'not-valid-json{{{';

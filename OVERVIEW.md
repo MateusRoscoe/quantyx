@@ -264,7 +264,7 @@ Next.js App Router frontend for authentication and tenant management. Communicat
 
 ### consumer-events-ingest
 
-Kafka consumer that processes event messages in batches and persists them to ClickHouse.
+Kafka consumer that processes event messages in batches and persists them to ClickHouse. Downstream aggregation (users, sessions, metrics, property metadata) is handled automatically by ClickHouse materialized views on insert — no application code needed.
 
 - Batch processing with heartbeat management (heartbeat every `SESSION_TIMEOUT / 3`)
 - Auto-commit disabled; offset committed only after successful ClickHouse insert
@@ -411,6 +411,8 @@ erDiagram
 
 ### ClickHouse (Analytics)
 
+All aggregate tables use `AggregatingMergeTree` with `-State` columns. Queries must use `-Merge` combinators (e.g., `sumMerge(total_events)`) with `GROUP BY` on the ORDER BY key columns.
+
 ```mermaid
 erDiagram
     events {
@@ -419,13 +421,13 @@ erDiagram
         String user_id
         String session_id
         LowCardinalityString event_name
-        DateTime64_3 timestamp
+        DateTime timestamp
         Date date
         LowCardinalityString country
         LowCardinalityString continent
         LowCardinalityString region
         String state
-        LowCardinalityString city
+        String city
         LowCardinalityString device_type
         LowCardinalityString platform
         LowCardinalityString browser
@@ -442,13 +444,29 @@ erDiagram
     users {
         String project_id
         String user_id
-        DateTime64_3 first_seen
-        DateTime64_3 last_seen
-        UInt64 total_events
-        MapStringString props_str
-        MapStringFloat64 props_num
-        MapStringUInt8 props_bool
-        DateTime64_3 updated_at
+        AggregateFunction first_seen "min DateTime"
+        AggregateFunction last_seen "max DateTime"
+        AggregateFunction total_events "sum UInt64"
+        AggregateFunction props_str "anyLast Map"
+        AggregateFunction props_num "anyLast Map"
+        AggregateFunction props_bool "anyLast Map"
+        AggregateFunction updated_at "max DateTime"
+    }
+
+    sessions {
+        String project_id
+        String session_id
+        AggregateFunction user_id "anyLast String"
+        AggregateFunction started_at "min DateTime"
+        AggregateFunction ended_at "max DateTime"
+        AggregateFunction total_events "sum UInt64"
+        AggregateFunction page_views "sum UInt64"
+        AggregateFunction browser "any String"
+        AggregateFunction os "any String"
+        AggregateFunction device_type "any String"
+        AggregateFunction country "any String"
+        AggregateFunction continent "any String"
+        AggregateFunction region "any String"
     }
 
     metrics_daily {
@@ -457,7 +475,7 @@ erDiagram
         LowCardinalityString metric_type
         LowCardinalityString dimension_name
         String dimension_value
-        UInt64 event_count
+        AggregateFunction event_count "sum UInt64"
         AggregateFunction unique_users "uniq String"
     }
 
@@ -465,20 +483,41 @@ erDiagram
         String project_id
         String property_name
         LowCardinalityString property_type
-        DateTime64_3 first_seen
-        DateTime64_3 last_seen
-        UInt64 event_count
-        String example_value
-        DateTime64_3 updated_at
+        AggregateFunction first_seen "min DateTime"
+        AggregateFunction last_seen "max DateTime"
+        AggregateFunction event_count "sum UInt64"
+        AggregateFunction example_value "any String"
+        AggregateFunction updated_at "max DateTime"
     }
 ```
 
 | Table | Engine | Partition | Order By | Notes |
 |---|---|---|---|---|
 | `events` | MergeTree | Monthly (`YYYY-MM`) | project_id, date, event_name, user_id, timestamp | 90-day TTL, bloom filter on event_name & user_id |
-| `users` | ReplacingMergeTree | — | project_id, user_id | Deduplicates by updated_at |
-| `metrics_daily` | AggregatingMergeTree | Monthly | project_id, date, metric_type, dimension_name, dimension_value | Pre-aggregated daily metrics |
-| `property_metadata` | ReplacingMergeTree | — | project_id, property_name | Tracks property names/types per tenant |
+| `users` | AggregatingMergeTree | — | project_id, user_id | Per-user aggregates; excludes anonymous events |
+| `sessions` | AggregatingMergeTree | — | project_id, session_id | Per-session aggregates; excludes empty session_id |
+| `metrics_daily` | AggregatingMergeTree | Monthly | project_id, date, metric_type, dimension_name, dimension_value | Pre-aggregated daily metrics across dimensions |
+| `property_metadata` | AggregatingMergeTree | — | project_id, property_name, property_type | Tracks custom property names/types per tenant |
+
+#### Materialized Views
+
+All aggregate tables are auto-populated from `events` inserts via materialized views. Each MV is a separate `CREATE MATERIALIZED VIEW ... TO <target_table>` — ClickHouse does not reliably process all branches of a `UNION ALL` MV, so each dimension/type gets its own view.
+
+| MV | Target Table | Description |
+|---|---|---|
+| `mv_users` | `users` | Per-user stats (first/last seen, total events, latest props). Filters `WHERE user_id != ''` |
+| `mv_sessions` | `sessions` | Per-session stats (start/end, total events, page_views count, device/location). Filters `WHERE session_id != ''`. Uses `sumState(toUInt64(if(event_name = 'page_view', 1, 0)))` for page view count |
+| `mv_metrics_overall` | `metrics_daily` | Overall event count per project per day |
+| `mv_metrics_event_name` | `metrics_daily` | Event count by `event_name` |
+| `mv_metrics_browser` | `metrics_daily` | Event count by `browser` |
+| `mv_metrics_os` | `metrics_daily` | Event count by `os` |
+| `mv_metrics_device_type` | `metrics_daily` | Event count by `device_type` |
+| `mv_metrics_platform` | `metrics_daily` | Event count by `platform` |
+| `mv_metrics_country` | `metrics_daily` | Event count by `country` |
+| `mv_metrics_path` | `metrics_daily` | Event count by `props_str['path']` (page_view events only) |
+| `mv_property_metadata_str` | `property_metadata` | String property keys from `props_str` |
+| `mv_property_metadata_num` | `property_metadata` | Numeric property keys from `props_num` |
+| `mv_property_metadata_bool` | `property_metadata` | Boolean property keys from `props_bool` |
 
 ---
 

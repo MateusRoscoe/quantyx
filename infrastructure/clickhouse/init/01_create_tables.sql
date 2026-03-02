@@ -48,14 +48,14 @@ CREATE TABLE
     IF NOT EXISTS analytics.users (
         project_id String,
         user_id String,
-        first_seen DateTime64 (3),
-        last_seen DateTime64 (3),
-        total_events UInt64,
-        props_str Map (String, String),
-        props_num Map (String, Float64),
-        props_bool Map (String, UInt8),
-        updated_at DateTime64 (3)
-    ) ENGINE = ReplacingMergeTree (updated_at)
+        first_seen AggregateFunction (min, DateTime),
+        last_seen AggregateFunction (max, DateTime),
+        total_events AggregateFunction (sum, UInt64),
+        props_str AggregateFunction (anyLast, Map(String, String)),
+        props_num AggregateFunction (anyLast, Map(String, Float64)),
+        props_bool AggregateFunction (anyLast, Map(String, UInt8)),
+        updated_at AggregateFunction (max, DateTime)
+    ) ENGINE = AggregatingMergeTree ()
 ORDER BY
     (project_id, user_id);
 
@@ -67,7 +67,7 @@ CREATE TABLE
         metric_type LowCardinality (String),
         dimension_name LowCardinality (String),
         dimension_value String,
-        event_count UInt64,
+        event_count AggregateFunction (sum, UInt64),
         unique_users AggregateFunction (uniq, String)
     ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
@@ -87,11 +87,246 @@ CREATE TABLE
         project_id String,
         property_name String,
         property_type LowCardinality (String),
-        first_seen DateTime64 (3),
-        last_seen DateTime64 (3),
-        event_count UInt64,
-        example_value String,
-        updated_at DateTime64 (3)
-    ) ENGINE = ReplacingMergeTree (updated_at)
+        first_seen AggregateFunction (min, DateTime),
+        last_seen AggregateFunction (max, DateTime),
+        event_count AggregateFunction (sum, UInt64),
+        example_value AggregateFunction (any, String),
+        updated_at AggregateFunction (max, DateTime)
+    ) ENGINE = AggregatingMergeTree ()
 ORDER BY
-    (project_id, property_name);
+    (project_id, property_name, property_type);
+
+-- Sessions table (aggregated per-session data)
+CREATE TABLE
+    IF NOT EXISTS analytics.sessions (
+        project_id String,
+        session_id String,
+        user_id AggregateFunction (anyLast, String),
+        started_at AggregateFunction (min, DateTime),
+        ended_at AggregateFunction (max, DateTime),
+        total_events AggregateFunction (sum, UInt64),
+        page_views AggregateFunction (sum, UInt64),
+        browser AggregateFunction (any, String),
+        os AggregateFunction (any, String),
+        device_type AggregateFunction (any, String),
+        country AggregateFunction (any, String),
+        continent AggregateFunction (any, String),
+        region AggregateFunction (any, String)
+    ) ENGINE = AggregatingMergeTree ()
+ORDER BY
+    (project_id, session_id);
+
+-- ════════════════════════════════════════════════
+-- Materialized Views
+-- ════════════════════════════════════════════════
+
+-- MV 1: Aggregate per-user stats from events
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_users
+TO analytics.users
+AS
+SELECT
+    project_id,
+    user_id,
+    minState(timestamp) AS first_seen,
+    maxState(timestamp) AS last_seen,
+    sumState(toUInt64(1)) AS total_events,
+    anyLastState(props_str) AS props_str,
+    anyLastState(props_num) AS props_num,
+    anyLastState(props_bool) AS props_bool,
+    maxState(timestamp) AS updated_at
+FROM analytics.events
+WHERE user_id != ''
+GROUP BY project_id, user_id;
+
+-- MV: Aggregate per-session stats from events
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_sessions
+TO analytics.sessions
+AS
+SELECT
+    project_id,
+    session_id,
+    anyLastState(user_id) AS user_id,
+    minState(timestamp) AS started_at,
+    maxState(timestamp) AS ended_at,
+    sumState(toUInt64(1)) AS total_events,
+    sumState(toUInt64(if(event_name = 'page_view', 1, 0))) AS page_views,
+    anyState(browser) AS browser,
+    anyState(os) AS os,
+    anyState(device_type) AS device_type,
+    anyState(country) AS country,
+    anyState(continent) AS continent,
+    anyState(region) AS region
+FROM analytics.events
+WHERE session_id != ''
+GROUP BY project_id, session_id;
+
+-- MV: Daily metrics — one MV per dimension (ClickHouse processes each independently)
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_overall
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'overall' AS dimension_name,
+    '' AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+GROUP BY project_id, `date`;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_event_name
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'event_name' AS dimension_name,
+    event_name AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE event_name != ''
+GROUP BY project_id, `date`, event_name;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_browser
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'browser' AS dimension_name,
+    browser AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE browser != ''
+GROUP BY project_id, `date`, browser;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_os
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'os' AS dimension_name,
+    os AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE os != ''
+GROUP BY project_id, `date`, os;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_device_type
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'device_type' AS dimension_name,
+    device_type AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE device_type != ''
+GROUP BY project_id, `date`, device_type;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_platform
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'platform' AS dimension_name,
+    platform AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE platform != ''
+GROUP BY project_id, `date`, platform;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_country
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'country' AS dimension_name,
+    country AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE country != ''
+GROUP BY project_id, `date`, country;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_path
+TO analytics.metrics_daily
+AS
+SELECT
+    project_id,
+    `date`,
+    'event' AS metric_type,
+    'path' AS dimension_name,
+    props_str['path'] AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE event_name = 'page_view' AND props_str['path'] != ''
+GROUP BY project_id, `date`, dimension_value;
+
+-- MV 3: Property metadata — one MV per property type
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_property_metadata_str
+TO analytics.property_metadata
+AS
+SELECT
+    project_id,
+    key AS property_name,
+    'string' AS property_type,
+    minState(timestamp) AS first_seen,
+    maxState(timestamp) AS last_seen,
+    sumState(toUInt64(1)) AS event_count,
+    anyState(toString(props_str[key])) AS example_value,
+    maxState(timestamp) AS updated_at
+FROM analytics.events
+ARRAY JOIN mapKeys(props_str) AS key
+GROUP BY project_id, key;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_property_metadata_num
+TO analytics.property_metadata
+AS
+SELECT
+    project_id,
+    key AS property_name,
+    'number' AS property_type,
+    minState(timestamp) AS first_seen,
+    maxState(timestamp) AS last_seen,
+    sumState(toUInt64(1)) AS event_count,
+    anyState(toString(props_num[key])) AS example_value,
+    maxState(timestamp) AS updated_at
+FROM analytics.events
+ARRAY JOIN mapKeys(props_num) AS key
+GROUP BY project_id, key;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_property_metadata_bool
+TO analytics.property_metadata
+AS
+SELECT
+    project_id,
+    key AS property_name,
+    'boolean' AS property_type,
+    minState(timestamp) AS first_seen,
+    maxState(timestamp) AS last_seen,
+    sumState(toUInt64(1)) AS event_count,
+    anyState(if(props_bool[key] = 1, 'true', 'false')) AS example_value,
+    maxState(timestamp) AS updated_at
+FROM analytics.events
+ARRAY JOIN mapKeys(props_bool) AS key
+GROUP BY project_id, key;
