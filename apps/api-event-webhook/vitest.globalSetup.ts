@@ -52,7 +52,7 @@ export async function setup() {
       .withPassword('postgres')
       .withStartupTimeout(60_000)
       .start(),
-    new GenericContainer('redis:7-alpine')
+    new GenericContainer('redis:8-alpine')
       .withExposedPorts(6379)
       .withStartupTimeout(30_000)
       .start(),
