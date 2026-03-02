@@ -13,12 +13,14 @@ interface CachedKeyData {
   expiresAt: string | null;
 }
 
+const NEGATIVE_CACHE_TTL_SECONDS = 60;
+
 export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
   fastify.decorateRequest('projectId', '');
   fastify.decorateRequest('organizationId', '');
 
   fastify.addHook(
-    'preHandler',
+    'onRequest',
     async (request: FastifyRequest, reply: FastifyReply) => {
       if (
         SKIP_PATHS.has(request.url) ||
@@ -33,9 +35,13 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
       }
 
       const keyHash = hashApiKey(apiKey);
+      const cacheKey = `apikey:${keyHash}`;
 
       // Check Redis cache first
-      const cached = await redis.get(`apikey:${keyHash}`);
+      const cached = await redis.get(cacheKey);
+      if (cached === 'NF') {
+        return reply.unauthorized('Invalid API key');
+      }
       if (cached) {
         const data: CachedKeyData = JSON.parse(cached);
 
@@ -61,6 +67,10 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
       });
 
       if (!record || record.deletedAt) {
+        // Cache the negative lookup to prevent repeated DB hits
+        redis
+          .set(cacheKey, 'NF', 'EX', NEGATIVE_CACHE_TTL_SECONDS)
+          .catch(() => { /* best-effort */ });
         return reply.unauthorized('Invalid API key');
       }
 
@@ -75,7 +85,7 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
         expiresAt: record.expiresAt?.toISOString() ?? null,
       };
       await redis.set(
-        `apikey:${keyHash}`,
+        cacheKey,
         JSON.stringify(cacheData),
         'EX',
         environment.API_KEY_CACHE_TTL_SECONDS,
