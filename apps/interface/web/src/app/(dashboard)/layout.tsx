@@ -5,7 +5,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from '@/lib/auth-client';
 import {
-  usePageView,
   useAnalyticsIdentify,
   useAnalyticsTrack,
 } from '@/hooks/use-analytics';
@@ -38,8 +37,6 @@ export default function DashboardLayout({
   const track = useAnalyticsTrack();
   const identify = useAnalyticsIdentify();
 
-  usePageView();
-
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/login');
@@ -49,8 +46,9 @@ export default function DashboardLayout({
   useEffect(() => {
     if (session?.user?.id) {
       identify(session.user.id);
+      track('page_view', { props_str: { path: pathname } });
     }
-  }, [session?.user?.id, identify]);
+  }, [session?.user?.id, pathname, identify, track]);
 
   if (isPending) {
     return (
