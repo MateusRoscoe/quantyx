@@ -347,7 +347,7 @@
           "datasource": { "type": "grafana-clickhouse-datasource", "uid": "" },
           "editorType": "sql",
           "format": 0,
-          "rawSql": "SELECT date AS time, sumMerge(event_count) AS event_count, uniqMerge(unique_users) AS unique_users FROM analytics.metrics_daily WHERE dimension_name = 'overall' AND date >= today() - 30 GROUP BY date ORDER BY date",
+          "rawSql": "SELECT toDateTime(date) AS time, sumMerge(event_count) AS event_count, uniqMerge(unique_users) AS unique_users FROM analytics.metrics_daily WHERE dimension_name = 'overall' AND date >= today() - 30 GROUP BY date ORDER BY date",
           "refId": "A"
         }
       ]
@@ -362,7 +362,7 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/count/", "values": true },
         "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
         "pieType": "pie",
         "tooltip": { "mode": "single" }
@@ -387,7 +387,7 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/count/", "values": true },
         "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
         "pieType": "pie",
         "tooltip": { "mode": "single" }
@@ -415,6 +415,7 @@
       },
       "options": {
         "orientation": "horizontal",
+        "xField": "page",
         "xTickLabelRotation": 0,
         "legend": { "displayMode": "hidden" },
         "tooltip": { "mode": "single" }
