@@ -28,11 +28,11 @@ async function waitForKafkaReady(brokers: string[], maxAttempts = 15) {
       await admin.disconnect();
       return;
     } catch {
-      await admin.disconnect().catch(() => { /* ignore */ });
+      await admin.disconnect().catch(() => {
+        /* ignore */
+      });
       if (attempt === maxAttempts) {
-        throw new Error(
-          `Kafka broker not ready after ${maxAttempts} attempts`
-        );
+        throw new Error(`Kafka broker not ready after ${maxAttempts} attempts`);
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
@@ -62,11 +62,15 @@ export async function setup() {
   pgContainer = pg;
   redisContainer = redis;
 
-  const brokers = `${kafkaContainer.getHost()}:${kafkaContainer.getMappedPort(9093)}`;
+  const brokers = `${kafkaContainer.getHost()}:${kafkaContainer.getMappedPort(
+    9093
+  )}`;
   await waitForKafkaReady([brokers]);
 
   const connectionUri = pgContainer.getConnectionUri();
-  const redisUrl = `redis://${redisContainer.getHost()}:${redisContainer.getMappedPort(6379)}`;
+  const redisUrl = `redis://${redisContainer.getHost()}:${redisContainer.getMappedPort(
+    6379
+  )}`;
 
   process.env.KAFKA_BROKERS = brokers;
   process.env.EVENTS_MAX_BUFFER_SIZE = '1';
@@ -77,7 +81,10 @@ export async function setup() {
   process.env.API_KEY_CACHE_TTL_SECONDS = '300';
 
   // Apply Prisma migrations
-  const postgresLibPath = path.resolve(import.meta.dirname, '../../libs/postgres');
+  const postgresLibPath = path.resolve(
+    import.meta.dirname,
+    '../../libs/postgres'
+  );
   execSync('pnpm exec prisma migrate deploy', {
     env: { ...process.env },
     cwd: postgresLibPath,
