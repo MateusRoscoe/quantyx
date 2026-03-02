@@ -1,6 +1,6 @@
 import type { QuantyxConfig, EventProperties, EventPayload, DeviceContext } from './types.js';
 import { generateUUIDv7 } from './utils/uuid.js';
-import { getSessionId } from './utils/session.js';
+import { getSessionId, resetSessionId } from './utils/session.js';
 import { detectDevice } from './utils/detect.js';
 
 const DEFAULT_FLUSH_INTERVAL = 5_000;
@@ -29,8 +29,11 @@ export class QuantyxClient {
     this.start();
   }
 
-  /** Set the user ID for all subsequent events. */
+  /** Set the user ID for all subsequent events. Resets the session on user switch. */
   identify(userId: string): void {
+    if (this.userId && userId !== this.userId) {
+      this.sessionId = resetSessionId();
+    }
     this.userId = userId;
   }
 

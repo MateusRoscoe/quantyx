@@ -24,3 +24,14 @@ export function getSessionId(): string {
     return memorySessionId;
   }
 }
+
+/** Replace the current session ID with a fresh one. */
+export function resetSessionId(): string {
+  const id = generateUUIDv7();
+  try {
+    sessionStorage.setItem(SESSION_KEY, id);
+  } catch {
+    memorySessionId = id;
+  }
+  return id;
+}
