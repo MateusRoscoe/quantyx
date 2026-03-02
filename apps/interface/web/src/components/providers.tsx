@@ -13,7 +13,7 @@ const quantyxConfig = quantyxApiKey
       apiKey: quantyxApiKey,
       endpoint:
         process.env['NEXT_PUBLIC_QUANTYX_INGEST_URL'] ??
-        'http://localhost:3000',
+        'http://localhost:3002',
     }
   : null;
 
@@ -27,7 +27,7 @@ export function Providers({ children }: { children: ReactNode }) {
             retry: false,
           },
         },
-      }),
+      })
   );
 
   const content = quantyxConfig ? (

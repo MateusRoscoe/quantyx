@@ -17,7 +17,8 @@ export const EventMessageInput = z.object({
   session_id: z.uuidv4(),
 
   // User identifier, flexible as this is not generated internally by Quantyx
-  user_id: z.string().min(1).max(256),
+  // Empty string allowed for anonymous/unauthenticated events
+  user_id: z.string().max(256),
   // Event name
   event_name: z.string().min(1).max(256),
 
