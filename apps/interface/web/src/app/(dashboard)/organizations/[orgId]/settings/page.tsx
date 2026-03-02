@@ -87,7 +87,7 @@ export default function OrgSettingsPage() {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="pt-4">
             <Button type="submit" disabled={updateOrg.isPending}>
               {updateOrg.isPending ? 'Saving...' : 'Save changes'}
             </Button>
@@ -123,14 +123,10 @@ export default function OrgSettingsPage() {
               <DialogFooter>
                 <Button
                   variant="destructive"
-                  disabled={
-                    confirmName !== org?.name || deleteOrg.isPending
-                  }
+                  disabled={confirmName !== org?.name || deleteOrg.isPending}
                   onClick={handleDelete}
                 >
-                  {deleteOrg.isPending
-                    ? 'Deleting...'
-                    : 'Delete organization'}
+                  {deleteOrg.isPending ? 'Deleting...' : 'Delete organization'}
                 </Button>
               </DialogFooter>
             </DialogContent>

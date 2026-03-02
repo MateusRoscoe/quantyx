@@ -35,8 +35,9 @@ interface BreadcrumbSegment {
 
 function buildSegments(
   pathname: string,
-  params: Record<string, string>,
+  params: Record<string, string>
 ): BreadcrumbSegment[] {
+  const validSegments = ['organizations', 'members'];
   const parts = pathname.split('/').filter(Boolean);
   const segments: BreadcrumbSegment[] = [];
 
@@ -54,7 +55,7 @@ function buildSegments(
         label: <ProjectName projectId={part} />,
         href,
       });
-    } else {
+    } else if (validSegments.includes(part)) {
       segments.push({
         label: formatSegment(part),
         href,

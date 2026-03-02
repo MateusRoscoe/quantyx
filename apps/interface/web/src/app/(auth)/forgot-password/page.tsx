@@ -46,7 +46,9 @@ export default function ForgotPasswordPage() {
 
       setSent(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to send reset email');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to send reset email'
+      );
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,7 @@ export default function ForgotPasswordPage() {
             />
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 pt-4">
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Sending...' : 'Send reset link'}
           </Button>

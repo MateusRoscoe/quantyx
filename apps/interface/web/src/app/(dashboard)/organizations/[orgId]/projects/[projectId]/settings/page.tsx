@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
+import {
+  useProject,
+  useUpdateProject,
+  useDeleteProject,
+} from '@/hooks/use-projects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -86,7 +90,7 @@ export default function ProjectSettingsPage() {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="pt-4">
             <Button type="submit" disabled={updateProject.isPending}>
               {updateProject.isPending ? 'Saving...' : 'Save changes'}
             </Button>
@@ -127,9 +131,7 @@ export default function ProjectSettingsPage() {
                   }
                   onClick={handleDelete}
                 >
-                  {deleteProject.isPending
-                    ? 'Deleting...'
-                    : 'Delete project'}
+                  {deleteProject.isPending ? 'Deleting...' : 'Delete project'}
                 </Button>
               </DialogFooter>
             </DialogContent>

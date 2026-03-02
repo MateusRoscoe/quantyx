@@ -66,7 +66,9 @@ function ResetPasswordForm() {
       toast.success('Password reset successfully');
       router.push('/login');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to reset password');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to reset password'
+      );
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ function ResetPasswordForm() {
             />
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="pt-4">
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Resetting...' : 'Reset password'}
           </Button>
