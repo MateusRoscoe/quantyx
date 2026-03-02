@@ -7,6 +7,7 @@ import { useSession, signOut } from '@/lib/auth-client';
 import {
   useAnalyticsIdentify,
   useAnalyticsTrack,
+  useRoutePattern,
 } from '@/hooks/use-analytics';
 import {
   SidebarProvider,
@@ -34,6 +35,7 @@ export default function DashboardLayout({
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const routePattern = useRoutePattern();
   const track = useAnalyticsTrack();
   const identify = useAnalyticsIdentify();
 
@@ -46,9 +48,9 @@ export default function DashboardLayout({
   useEffect(() => {
     if (session?.user?.id) {
       identify(session.user.id);
-      track('page_view', { props_str: { path: pathname } });
+      track('page_view', { props_str: { path: routePattern } });
     }
-  }, [session?.user?.id, pathname, identify, track]);
+  }, [session?.user?.id, routePattern, identify, track]);
 
   if (isPending) {
     return (
