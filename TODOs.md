@@ -13,6 +13,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 ## Features — Auth
 
 - [ ] **OAuth provider configuration** — Configure at least one OAuth provider (e.g. GitHub or Google) in the BetterAuth config
+- [ ] **Fix redirect after email verification** - Make sure the user is redirected to the dashboard after email verification now it's redirecting to the root of the api-tenant-manager
 
 ---
 
