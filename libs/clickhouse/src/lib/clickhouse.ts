@@ -41,7 +41,7 @@ export type ClickHouseEvent = {
   user_id: string;
   session_id: string;
   event_name: string;
-  timestamp: number; // Unix timestamp in seconds (ClickHouse will convert to DateTime64(3))
+  timestamp: number; // Unix timestamp in seconds
   date: string; // YYYY-MM-DD format
   // Standard dimensions
   country: string;

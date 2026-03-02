@@ -8,7 +8,7 @@ CREATE TABLE
         user_id String,
         session_id String,
         event_name LowCardinality (String),
-        `timestamp` DateTime64 (3),
+        `timestamp` DateTime,
         `date` Date,
         -- Standard dimensions
         country LowCardinality (String),

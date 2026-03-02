@@ -16,7 +16,7 @@ export class EventService {
       user_id: event.user_id,
       session_id: event.session_id,
       event_name: event.event_name,
-      timestamp: Math.floor(timestampDate.getTime() / 1000), // Convert to Unix timestamp (seconds)
+      timestamp: Math.floor(timestampDate.getTime() / 1000),
       date: validDate,
       country: event.country || '',
       continent: event.continent || '',
