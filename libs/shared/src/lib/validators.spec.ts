@@ -9,7 +9,7 @@ import {
 } from './validators';
 const basePayload = {
   event_id: '018ea8e1-b5be-7462-aa55-5f9d0d10c9c8',
-  session_id: '7aa36cf5-1f5f-4f9a-9ee8-4c0c8b8c5f75',
+  session_id: '019cacdc-40a9-7000-990d-224994d981bd',
   user_id: 'user-123',
   event_name: 'button_click',
   timestamp: '2024-05-01T12:00:00.123Z',

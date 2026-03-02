@@ -14,7 +14,7 @@ export type CountryCode = z.infer<typeof CountryCode>;
 export const EventMessageInput = z.object({
   // Core identifiers
   event_id: z.uuidv7(),
-  session_id: z.uuidv4(),
+  session_id: z.uuidv7(),
 
   // User identifier, flexible as this is not generated internally by Quantyx
   // Empty string allowed for anonymous/unauthenticated events

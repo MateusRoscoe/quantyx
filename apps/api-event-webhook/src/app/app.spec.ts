@@ -44,7 +44,7 @@ function uuidv7(): string {
 function makeEvent(overrides: Record<string, unknown> = {}) {
   return {
     event_id: uuidv7(),
-    session_id: randomUUID(),
+    session_id: uuidv7(),
     user_id: 'test-user',
     event_name: 'page_view',
     timestamp: new Date().toISOString().replace(/(\.\d{3})\d*Z$/, '$1Z'),
