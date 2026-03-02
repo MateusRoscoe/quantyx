@@ -4,96 +4,60 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 ---
 
-## Bugs / Broken
-
-- [x] **CI pipeline misconfigured** — `.github/workflows/ci.yml` uses `npm ci` instead of `pnpm install` and targets Node 20 instead of Node 24 (see `.nvmrc`)
-- [x] **Stale duplicate Prisma schema** — `libs/auth/prisma/schema.prisma` has a conflicting ID strategy (ulid) vs the main schema in `libs/postgres/prisma/schema.prisma` (uuidv7). Reconcile or remove the duplicate.
-
----
-
 ## Infrastructure / DevOps
 
-- [x] **Missing Dockerfiles** — `consumer-events-ingest` and `api-tenant-manager` have no Dockerfiles (only `api-event-webhook` has one)
-- [x] **No Prisma migrations committed** — No `prisma/migrations/` directory exists; schema changes aren't tracked or reproducible
-- [x] **Redis unused** — Redis is now used by `api-event-webhook` for API key caching
-- [x] **Dockerfile for web app** — Next.js standalone Dockerfile for `apps/interface/web` with `output: 'standalone'` and `outputFileTracingRoot` for monorepo support
 - [ ] **Kubernetes deployment example** — Add a Kustomize-based deployment example so users can clone, build images, push to a private registry, and deploy. Operators/resources: Strimzi (Kafka), CNPG (PostgreSQL), Redis Operator, ClickHouse (operator TBD). Include base manifests for all apps + infrastructure, with image references users can override via Kustomize.
 
 ---
 
-## Features — api-tenant-manager
+## Features — Auth
 
-- [x] **Zod type provider + env validation** — Set up `fastify-type-provider-zod` and a `src/helpers/env.ts` env validator (matching the pattern in `api-event-webhook`)
-- [x] **CRUD routes: Organizations** — `GET /organizations`, `POST /organizations`, `GET /organizations/:id`, `PATCH /organizations/:id`, `DELETE /organizations/:id` (soft delete)
-- [x] **CRUD routes: Projects** — `GET /organizations/:orgId/projects`, `POST /organizations/:orgId/projects`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id` (soft delete)
-- [x] **Auth middleware integration** — Session-based auth via BetterAuth; all CRUD routes require a valid session cookie
-- [x] **Tenant API key management** — Generate, rotate, and revoke API keys per tenant/project
-- [x] **Organization membership & authorization** — Join table (`OrganizationMember`) with role-based access control (owner/admin/member). All routes enforce membership checks; projects and API keys inherit access from parent org.
-
----
-
-## Features — Auth (libs/auth)
-
-- [x] **Expose BetterAuth routes** — Mounted at `/api/auth/*` in `api-tenant-manager` with email/password sign-up/sign-in
 - [ ] **OAuth provider configuration** — Configure at least one OAuth provider (e.g. GitHub or Google) in the BetterAuth config
-- [x] **Email verification flow** — Add email verification on signup
-- [x] **Password reset flow** — Add forgot-password / reset-password endpoints
-- [x] **Auth middleware** — Session validation preHandler plugin in `api-tenant-manager`; skips `/healthz`, `/docs`, `/api/auth/*`
 
 ---
 
 ## Features — api-event-webhook
 
-- [x] **Project ID validation** — Before ingesting an event, verify the `project_id` exists in PostgreSQL. Reject unknown projects with `400` or `403`.
-- [x] **API key authentication** — Authenticate ingest requests using a per-project API key (`X-API-Key` header), resolved via Redis cache → PostgreSQL fallback
 - [ ] **Rate limiting / quota enforcement** — Enforce per-tenant ingestion rate limits and event quotas (Redis-backed or in-process)
+- [ ] **GeoIP enrichment** — Resolve IP addresses to country/city/region at ingestion time (e.g. MaxMind GeoLite2) so geo dimensions are populated automatically
+- [ ] **Bot / crawler filtering** — Detect and discard non-human traffic based on user-agent patterns before forwarding to Kafka
 
 ---
 
-## Features — web (Frontend)
+## Features — consumer-events-ingest
 
-- [x] **Next.js App Router scaffolding** — `apps/interface/web` with shadcn/ui, Tailwind CSS v4, TanStack Query
-- [x] **Auth pages** — Login, Register, Verify Email, Forgot Password, Reset Password
-- [x] **Dashboard shell** — Sidebar layout with session guard (BetterAuth React client)
-- [x] **Organizations CRUD** — List, create, edit, delete (with confirmation)
-- [x] **Projects CRUD** — List, create, edit, delete (with confirmation)
-- [x] **API Keys management** — List, create (show-once + copy), delete
-- [x] **Members management** — List, add, role change, remove
-- [x] **CORS support** — `@fastify/cors` added to api-tenant-manager with `WEB_APP_URL` env var
-- [x] **Browser-compatible shared lib** — Replaced `country-code-lookup` with generated static `country-data.ts`
-- [x] **Analytics instrumentation** — Integrated `@quantyx/react-sdk` with conditional `QuantyxProvider`, safe no-op wrapper hooks, and automatic `page_view` + `sign_out` + `identify` tracking
+- [ ] **Dead letter queue** — Route malformed or repeatedly failing messages to a DLQ topic instead of silently dropping them
+
+---
+
+## Features — Frontend
+
 - [ ] **OAuth provider sign-in** — Add Google/GitHub social login buttons once OAuth is configured
-- [ ] **Event analytics dashboard** — Build pages to visualize events from ClickHouse (requires API BFF)
-- [x] **Dark mode** — Add theme toggle (CSS variables already support `.dark` class)
-- [x] **`.env.example` for web app** — `apps/interface/web` is missing a `.env.example`. Should document `NEXT_PUBLIC_API_URL`.
-- [x] **Breadcrumb navigation** — Dashboard has no breadcrumbs. Deep routes like `/organizations/:orgId/projects/:projectId/settings` require browser back button to navigate up. Add a breadcrumb component to the dashboard layout.
-- [x] **Frontend tests** — 49 tests with Vitest + React Testing Library covering API client, utility functions, TanStack Query hooks, and components (theme toggle, breadcrumbs).
+- [ ] **Event analytics dashboard** — Build pages to visualize events from ClickHouse (charts for page views, sessions, funnels, browser/OS breakdowns)
+- [ ] **Real-time event stream** — Live tail of incoming events for debugging (WebSocket or SSE)
+- [ ] **Project settings page** — Inline SDK setup guide with copy-paste code snippets per project
 
 ---
 
-## Features — Future Apps
+## Features — ClickHouse
 
-- [ ] **API BFF** — Create API to serve data to the frontend with flexible querying (prevent SQL injection)
-- [x] **React SDK** — Client-side SDK (`@quantyx/react-sdk`) to let end users track events directly from the browser. Publishable to npm with compiled `dist/` output; workspace consumers use `@quantyx/source` export condition for source resolution.
+- [ ] **Materialized views for `users` table** — Incrementally populate `analytics.users` (first_seen, last_seen, total_events) via a materialized view on `events` inserts
+- [ ] **Materialized views for `metrics_daily` table** — Incrementally populate `analytics.metrics_daily` pre-aggregated table via a materialized view on `events` inserts
+
+---
+
+## Features — New Apps / Libs
+
+- [ ] **API BFF** — Create API to serve analytics data to the frontend with flexible querying (prevent SQL injection). Endpoints for time series, funnels, top pages, device breakdowns, etc.
 
 ---
 
 ## Testing
 
-- [x] **Migrate from Jest to Vitest** — Replaced Jest + @swc/jest with Vitest v3 across all 6 projects. Uses `globals: true`, `server.deps.inline: true`, and a `resolve-ts-from-js` Vite plugin for Prisma 7 compatibility.
-- [x] **api-tenant-manager: integration tests** — 27 integration tests covering Organizations and Projects CRUD with Testcontainers Postgres.
-- [x] **web: E2E tests** — Playwright E2E tests (`apps/interface/web-e2e`) covering auth flows (login, register, verify email, sign out, forgot password) and organization CRUD (create, read, update, delete). Uses Testcontainers PostgreSQL, starts both web app and api-tenant-manager via Playwright `webServer`. CI integration via `e2e-ci` target.
-- [x] **consumer-events-ingest: unit tests** — 11 unit tests for `EventService.transformToClickHouseFormat()` covering all field mappings, defaults, and edge cases.
-- [x] **consumer-events-ingest: integration tests** — 4 integration tests with Testcontainers (Kafka + ClickHouse) verifying full pipeline: single event, batch, defaults, and malformed message recovery.
 - [ ] **libs/kafka: tests** — No tests for the KafkaJS wrapper. Add unit tests with mocks and/or integration tests with Testcontainers.
 - [ ] **libs/shared-backend: tests** — No tests for the Pino logger factory. Add unit tests.
 - [ ] **libs/postgres: tests** — No tests for the Prisma client singleton. Add integration tests with Testcontainers Postgres.
-
----
-
-## Documentation
-
-- [x] **Rewrite README.md** — Replaced Nx boilerplate with full local dev setup guide: prerequisites, infrastructure setup, env config, migrations, app startup, end-to-end API key test, project structure, common commands, and test catalog.
+- [ ] **react-sdk: integration test** — End-to-end test verifying events flow from SDK → api-event-webhook → Kafka → consumer → ClickHouse
 
 ---
 
@@ -102,3 +66,14 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [ ] **Metrics / monitoring** — No metrics beyond Pino logs. Add Prometheus metrics (e.g. via `fastify-metrics`) or integrate with an observability platform.
 - [ ] **Structured health checks** — Add a consistent health check per service that verifies connectivity to Kafka, ClickHouse, and Postgres.
 - [ ] **Alerting configuration** — Define alert rules for error rates, consumer lag, and service downtime.
+- [ ] **Consumer lag monitoring** — Track Kafka consumer group lag to detect ingestion pipeline slowdowns
+- [ ] **Add Grafana dashboards** — Create a Grafana deployment in the docker-compose.yaml and premade dashboards to visualize metrics from ClickHouse
+
+---
+
+## Performance / Scaling
+
+- [ ] **Kafka partitioning strategy** — Partition events by `project_id` for ordered per-tenant processing and better consumer parallelism
+- [ ] **ClickHouse batch insert tuning** — Tune consumer batch sizes and flush intervals for optimal ClickHouse insert performance
+- [ ] **Connection pooling review** — Audit PostgreSQL and Redis connection pool sizes for production workloads
+- [ ] **SDK payload compression** — Add optional gzip compression to the React SDK's fetch calls for large batches
