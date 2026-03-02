@@ -14,12 +14,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useAnalyticsTrack } from '@/hooks/use-analytics';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
 
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const track = useAnalyticsTrack();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,6 +46,7 @@ export default function ForgotPasswordPage() {
         throw new Error(body.message ?? 'Failed to send reset email');
       }
 
+      track('password_reset_requested');
       setSent(true);
     } catch (err) {
       toast.error(

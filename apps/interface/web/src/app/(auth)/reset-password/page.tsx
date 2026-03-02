@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useAnalyticsTrack } from '@/hooks/use-analytics';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
 
@@ -24,6 +25,7 @@ function ResetPasswordForm() {
   const token = searchParams.get('token');
   const error = searchParams.get('error');
   const [loading, setLoading] = useState(false);
+  const track = useAnalyticsTrack();
 
   if (error || !token) {
     return (
@@ -63,6 +65,7 @@ function ResetPasswordForm() {
         throw new Error(body.message ?? 'Failed to reset password');
       }
 
+      track('password_reset_completed');
       toast.success('Password reset successfully');
       router.push('/login');
     } catch (err) {

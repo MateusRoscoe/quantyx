@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from '@/lib/auth-client';
+import { useAnalyticsIdentify, useAnalyticsTrack } from '@/hooks/use-analytics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,8 @@ import { toast } from 'sonner';
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const track = useAnalyticsTrack();
+  const identify = useAnalyticsIdentify();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,13 +32,18 @@ export default function LoginPage() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const { error } = await signIn.email({ email, password });
+    const { data, error } = await signIn.email({ email, password });
     setLoading(false);
 
     if (error) {
       toast.error(error.message ?? 'Failed to sign in');
       return;
     }
+
+    if (data?.user?.id) {
+      identify(data.user.id);
+    }
+    track('sign_in');
 
     router.push('/organizations');
   }
@@ -79,7 +87,11 @@ export default function LoginPage() {
           </Button>
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary hover:underline">
+            <Link
+              href="/register"
+              className="text-primary hover:underline"
+              onClick={() => track('sign_up_click')}
+            >
               Sign up
             </Link>
           </p>
