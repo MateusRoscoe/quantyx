@@ -1,0 +1,51 @@
+<clickhouse>
+    <!--
+        Disable heavy system log tables for development.
+
+        Default ClickHouse settings create a self-reinforcing cycle:
+        system logs record every merge → new parts created → more merges triggered
+        → more log entries → repeat. This causes 100%+ CPU and heavy disk I/O
+        even with zero application data.
+
+        For production, you'd keep these enabled but with short TTLs.
+    -->
+
+    <!-- Disable the biggest offenders entirely -->
+    <trace_log remove="remove" />
+    <metric_log remove="remove" />
+    <asynchronous_metric_log remove="remove" />
+    <processors_profile_log remove="remove" />
+    <opentelemetry_span_log remove="remove" />
+    <session_log remove="remove" />
+    <zookeeper_log remove="remove" />
+    <backup_log remove="remove" />
+    <s3queue_log remove="remove" />
+    <blob_storage_log remove="remove" />
+
+    <!-- Keep query_log and text_log but with a 1-day TTL -->
+    <query_log>
+        <database>system</database>
+        <table>query_log</table>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <ttl>event_date + INTERVAL 1 DAY</ttl>
+    </query_log>
+
+    <text_log>
+        <database>system</database>
+        <table>text_log</table>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <level>warning</level>
+        <ttl>event_date + INTERVAL 1 DAY</ttl>
+    </text_log>
+
+    <error_log>
+        <database>system</database>
+        <table>error_log</table>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <ttl>event_date + INTERVAL 1 DAY</ttl>
+    </error_log>
+
+    <query_thread_log remove="remove" />
+    <query_views_log remove="remove" />
+    <part_log remove="remove" />
+</clickhouse>
