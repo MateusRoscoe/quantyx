@@ -1,15 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import type { DateRange as DayPickerDateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { useDateRange, type PeriodPreset } from '@/hooks/use-date-range';
 import { cn } from '@/lib/utils';
 
@@ -23,61 +18,111 @@ const presets: { label: string; value: PeriodPreset }[] = [
 export function DateRangePicker() {
   const { from, to, period, setRange } = useDateRange();
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<DayPickerDateRange | undefined>();
+  const draftRef = useRef(draft);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const clickCount = useRef(0);
+
+  // Keep ref in sync
+  draftRef.current = draft;
+
+  function commitAndClose() {
+    const d = draftRef.current;
+    if (d?.from) {
+      setRange({ from: d.from, to: d.to ?? d.from, period: 'custom' });
+    }
+    setOpen(false);
+    clickCount.current = 0;
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        commitAndClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function handlePreset(value: PeriodPreset) {
     setRange({ period: value });
+    setOpen(false);
+    clickCount.current = 0;
+  }
+
+  function toggleOpen() {
+    if (open) {
+      commitAndClose();
+    } else {
+      setDraft({ from, to });
+      clickCount.current = 0;
+      setOpen(true);
+    }
   }
 
   function handleCalendarSelect(range: DayPickerDateRange | undefined) {
+    clickCount.current += 1;
+    setDraft(range);
+
+    if (clickCount.current === 1) return;
+
     if (range?.from && range?.to) {
       setRange({ from: range.from, to: range.to, period: 'custom' });
       setOpen(false);
+      clickCount.current = 0;
     }
   }
 
   return (
-    <div className="inline-flex items-center overflow-hidden rounded-md border bg-background text-sm shadow-sm">
-      {presets.map((p) => (
-        <button
-          key={p.value}
-          onClick={() => handlePreset(p.value)}
-          className={cn(
-            'cursor-pointer px-3 py-1.5 text-xs transition-colors hover:bg-accent',
-            period === p.value
-              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-              : 'text-muted-foreground',
-          )}
-        >
-          {p.label}
-        </button>
-      ))}
-
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+    <div className="relative" ref={containerRef}>
+      <div className="inline-flex items-center overflow-hidden rounded-md border bg-background text-sm shadow-sm">
+        {presets.map((p) => (
           <button
+            key={p.value}
+            onClick={() => handlePreset(p.value)}
             className={cn(
-              'flex cursor-pointer items-center gap-1.5 border-l px-3 py-1.5 text-xs transition-colors hover:bg-accent',
-              period === 'custom'
+              'cursor-pointer px-3 py-1.5 text-xs transition-colors hover:bg-accent',
+              period === p.value
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'text-muted-foreground',
             )}
           >
-            <CalendarIcon className="h-3.5 w-3.5" />
-            {period === 'custom'
-              ? `${format(from, 'MMM d')} – ${format(to, 'MMM d, yyyy')}`
-              : 'Custom'}
+            {p.label}
           </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
+        ))}
+
+        <button
+          onClick={toggleOpen}
+          className={cn(
+            'flex cursor-pointer items-center gap-1.5 border-l px-3 py-1.5 text-xs transition-colors hover:bg-accent',
+            period === 'custom'
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'text-muted-foreground',
+          )}
+        >
+          <CalendarIcon className="h-3.5 w-3.5" />
+          {period === 'custom'
+            ? `${format(from, 'MMM d')} – ${format(to, 'MMM d, yyyy')}`
+            : 'Custom'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="absolute right-0 z-50 mt-1 rounded-md border bg-popover shadow-md">
           <Calendar
             mode="range"
-            selected={{ from, to }}
+            showOutsideDays={false}
+            selected={draft}
             onSelect={handleCalendarSelect}
             numberOfMonths={2}
-            defaultMonth={from}
+            defaultMonth={draft?.from ?? from}
           />
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
     </div>
   );
 }
