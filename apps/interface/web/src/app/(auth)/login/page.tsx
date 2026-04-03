@@ -32,26 +32,31 @@ export default function LoginPage() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const { data, error } = await signIn.email({ email, password });
-    setLoading(false);
+    try {
+      const { data, error } = await signIn.email({ email, password });
 
-    if (error) {
-      toast.error(error.message ?? 'Failed to sign in');
-      return;
+      if (error) {
+        toast.error(error.message ?? 'Failed to sign in');
+        return;
+      }
+
+      if (data?.user?.id) {
+        identify(data.user.id);
+      }
+      track('sign_in');
+
+      router.push('/app');
+    } catch {
+      toast.error('Unable to reach the server. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    if (data?.user?.id) {
-      identify(data.user.id);
-    }
-    track('sign_in');
-
-    router.push('/organizations');
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Sign in</CardTitle>
+        <CardTitle className="font-display text-2xl">Sign in</CardTitle>
         <CardDescription>
           Enter your credentials to access your account
         </CardDescription>

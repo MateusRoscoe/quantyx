@@ -1,0 +1,76 @@
+{
+  "name": "@quantyx/api-analytics-bff",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "api-analytics-bff",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "platform": "node",
+          "outputPath": "apps/api-analytics-bff/dist",
+          "format": [
+            "cjs"
+          ],
+          "bundle": false,
+          "main": "apps/api-analytics-bff/src/main.ts",
+          "tsConfig": "apps/api-analytics-bff/tsconfig.app.json",
+          "assets": [
+            "apps/api-analytics-bff/src/assets"
+          ],
+          "esbuildConfig": "tools/esbuild/prisma-cjs-fix.js",
+          "sourcemap": true
+        },
+        "configurations": {
+          "development": {},
+          "production": {
+            "sourcemap": false
+          }
+        }
+      },
+      "serve": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "api-analytics-bff:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "api-analytics-bff:build:development"
+          },
+          "production": {
+            "buildTarget": "api-analytics-bff:build:production"
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "fastify": "~5.7.4",
+    "fastify-plugin": "~5.0.1",
+    "@fastify/autoload": "~6.3.1",
+    "@fastify/sensible": "~6.0.4",
+    "@fastify/cors": "~11.0.0",
+    "@fastify/swagger": "~9.7.0",
+    "@fastify/swagger-ui": "~5.2.5",
+    "fastify-type-provider-zod": "~6.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@quantyx/auth": "workspace:*",
+    "@quantyx/clickhouse": "workspace:*",
+    "@quantyx/postgres": "workspace:*",
+    "@quantyx/shared": "workspace:*",
+    "@quantyx/shared-backend": "workspace:*"
+  }
+}

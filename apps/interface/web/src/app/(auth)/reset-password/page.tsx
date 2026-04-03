@@ -31,7 +31,7 @@ function ResetPasswordForm() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Invalid link</CardTitle>
+          <CardTitle className="font-display text-2xl">Invalid link</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
@@ -80,7 +80,7 @@ function ResetPasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Reset password</CardTitle>
+        <CardTitle className="font-display text-2xl">Reset password</CardTitle>
         <CardDescription>Enter your new password</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>

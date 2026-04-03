@@ -41,6 +41,9 @@
     },
     {
       "path": "./libs/react-sdk"
+    },
+    {
+      "path": "./apps/api-analytics-bff"
     }
   ]
 }

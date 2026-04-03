@@ -31,6 +31,9 @@ npx nx lint <project>
 # Run a single test file
 npx nx test <project> -- --testPathPattern=<pattern>
 
+# Start infrastructure (ClickHouse, Postgres, Redis, Kafka, Kafbat UI, Grafana, MailHog)
+docker compose up -d
+
 # Serve an app in dev mode
 npx nx serve <project>
 
@@ -48,15 +51,12 @@ npx nx docker:run <app> -p 3000:3000
 
 # Sync TypeScript project references
 npx nx sync
-
-# Start infrastructure (ClickHouse, Postgres, Redis, Kafka, Kafbat UI)
-docker compose up -d
 ```
 
 ## Project Names
 
-Apps: `api-event-webhook`, `consumer-events-ingest`, `api-tenant-manager`
-Libs: `shared`, `shared-backend`, `kafka`, `clickhouse`, `postgres`, `redis`, `auth`
+Apps: `api-event-webhook`, `consumer-events-ingest`, `api-tenant-manager`, `interface-web`, `interface-web-e2e`
+Libs: `shared`, `shared-backend`, `kafka`, `clickhouse`, `postgres`, `redis`, `auth`, `react-sdk`
 
 ## Architecture
 
@@ -77,6 +77,8 @@ HTTP Request + X-API-Key → api-event-webhook (Fastify)
 - **api-event-webhook**: Fastify app using `@fastify/autoload` to load plugins from `plugins/` and routes from `routes/`. Entry: `src/main.ts`, app setup: `src/app/app.ts`. Endpoints: `/ingest`, `/ingest-bulk`. Authenticates via `X-API-Key` header (Redis-cached, PostgreSQL-backed). Enriches events with `project_id`, `ip_address`, and `user_agent` before forwarding to Kafka. Plugin ordering: `01-sensible.ts`, `02-api-key-auth.ts`.
 - **consumer-events-ingest**: Kafka consumer that processes events and writes to ClickHouse. Controller pattern: `src/controllers/app-ctrl.ts` orchestrates `src/services/event-service.ts`.
 - **api-tenant-manager**: Tenant/org management API. CRUD for organizations, projects, and API keys.
+- **interface/web**: Next.js 16 dashboard frontend (port 3000).
+- **interface/web-e2e**: Playwright E2E tests for the web dashboard.
 
 ### Libs
 
@@ -86,24 +88,36 @@ HTTP Request + X-API-Key → api-event-webhook (Fastify)
 - **clickhouse**: ClickHouse client wrapper.
 - **postgres**: Prisma client singleton with `@prisma/adapter-pg` connection pooling. Schema defines Organizations, Projects, ApiKeys, and BetterAuth tables (User, Session, Account, Verification). Generated client output: `src/generated/`.
 - **redis**: ioredis client wrapper with lazy connect, health check, connect/disconnect helpers.
-- **auth**: Better Auth configuration with its own Prisma schema.
+- **auth**: Better Auth configuration with Prisma adapter.
+- **react-sdk**: Browser event tracking SDK (publishable npm package). Provides React hooks and a vanilla JS client for sending events to the ingestion API.
 
 ### Infrastructure
 
-- **ClickHouse**: `analytics` database. Init SQL in `infrastructure/clickhouse/init/`. Tables: `events` (MergeTree, 90-day TTL), `users` (ReplacingMergeTree), `metrics_daily` (AggregatingMergeTree), `property_metadata`.
+- **ClickHouse**: `analytics` database. Init SQL in `infrastructure/clickhouse/init/`. Tables: `events` (MergeTree, 90-day TTL), `users` (AggregatingMergeTree), `sessions` (AggregatingMergeTree), `metrics_daily` (AggregatingMergeTree), `property_metadata` (AggregatingMergeTree). 12 materialized views handle pre-aggregation from the `events` table into the aggregate tables. Migrations in `infrastructure/clickhouse/migrations/`.
 - **PostgreSQL**: `quantyx` database. Prisma schema in `libs/postgres/prisma/schema.prisma`.
 - **Redis**: API key cache with configurable TTL. Port 6379.
 - **Kafka**: Single-node KRaft mode on port 29092 (host access). Kafbat UI on port 8080.
+- **Grafana**: Pre-provisioned dashboards and ClickHouse datasource. Port 3003. Config in `infrastructure/grafana/provisioning/`.
+- **MailHog**: Local SMTP testing. SMTP port 1025, web UI port 8025.
 
 ### Environment
 
-Each app validates env vars with Zod in `src/helpers/env.ts`, exported as `environment`. See `.env.example` for required variables.
+Each app validates env vars with Zod in `src/helpers/env.ts`, exported as `environment`. See `.env.example` for required variables. Per-app `.env.example` files exist in each app directory.
+
+### TypeScript
+
+Composite project references with `emitDeclarationOnly`. ESM throughout (`module: "nodenext"`). Custom export condition `@quantyx/source` in `tsconfig.base.json` for monorepo source imports. Some libs (shared, kafka, shared-backend, clickhouse, postgres, auth, redis) are excluded from Nx build targets — they're consumed as source via project references.
+
+### CI
+
+GitHub Actions on push to main and PRs. Uses Nx Cloud task distribution across 3 `linux-medium-js` agents. Pipeline: `format:check` → `lint`, `test`, `build`, `typecheck`, `e2e-ci` (parallel via `run-many`).
 
 ## Conventions
 
 - All API payloads validated with Zod schemas from `libs/shared`
-- Tests are co-located as `*.spec.ts` files; Vitest with SWC compiler
-- Integration tests use Testcontainers for external services
+- Tests are co-located as `*.spec.ts` files; Vitest with SWC compiler, `globals: true` (no imports needed for `describe`/`it`/`expect`/`vi`)
+- Integration tests use Testcontainers for external services; each app with integration tests has a `vitest.globalSetup.ts` that starts containers
+- E2E tests use Playwright (in `apps/interface/web-e2e`)
 - Fastify apps use `@fastify/sensible` for HTTP error utilities
 - Swagger docs auto-generated at `/docs` on running API apps
 - Scaffold new projects with `npx nx g`

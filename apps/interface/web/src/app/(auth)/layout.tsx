@@ -9,6 +9,11 @@ export default function AuthLayout({
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-muted p-4">
       <AuthPageTracker />
+      <div className="absolute top-4 left-4">
+        <span className="font-display text-lg font-bold text-primary">
+          Quantyx
+        </span>
+      </div>
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>

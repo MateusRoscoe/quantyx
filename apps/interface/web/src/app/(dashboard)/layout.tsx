@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from '@/lib/auth-client';
 import {
@@ -9,6 +9,9 @@ import {
   useAnalyticsTrack,
   useRoutePattern,
 } from '@/hooks/use-analytics';
+import { useMembership } from '@/hooks/use-membership';
+import { getLastVisitedProject } from '@/lib/last-project';
+import { ProjectSwitcher } from '@/components/project-switcher';
 import {
   SidebarProvider,
   Sidebar,
@@ -20,12 +23,40 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
 } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { Building2, LogOut } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Breadcrumbs } from '@/components/breadcrumbs';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { useTheme } from 'next-themes';
+import {
+  Building2,
+  LayoutDashboard,
+  Zap,
+  FileText,
+  Users,
+  Activity,
+  Globe,
+  Monitor,
+  Tags,
+  Settings,
+  UserCircle,
+  LogOut,
+  Sun,
+  Moon,
+} from 'lucide-react';
+
+const analyticsNavItems = [
+  { label: 'Overview', icon: LayoutDashboard, segment: '' },
+  { label: 'Events', icon: Zap, segment: '/events' },
+  { label: 'Pages', icon: FileText, segment: '/pages' },
+  { label: 'Users', icon: Users, segment: '/users' },
+  { label: 'Sessions', icon: Activity, segment: '/sessions' },
+  { label: 'Geography', icon: Globe, segment: '/geography' },
+  { label: 'Devices', icon: Monitor, segment: '/devices' },
+  { label: 'Properties', icon: Tags, segment: '/properties' },
+];
 
 export default function DashboardLayout({
   children,
@@ -35,9 +66,23 @@ export default function DashboardLayout({
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams<{ orgId?: string; projectId?: string }>();
   const routePattern = useRoutePattern();
   const track = useAnalyticsTrack();
   const identify = useAnalyticsIdentify();
+  const { theme, setTheme } = useTheme();
+
+  const paramsOrgId = params.orgId;
+  const paramsProjectId = params.projectId;
+
+  // Fall back to last-visited project for pages without org/project context (e.g. /app/account)
+  const lastProject = !paramsOrgId ? getLastVisitedProject() : null;
+  const orgId = paramsOrgId ?? lastProject?.orgId;
+  const projectId = paramsProjectId ?? lastProject?.projectId;
+  const hasProject = !!(orgId && projectId);
+  const projectBase = hasProject ? `/app/${orgId}/${projectId}` : '';
+
+  const membership = useMembership(orgId ?? '');
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -64,29 +109,112 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader className="p-4">
-          <Link href="/organizations" className="text-lg font-bold">
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="flex-row items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
+          <ProjectSwitcher orgId={orgId} projectId={projectId} />
+          <Link
+            href="/app"
+            className="font-display text-lg font-bold text-primary group-data-[collapsible=icon]:hidden"
+          >
             Quantyx
           </Link>
         </SidebarHeader>
+
         <SidebarContent>
+          {/* No project context — show navigation entry points */}
+          {!hasProject && (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/app/organizations' || /^\/app\/[^/]+$/.test(pathname)}>
+                      <Link href="/app/organizations">
+                        <Building2 className="h-4 w-4" />
+                        <span>Organizations</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
+          {/* Analytics nav — when inside a project */}
+          {hasProject && (
+            <SidebarGroup>
+              <SidebarGroupLabel>Analytics</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {analyticsNavItems.map((item) => {
+                    const href = `${projectBase}${item.segment}`;
+                    const isActive =
+                      item.segment === ''
+                        ? pathname === projectBase
+                        : pathname.startsWith(href);
+                    return (
+                      <SidebarMenuItem key={item.label}>
+                        <SidebarMenuButton asChild isActive={isActive}>
+                          <Link href={href}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
+          {/* Management links */}
+          {hasProject && (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {membership.isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(
+                          `${projectBase}/settings`,
+                        )}
+                      >
+                        <Link href={`${projectBase}/settings`}>
+                          <Settings className="h-4 w-4" />
+                          <span>Settings</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+        </SidebarContent>
+
+        <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith('/organizations')}
+                onClick={() =>
+                  setTheme(theme === 'dark' ? 'light' : 'dark')
+                }
               >
-                <Link href="/organizations">
-                  <Building2 className="h-4 w-4" />
-                  Organizations
+                <Moon className="h-4 w-4 dark:hidden" />
+                <Sun className="hidden h-4 w-4 dark:block" />
+                <span className="dark:hidden">Dark Mode</span>
+                <span className="hidden dark:inline">Light Mode</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === '/app/account'}>
+                <Link href="/app/account">
+                  <UserCircle className="h-4 w-4" />
+                  <span>Account</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={async () => {
@@ -96,25 +224,24 @@ export default function DashboardLayout({
                 }}
               >
                 <LogOut className="h-4 w-4" />
-                Sign out
+                <span>Sign out</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-          <div className="px-4 pb-2 text-xs text-muted-foreground">
-            {session.user.email}
+          <div className="px-4 pb-2 group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-xs text-muted-foreground">
+              {session.user.email}
+            </span>
           </div>
         </SidebarFooter>
       </Sidebar>
+
       <SidebarInset>
         <header className="flex h-12 items-center gap-2 border-b px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
-          <Breadcrumbs />
-          <div className="ml-auto">
-            <ThemeToggle />
-          </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="dashboard-grid-bg flex-1 p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

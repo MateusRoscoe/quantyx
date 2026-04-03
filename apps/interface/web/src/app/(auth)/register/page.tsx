@@ -30,21 +30,26 @@ export default function RegisterPage() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const { error } = await signUp.email({ name, email, password });
-    setLoading(false);
+    try {
+      const { error } = await signUp.email({ name, email, password });
 
-    if (error) {
-      toast.error(error.message ?? 'Failed to sign up');
-      return;
+      if (error) {
+        toast.error(error.message ?? 'Failed to sign up');
+        return;
+      }
+
+      router.push('/verify-email');
+    } catch {
+      toast.error('Unable to reach the server. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    router.push('/verify-email');
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Create account</CardTitle>
+        <CardTitle className="font-display text-2xl">Create account</CardTitle>
         <CardDescription>
           Enter your details to create a new account
         </CardDescription>

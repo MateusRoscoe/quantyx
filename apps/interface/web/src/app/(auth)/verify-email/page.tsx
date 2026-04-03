@@ -8,9 +8,9 @@ import { MailCheck } from 'lucide-react';
 export default function VerifyEmailPage() {
   return (
     <Card>
-      <CardHeader className="items-center">
+      <CardHeader className="justify-items-center text-center">
         <MailCheck className="h-12 w-12 text-muted-foreground" />
-        <CardTitle className="text-2xl">Check your email</CardTitle>
+        <CardTitle className="font-display text-2xl">Check your email</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
         <p className="text-muted-foreground">
