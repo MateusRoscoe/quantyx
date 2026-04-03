@@ -34,7 +34,7 @@ export default function DevicesPage() {
       <PageHeader title="Devices & Browsers" />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Device Types" isLoading={isLoading}>
+        <ChartCard title="Device Types" isLoading={isLoading} isEmpty={!data?.deviceTypes?.length}>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
@@ -52,11 +52,11 @@ export default function DevicesPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Browsers" isLoading={isLoading}>
+        <ChartCard title="Browsers" isLoading={isLoading} isEmpty={!data?.browsers?.length}>
           <HorizontalBarChart data={data?.browsers ?? []} color="var(--color-chart-2)" />
         </ChartCard>
 
-        <ChartCard title="Operating Systems" isLoading={isLoading}>
+        <ChartCard title="Operating Systems" isLoading={isLoading} isEmpty={!data?.operatingSystems?.length}>
           <HorizontalBarChart data={data?.operatingSystems ?? []} color="var(--color-chart-5)" />
         </ChartCard>
       </div>

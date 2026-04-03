@@ -33,7 +33,7 @@ export default function PagesPage() {
     <div className="space-y-6">
       <PageHeader title="Pages" />
 
-      <ChartCard title="Top 10 Pages" isLoading={isLoading}>
+      <ChartCard title="Top 10 Pages" isLoading={isLoading} isEmpty={top10.length === 0}>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={top10} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 120 }}>
             <CartesianGrid {...gridStyle} horizontal={false} />

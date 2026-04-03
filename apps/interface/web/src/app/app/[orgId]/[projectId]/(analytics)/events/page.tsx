@@ -58,7 +58,7 @@ export default function EventsPage() {
     <div className="space-y-6">
       <PageHeader title="Events" />
 
-      <ChartCard title="Events over time" isLoading={isLoading}>
+      <ChartCard title="Events over time" isLoading={isLoading} isEmpty={chartData.length === 0}>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid {...gridStyle} vertical={false} />

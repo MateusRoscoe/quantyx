@@ -107,9 +107,9 @@ export function DataTable<TData>({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="py-8 text-center text-muted-foreground"
+                className="h-56 text-center text-muted-foreground"
               >
-                No data
+                No data for this period
               </TableCell>
             </TableRow>
           ) : (

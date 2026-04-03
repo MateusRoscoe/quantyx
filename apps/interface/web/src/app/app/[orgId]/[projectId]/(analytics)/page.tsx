@@ -62,32 +62,32 @@ export default function OverviewPage() {
         <StatCard
           label="Total Events"
           icon={Zap}
-          value={kpis?.totalEvents ?? '--'}
+          value={kpis?.totalEvents ?? 0}
           sparklineData={timeseries.map((d) => ({ value: d.events }))}
           isLoading={overviewLoading}
         />
         <StatCard
           label="Unique Users"
           icon={Users}
-          value={kpis?.uniqueUsers ?? '--'}
+          value={kpis?.uniqueUsers ?? 0}
           sparklineData={timeseries.map((d) => ({ value: d.users }))}
           isLoading={overviewLoading}
         />
         <StatCard
           label="Sessions"
           icon={Activity}
-          value={kpis?.totalSessions ?? '--'}
+          value={kpis?.totalSessions ?? 0}
           isLoading={overviewLoading}
         />
         <StatCard
           label="Page Views"
           icon={FileText}
-          value={kpis?.pageViews ?? '--'}
+          value={kpis?.pageViews ?? 0}
           isLoading={overviewLoading}
         />
       </div>
 
-      <ChartCard title="Events over time" isLoading={overviewLoading}>
+      <ChartCard title="Events over time" isLoading={overviewLoading} isEmpty={timeseries.length === 0}>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={timeseries} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
