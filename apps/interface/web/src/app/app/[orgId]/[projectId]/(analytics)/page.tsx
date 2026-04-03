@@ -1,6 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Area,
@@ -16,26 +15,36 @@ import { useAnalyticsOverview } from '@/hooks/use-analytics-overview';
 import { useAnalyticsEvents } from '@/hooks/use-analytics-events';
 import { useAnalyticsPages } from '@/hooks/use-analytics-pages';
 import { useAnalyticsDevices } from '@/hooks/use-analytics-devices';
-import { StatCard } from '@/components/dashboard/stat-card';
-import { ChartCard } from '@/components/dashboard/chart-card';
-import { DataTable } from '@/components/dashboard/data-table';
-import { PageHeader } from '@/components/dashboard/page-header';
+import {
+  StatCard,
+  ChartCard,
+  DataTable,
+  PageHeader,
+  MonoCell,
+  NumberCell,
+  tooltipStyle,
+  axisStyle,
+  gridStyle,
+} from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
 
-const eventColumns: ColumnDef<{ eventName: string; count: number; uniqueUsers: number }, unknown>[] = [
-  { accessorKey: 'eventName', header: 'Event', cell: (info) => <span className="font-mono text-sm">{info.getValue() as string}</span> },
-  { accessorKey: 'count', header: 'Count', cell: (info) => <span className="font-mono tabular-nums">{(info.getValue() as number).toLocaleString()}</span> },
-  { accessorKey: 'uniqueUsers', header: 'Users', cell: (info) => <span className="font-mono tabular-nums">{(info.getValue() as number).toLocaleString()}</span> },
+type EventRow = { eventName: string; count: number; uniqueUsers: number };
+type PageRow = { path: string; views: number; uniqueUsers: number };
+
+const eventColumns: ColumnDef<EventRow, unknown>[] = [
+  { accessorKey: 'eventName', header: 'Event', cell: MonoCell },
+  { accessorKey: 'count', header: 'Count', cell: NumberCell },
+  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell },
 ];
 
-const pageColumns: ColumnDef<{ path: string; views: number; uniqueUsers: number }, unknown>[] = [
-  { accessorKey: 'path', header: 'Path', cell: (info) => <span className="font-mono text-sm">{info.getValue() as string}</span> },
-  { accessorKey: 'views', header: 'Views', cell: (info) => <span className="font-mono tabular-nums">{(info.getValue() as number).toLocaleString()}</span> },
-  { accessorKey: 'uniqueUsers', header: 'Users', cell: (info) => <span className="font-mono tabular-nums">{(info.getValue() as number).toLocaleString()}</span> },
+const pageColumns: ColumnDef<PageRow, unknown>[] = [
+  { accessorKey: 'path', header: 'Path', cell: MonoCell },
+  { accessorKey: 'views', header: 'Views', cell: NumberCell },
+  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell },
 ];
 
-function OverviewContent() {
+export default function OverviewPage() {
   const { projectId } = useParams<{ orgId: string; projectId: string }>();
   const { data: overview, isLoading: overviewLoading } = useAnalyticsOverview(projectId);
   const { data: eventsData, isLoading: eventsLoading } = useAnalyticsEvents(projectId);
@@ -49,7 +58,6 @@ function OverviewContent() {
     <div className="space-y-6">
       <PageHeader title="Overview" />
 
-      {/* KPI Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Events"
@@ -79,7 +87,6 @@ function OverviewContent() {
         />
       </div>
 
-      {/* Time Series Chart */}
       <ChartCard title="Events over time" isLoading={overviewLoading}>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={timeseries} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -89,17 +96,10 @@ function OverviewContent() {
                 <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="var(--color-muted-foreground)" />
-            <YAxis tick={{ fontSize: 12 }} stroke="var(--color-muted-foreground)" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'var(--color-popover)',
-                borderColor: 'var(--color-border)',
-                borderRadius: '8px',
-                fontSize: '12px',
-              }}
-            />
+            <CartesianGrid {...gridStyle} vertical={false} />
+            <XAxis dataKey="date" {...axisStyle} />
+            <YAxis {...axisStyle} />
+            <Tooltip contentStyle={tooltipStyle} />
             <Area
               type="monotone"
               dataKey="events"
@@ -113,7 +113,6 @@ function OverviewContent() {
         </ResponsiveContainer>
       </ChartCard>
 
-      {/* Tables Row */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -128,7 +127,6 @@ function OverviewContent() {
             />
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-medium">Top Pages</CardTitle>
@@ -144,31 +142,27 @@ function OverviewContent() {
         </Card>
       </div>
 
-      {/* Device Breakdown */}
       {devicesData && (
         <div className="grid gap-4 lg:grid-cols-3">
           {[
             { title: 'Device Types', data: devicesData.deviceTypes },
             { title: 'Browsers', data: devicesData.browsers },
             { title: 'Operating Systems', data: devicesData.operatingSystems },
-          ].map(({ title, data }) => (
-            <Card key={title}>
-              <CardHeader>
-                <CardTitle className="text-base font-medium">{title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+          ].map(({ title, data }) => {
+            const total = data.reduce((s, d) => s + d.count, 0);
+            return (
+              <Card key={title}>
+                <CardHeader>
+                  <CardTitle className="text-base font-medium">{title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
                   {data.slice(0, 5).map((item) => {
-                    const total = data.reduce((s, d) => s + d.count, 0);
                     const pct = total > 0 ? (item.count / total) * 100 : 0;
                     return (
                       <div key={item.value} className="flex items-center gap-2">
                         <span className="w-24 truncate text-sm">{item.value || '(unknown)'}</span>
                         <div className="h-2 flex-1 rounded-full bg-muted">
-                          <div
-                            className="h-2 rounded-full bg-primary"
-                            style={{ width: `${pct}%` }}
-                          />
+                          <div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="font-mono text-xs tabular-nums text-muted-foreground">
                           {pct.toFixed(0)}%
@@ -176,20 +170,12 @@ function OverviewContent() {
                       </div>
                     );
                   })}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
-  );
-}
-
-export default function OverviewPage() {
-  return (
-    <Suspense>
-      <OverviewContent />
-    </Suspense>
   );
 }

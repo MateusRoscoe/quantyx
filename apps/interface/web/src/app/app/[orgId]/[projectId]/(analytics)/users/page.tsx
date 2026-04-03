@@ -1,10 +1,8 @@
 'use client';
 
-import { Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
-import { DataTable } from '@/components/dashboard/data-table';
-import { PageHeader } from '@/components/dashboard/page-header';
+import { DataTable, PageHeader, MonoCell, NumberCell, DateCell } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
 
@@ -16,13 +14,13 @@ interface UserRow {
 }
 
 const columns: ColumnDef<UserRow, unknown>[] = [
-  { accessorKey: 'userId', header: 'User ID', cell: (info) => <span className="font-mono text-sm">{(info.getValue() as string).slice(0, 16)}...</span> },
-  { accessorKey: 'firstSeen', header: 'First Seen', cell: (info) => <span className="text-sm">{new Date(info.getValue() as string).toLocaleDateString()}</span> },
-  { accessorKey: 'lastSeen', header: 'Last Seen', cell: (info) => <span className="text-sm">{new Date(info.getValue() as string).toLocaleDateString()}</span> },
-  { accessorKey: 'totalEvents', header: 'Total Events', cell: (info) => <span className="font-mono tabular-nums">{(info.getValue() as number).toLocaleString()}</span> },
+  { accessorKey: 'userId', header: 'User ID', cell: MonoCell },
+  { accessorKey: 'firstSeen', header: 'First Seen', cell: DateCell },
+  { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateCell },
+  { accessorKey: 'totalEvents', header: 'Total Events', cell: NumberCell },
 ];
 
-function UsersContent() {
+export default function UsersPage() {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
   const router = useRouter();
   const { data, isLoading } = useAnalyticsUsers(projectId);
@@ -31,7 +29,9 @@ function UsersContent() {
     <div className="space-y-6">
       <PageHeader title="Users" />
       <Card>
-        <CardHeader><CardTitle className="text-base font-medium">All Users</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">All Users</CardTitle>
+        </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
@@ -44,8 +44,4 @@ function UsersContent() {
       </Card>
     </div>
   );
-}
-
-export default function UsersPage() {
-  return <Suspense><UsersContent /></Suspense>;
 }

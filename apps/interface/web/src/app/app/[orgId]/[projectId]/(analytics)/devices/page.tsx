@@ -1,31 +1,31 @@
 'use client';
 
-import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useAnalyticsDevices } from '@/hooks/use-analytics-devices';
-import { ChartCard } from '@/components/dashboard/chart-card';
-import { PageHeader } from '@/components/dashboard/page-header';
+import { ChartCard, PageHeader, CHART_COLORS, tooltipStyle, axisStyle, gridStyle } from '@/components/dashboard';
 
-const CHART_COLORS = [
-  'var(--color-chart-1)',
-  'var(--color-chart-2)',
-  'var(--color-chart-3)',
-  'var(--color-chart-4)',
-  'var(--color-chart-5)',
-  'var(--color-chart-6)',
-  'var(--color-chart-7)',
-  'var(--color-chart-8)',
-];
+function HorizontalBarChart({
+  data,
+  color,
+}: {
+  data: { value: string; count: number }[];
+  color: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={data.slice(0, 8)} layout="vertical" margin={{ left: 60 }}>
+        <CartesianGrid {...gridStyle} horizontal={false} />
+        <XAxis type="number" {...axisStyle} tick={{ fontSize: 11 }} />
+        <YAxis type="category" dataKey="value" {...axisStyle} tick={{ fontSize: 11 }} width={60} />
+        <Tooltip contentStyle={tooltipStyle} />
+        <Bar dataKey="count" fill={color} radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 
-const tooltipStyle = {
-  backgroundColor: 'var(--color-popover)',
-  borderColor: 'var(--color-border)',
-  borderRadius: '8px',
-  fontSize: '12px',
-};
-
-function DevicesContent() {
+export default function DevicesPage() {
   const { projectId } = useParams<{ orgId: string; projectId: string }>();
   const { data, isLoading } = useAnalyticsDevices(projectId);
 
@@ -34,7 +34,6 @@ function DevicesContent() {
       <PageHeader title="Devices & Browsers" />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Device Types - Donut */}
         <ChartCard title="Device Types" isLoading={isLoading}>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
@@ -53,36 +52,14 @@ function DevicesContent() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Browsers - Horizontal Bar */}
         <ChartCard title="Browsers" isLoading={isLoading}>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data?.browsers?.slice(0, 8) ?? []} layout="vertical" margin={{ left: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
-              <YAxis type="category" dataKey="value" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" width={60} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="count" fill="var(--color-chart-2)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <HorizontalBarChart data={data?.browsers ?? []} color="var(--color-chart-2)" />
         </ChartCard>
 
-        {/* OS - Horizontal Bar */}
         <ChartCard title="Operating Systems" isLoading={isLoading}>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data?.operatingSystems?.slice(0, 8) ?? []} layout="vertical" margin={{ left: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
-              <YAxis type="category" dataKey="value" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" width={60} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="count" fill="var(--color-chart-5)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <HorizontalBarChart data={data?.operatingSystems ?? []} color="var(--color-chart-5)" />
         </ChartCard>
       </div>
     </div>
   );
-}
-
-export default function DevicesPage() {
-  return <Suspense><DevicesContent /></Suspense>;
 }

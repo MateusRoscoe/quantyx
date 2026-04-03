@@ -1,6 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Area,
@@ -12,27 +11,29 @@ import {
   YAxis,
 } from 'recharts';
 import { useAnalyticsEvents } from '@/hooks/use-analytics-events';
-import { ChartCard } from '@/components/dashboard/chart-card';
-import { DataTable } from '@/components/dashboard/data-table';
-import { PageHeader } from '@/components/dashboard/page-header';
+import {
+  ChartCard,
+  DataTable,
+  PageHeader,
+  MonoCell,
+  NumberCell,
+  CHART_COLORS,
+  tooltipStyle,
+  axisStyle,
+  gridStyle,
+} from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
 
-const CHART_COLORS = [
-  'var(--color-chart-1)',
-  'var(--color-chart-2)',
-  'var(--color-chart-3)',
-  'var(--color-chart-4)',
-  'var(--color-chart-5)',
+type EventRow = { eventName: string; count: number; uniqueUsers: number };
+
+const columns: ColumnDef<EventRow, unknown>[] = [
+  { accessorKey: 'eventName', header: 'Event Name', cell: MonoCell },
+  { accessorKey: 'count', header: 'Count', cell: NumberCell },
+  { accessorKey: 'uniqueUsers', header: 'Unique Users', cell: NumberCell },
 ];
 
-const columns: ColumnDef<{ eventName: string; count: number; uniqueUsers: number }, unknown>[] = [
-  { accessorKey: 'eventName', header: 'Event Name', cell: (info) => <span className="font-mono text-sm">{info.getValue() as string}</span> },
-  { accessorKey: 'count', header: 'Count', cell: (info) => <span className="font-mono tabular-nums">{(info.getValue() as number).toLocaleString()}</span> },
-  { accessorKey: 'uniqueUsers', header: 'Unique Users', cell: (info) => <span className="font-mono tabular-nums">{(info.getValue() as number).toLocaleString()}</span> },
-];
-
-function EventsContent() {
+export default function EventsPage() {
   const { projectId } = useParams<{ orgId: string; projectId: string }>();
   const { data, isLoading } = useAnalyticsEvents(projectId);
 
@@ -60,27 +61,34 @@ function EventsContent() {
       <ChartCard title="Events over time" isLoading={isLoading}>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="var(--color-muted-foreground)" />
-            <YAxis tick={{ fontSize: 12 }} stroke="var(--color-muted-foreground)" />
-            <Tooltip contentStyle={{ backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', borderRadius: '8px', fontSize: '12px' }} />
+            <CartesianGrid {...gridStyle} vertical={false} />
+            <XAxis dataKey="date" {...axisStyle} />
+            <YAxis {...axisStyle} />
+            <Tooltip contentStyle={tooltipStyle} />
             {topEvents.map((name, i) => (
-              <Area key={name} type="monotone" dataKey={name} stackId="1" stroke={CHART_COLORS[i]} fill={CHART_COLORS[i]} fillOpacity={0.3} animationDuration={750} />
+              <Area
+                key={name}
+                type="monotone"
+                dataKey={name}
+                stackId="1"
+                stroke={CHART_COLORS[i]}
+                fill={CHART_COLORS[i]}
+                fillOpacity={0.3}
+                animationDuration={750}
+              />
             ))}
           </AreaChart>
         </ResponsiveContainer>
       </ChartCard>
 
       <Card>
-        <CardHeader><CardTitle className="text-base font-medium">All Events</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">All Events</CardTitle>
+        </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={data?.breakdown ?? []} isLoading={isLoading} pageSize={20} />
         </CardContent>
       </Card>
     </div>
   );
-}
-
-export default function EventsPage() {
-  return <Suspense><EventsContent /></Suspense>;
 }
