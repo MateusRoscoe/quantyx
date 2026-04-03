@@ -51,10 +51,14 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       // Sessions count
       const sessions = await queryClickHouse<{ total_sessions: string }>(
         `SELECT count() as total_sessions
-        FROM analytics.sessions
-        WHERE project_id = {projectId:String}
-          AND minMerge(started_at) >= toDateTime({from:String})
-          AND minMerge(started_at) <= toDateTime({to:String} || ' 23:59:59')`,
+        FROM (
+          SELECT session_id
+          FROM analytics.sessions
+          WHERE project_id = {projectId:String}
+          GROUP BY session_id
+          HAVING minMerge(started_at) >= toDateTime({from:String})
+            AND minMerge(started_at) <= toDateTime({to:String} || ' 23:59:59')
+        )`,
         { projectId, from, to },
       );
 
@@ -492,6 +496,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         first_seen: string;
         last_seen: string;
         event_count: string;
+        unique_values: string;
         example_value: string;
       }>(
         `SELECT
@@ -500,6 +505,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           minMerge(first_seen) as first_seen,
           maxMerge(last_seen) as last_seen,
           sumMerge(event_count) as event_count,
+          uniqMerge(unique_values) as unique_values,
           anyMerge(example_value) as example_value
         FROM analytics.property_metadata
         WHERE project_id = {projectId:String}
@@ -515,6 +521,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           firstSeen: p.first_seen,
           lastSeen: p.last_seen,
           eventCount: Number(p.event_count),
+          uniqueValues: Number(p.unique_values),
           exampleValue: p.example_value,
         })),
       };
