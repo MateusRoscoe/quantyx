@@ -90,6 +90,7 @@ CREATE TABLE
         first_seen AggregateFunction (min, DateTime),
         last_seen AggregateFunction (max, DateTime),
         event_count AggregateFunction (sum, UInt64),
+        unique_values AggregateFunction (uniq, String),
         example_value AggregateFunction (any, String),
         updated_at AggregateFunction (max, DateTime)
     ) ENGINE = AggregatingMergeTree ()
@@ -293,6 +294,7 @@ SELECT
     minState(timestamp) AS first_seen,
     maxState(timestamp) AS last_seen,
     sumState(toUInt64(1)) AS event_count,
+    uniqState(toString(props_str[key])) AS unique_values,
     anyState(toString(props_str[key])) AS example_value,
     maxState(timestamp) AS updated_at
 FROM analytics.events
@@ -309,6 +311,7 @@ SELECT
     minState(timestamp) AS first_seen,
     maxState(timestamp) AS last_seen,
     sumState(toUInt64(1)) AS event_count,
+    uniqState(toString(props_num[key])) AS unique_values,
     anyState(toString(props_num[key])) AS example_value,
     maxState(timestamp) AS updated_at
 FROM analytics.events
@@ -325,6 +328,7 @@ SELECT
     minState(timestamp) AS first_seen,
     maxState(timestamp) AS last_seen,
     sumState(toUInt64(1)) AS event_count,
+    uniqState(if(props_bool[key] = 1, 'true', 'false')) AS unique_values,
     anyState(if(props_bool[key] = 1, 'true', 'false')) AS example_value,
     maxState(timestamp) AS updated_at
 FROM analytics.events

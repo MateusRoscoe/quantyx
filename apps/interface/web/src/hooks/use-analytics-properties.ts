@@ -8,6 +8,7 @@ interface PropertiesData {
     firstSeen: string;
     lastSeen: string;
     eventCount: number;
+    uniqueValues: number;
     exampleValue: string;
   }[];
 }

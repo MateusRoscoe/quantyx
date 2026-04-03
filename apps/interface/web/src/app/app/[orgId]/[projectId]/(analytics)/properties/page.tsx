@@ -13,6 +13,7 @@ interface PropertyRow {
   firstSeen: string;
   lastSeen: string;
   eventCount: number;
+  uniqueValues: number;
   exampleValue: string;
 }
 
@@ -24,6 +25,7 @@ const columns: ColumnDef<PropertyRow, unknown>[] = [
     cell: (info) => <Badge variant="secondary" className="text-xs">{info.getValue() as string}</Badge>,
   },
   { accessorKey: 'eventCount', header: 'Events', cell: NumberCell },
+  { accessorKey: 'uniqueValues', header: 'Cardinality', cell: NumberCell },
   {
     accessorKey: 'exampleValue',
     header: 'Example',
