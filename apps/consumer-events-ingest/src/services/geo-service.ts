@@ -133,7 +133,7 @@ export function enrichGeo(
   }
 
   if (hasValidClientCountry) {
-    // Client sent valid geo — keep it, but fill in missing lat/lon
+    // Client sent valid geo — keep it, fill gaps from IP lookup
     return {
       country: existing.country!,
       continent: existing.continent || inferred.continent,
@@ -145,6 +145,15 @@ export function enrichGeo(
     };
   }
 
-  // No valid client geo — use inferred data
-  return inferred;
+  // No valid client country — use inferred, but fall back to client data
+  // when the IP lookup returned nothing (e.g. private IP, unknown range)
+  return {
+    country: inferred.country || existing.country || '',
+    continent: inferred.continent || existing.continent || '',
+    region: inferred.region || existing.region || '',
+    state: inferred.state || existing.state || '',
+    city: inferred.city || existing.city || '',
+    latitude: inferred.latitude || existing.latitude || 0,
+    longitude: inferred.longitude || existing.longitude || 0,
+  };
 }
