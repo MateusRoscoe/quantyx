@@ -166,7 +166,7 @@ export default function DashboardLayout({
                     const isActive =
                       item.segment === ''
                         ? pathname === projectBase
-                        : pathname.startsWith(href);
+                        : pathname.startsWith(basePath);
                     return (
                       <SidebarMenuItem key={item.label}>
                         <SidebarMenuButton asChild isActive={isActive}>
