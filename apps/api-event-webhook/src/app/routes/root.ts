@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { connectProducer, getBufferStatus } from '../models/kafka';
+import { connectProducer, getProducerStatus } from '../models/kafka';
+import { environment } from '../helpers/env.js';
 import { redisHealthCheck } from '@quantyx/redis';
 import { prisma } from '@quantyx/postgres';
 
@@ -12,21 +13,20 @@ export default async function (fastify: FastifyInstance) {
 
   // Readiness — can it accept traffic?
   // K8s readinessProbe: stop routing requests if this fails.
-  // Fails when the event buffer is at capacity.
+  // Reports not-ready when too many sends are awaiting delivery.
   fastify.get('/healthz/ready', async function (_request, reply) {
-    const bufferStatus = getBufferStatus();
-    const isReady = bufferStatus.size < bufferStatus.capacity;
+    const { inFlightCount } = getProducerStatus();
 
-    if (!isReady) {
+    if (inFlightCount > environment.KAFKA_BACKPRESSURE_THRESHOLD) {
       reply.status(503).send({
         status: 'not ready',
-        reason: 'event buffer is full',
-        buffer: bufferStatus,
+        reason: 'producer backpressure',
+        inFlightCount,
       });
       return;
     }
 
-    reply.status(200).send({ status: 'ok', buffer: bufferStatus });
+    reply.status(200).send({ status: 'ok', inFlightCount });
   });
 
   // Startup — have all dependencies connected?

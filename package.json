@@ -75,7 +75,7 @@
     "fastify-plugin": "~5.1.0",
     "fastify-type-provider-zod": "^6.1.0",
     "ioredis": "^5.10.1",
-    "kafkajs": "^2.2.4",
+    "@confluentinc/kafka-javascript": "^1.9.0",
     "next": "~16.2.2",
     "nodemailer": "^8.0.4",
     "pg": "^8.20.0",

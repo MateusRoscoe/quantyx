@@ -10,23 +10,15 @@ export class AppCtrl {
   static async start() {
     const consumer = await getAndConnectConsumer();
 
-    consumer.subscribe({
-      topic: environment.EVENT_TOPIC,
-      fromBeginning: environment.KAFKA_CONSUME_FROM_BEGINNING,
+    await consumer.subscribe({
+      topics: [environment.EVENT_TOPIC],
     });
 
     consumer.run({
-      autoCommit: false,
-      eachBatch: async ({ batch, heartbeat }) => {
+      eachBatch: async ({ batch }) => {
         logger.info(
           `Starting batch processing from topic ${batch.topic} with ${batch.messages.length} messages`,
         );
-        const heartbeatInterval = setInterval(
-          async () => {
-            await heartbeat();
-          },
-          Math.floor(environment.KAFKA_SESSION_TIMEOUT_MS / 3),
-        ); // 3 heartbeats per session timeout to be safe
         try {
           const events = batch.messages.map((message) => {
             const event = JSON.parse(message.value?.toString() || '{}');
@@ -52,9 +44,6 @@ export class AppCtrl {
           logger.info(
             `Processed batch from topic ${batch.topic} with ${batch.messages.length} messages`,
           );
-          if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
-          }
         }
       },
     });

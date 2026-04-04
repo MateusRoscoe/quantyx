@@ -15,7 +15,10 @@ const envSchema = z.object({
     .string()
     .transform((val) => val === 'true')
     .default(false),
-  KAFKA_SESSION_TIMEOUT_MS: z.number().min(10000).default(30000),
+  KAFKA_SESSION_TIMEOUT_MS: z.coerce.number().min(10000).default(30000),
+  KAFKA_FETCH_MIN_BYTES: z.coerce.number().min(1).default(262144),
+  KAFKA_FETCH_WAIT_MAX_MS: z.coerce.number().min(1).default(5000),
+  KAFKA_MAX_BATCH_SIZE: z.coerce.number().min(-1).default(25000),
 });
 
 type Env = z.infer<typeof envSchema>;

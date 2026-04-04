@@ -1,24 +1,29 @@
 packages:
-  - 'packages/*'
-  - 'apps/*'
-  - 'libs/shared'
-  - 'libs/kafka'
-  - 'libs/shared-backend'
-  - 'libs/clickhouse'
-  - 'libs/postgres'
-  - 'libs/auth'
-  - 'libs/redis'
-  - 'libs/react-sdk'
-  - 'apps/interface/*'
+  - packages/*
+  - apps/*
+  - libs/shared
+  - libs/kafka
+  - libs/shared-backend
+  - libs/clickhouse
+  - libs/postgres
+  - libs/auth
+  - libs/redis
+  - libs/react-sdk
+  - apps/interface/*
+
+ignoredBuiltDependencies:
+  - less
+
 onlyBuiltDependencies:
+  - '@confluentinc/kafka-javascript'
   - '@prisma/client'
   - '@prisma/engines'
   - '@swc/core'
-  - 'better-sqlite3'
-  - 'cpu-features'
-  - 'esbuild'
-  - 'nx'
-  - 'prisma'
-  - 'protobufjs'
-  - 'ssh2'
-  - 'unrs-resolver'
+  - better-sqlite3
+  - cpu-features
+  - esbuild
+  - nx
+  - prisma
+  - protobufjs
+  - ssh2
+  - unrs-resolver

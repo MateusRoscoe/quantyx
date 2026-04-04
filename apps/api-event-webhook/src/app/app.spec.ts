@@ -4,7 +4,7 @@ import {
   validatorCompiler,
   ZodTypeProvider,
 } from 'fastify-type-provider-zod';
-import { Kafka } from 'kafkajs';
+import { KafkaJS } from '@confluentinc/kafka-javascript';
 import { randomUUID } from 'node:crypto';
 import { app } from './app';
 import { connectProducer, disconnectProducer } from './models/kafka';
@@ -103,7 +103,7 @@ describe('GET /healthz/live', () => {
 });
 
 describe('GET /healthz/ready', () => {
-  it('should return 200 when buffer has capacity', async () => {
+  it('should return 200', async () => {
     const response = await server.inject({
       method: 'GET',
       url: '/healthz/ready',
@@ -264,18 +264,17 @@ describe('Kafka message verification', () => {
     await new Promise((r) => setTimeout(r, 2000));
 
     // Consume the message from Kafka
-    const kafkaClient = new Kafka({
-      clientId: 'test-consumer',
-      brokers: (process.env.KAFKA_BROKERS ?? '').split(','),
-    });
+    const kafkaClient = new KafkaJS.Kafka();
 
     const consumer = kafkaClient.consumer({
-      groupId: `test-group-${randomUUID()}`,
+      'bootstrap.servers': process.env.KAFKA_BROKERS ?? '',
+      'client.id': 'test-consumer',
+      'group.id': `test-group-${randomUUID()}`,
+      'auto.offset.reset': 'earliest',
     });
     await consumer.connect();
     await consumer.subscribe({
-      topic: environment.EVENT_TOPIC,
-      fromBeginning: true,
+      topics: [environment.EVENT_TOPIC],
     });
 
     const messages: string[] = [];

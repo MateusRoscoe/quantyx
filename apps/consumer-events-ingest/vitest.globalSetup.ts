@@ -1,6 +1,6 @@
 import { KafkaContainer } from '@testcontainers/kafka';
 import { GenericContainer, Wait } from 'testcontainers';
-import { Kafka } from 'kafkajs';
+import { KafkaJS } from '@confluentinc/kafka-javascript';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -10,12 +10,11 @@ let clickhouseContainer: Awaited<ReturnType<GenericContainer['start']>>;
 
 async function waitForKafkaReady(brokers: string[], maxAttempts = 15) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const kafka = new Kafka({
-      clientId: 'test-setup',
-      brokers,
-      retry: { retries: 0 },
+    const kafka = new KafkaJS.Kafka();
+    const admin = kafka.admin({
+      'bootstrap.servers': brokers.join(','),
+      'client.id': 'test-setup',
     });
-    const admin = kafka.admin();
 
     try {
       await admin.connect();
@@ -92,7 +91,6 @@ export async function setup() {
   // Export env vars for test workers
   process.env.KAFKA_BROKERS = brokers;
   process.env.KAFKA_CLIENT_ID = 'consumer-test';
-  process.env.KAFKAJS_NO_PARTITIONER_WARNING = '1';
   process.env.KAFKA_CONSUME_FROM_BEGINNING = 'true';
 
   process.env.CLICKHOUSE_URL = chUrl;

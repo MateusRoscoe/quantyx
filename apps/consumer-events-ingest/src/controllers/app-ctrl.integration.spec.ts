@@ -1,10 +1,11 @@
-import { Kafka, Producer } from 'kafkajs';
+import { KafkaJS } from '@confluentinc/kafka-javascript';
 import { createClient, ClickHouseClient } from '@clickhouse/client';
 import { randomUUID } from 'crypto';
 
 const TOPIC = 'event-webhook-ingestion';
 
-let producer: Producer;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let producer: any;
 let ch: ClickHouseClient;
 let disconnectConsumer: () => Promise<void>;
 
@@ -48,13 +49,12 @@ beforeAll(async () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const brokers = process.env.KAFKA_BROKERS!.split(',');
 
-  // Test producer — independent KafkaJS instance
-  const kafka = new Kafka({
-    clientId: 'integration-test-producer',
-    brokers,
-    retry: { retries: 3 },
+  // Test producer — independent Kafka instance
+  const kafka = new KafkaJS.Kafka();
+  producer = kafka.producer({
+    'bootstrap.servers': brokers.join(','),
+    'client.id': 'integration-test-producer',
   });
-  producer = kafka.producer();
   await producer.connect();
 
   // ClickHouse client for assertions

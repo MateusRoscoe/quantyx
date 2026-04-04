@@ -23,7 +23,7 @@ const { values } = parseArgs({
   options: {
     'api-key': { type: 'string' },
     endpoint: { type: 'string', default: 'http://localhost:3002' },
-    total: { type: 'string', default: '500000' },
+    total: { type: 'string', default: '1000000' },
     'batch-size': { type: 'string', default: '500' },
     concurrency: { type: 'string', default: '5' },
     'days-back': { type: 'string', default: '90' },
@@ -112,16 +112,24 @@ const PAGES = [
   '/integrations',
 ];
 
-const BROWSERS = ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera'];
+// Device profiles — couples device type, browser, OS, and platform realistically
+type DeviceProfile = {
+  device_type: string;
+  browser: string;
+  browser_version: string;
+  os: string;
+  os_version: string;
+  platform: string;
+};
+
 const BROWSER_VERSIONS: Record<string, string[]> = {
   Chrome: ['120.0', '121.0', '122.0', '123.0', '124.0', '125.0'],
   Firefox: ['121.0', '122.0', '123.0', '124.0'],
   Safari: ['17.2', '17.3', '17.4', '17.5'],
   Edge: ['120.0', '121.0', '122.0', '123.0'],
-  Opera: ['105.0', '106.0', '107.0'],
+  'Samsung Internet': ['24.0', '25.0', '26.0'],
 };
 
-const OS_LIST = ['Windows', 'macOS', 'Linux', 'iOS', 'Android'];
 const OS_VERSIONS: Record<string, string[]> = {
   Windows: ['10', '11'],
   macOS: ['13.0', '14.0', '14.3', '14.5'],
@@ -130,15 +138,45 @@ const OS_VERSIONS: Record<string, string[]> = {
   Android: ['13', '14', '15'],
 };
 
-const DEVICE_TYPES = [
-  'desktop',
-  'desktop',
-  'desktop',
-  'mobile',
-  'mobile',
-  'tablet',
-]; // weighted
-const PLATFORMS = ['web', 'web', 'web', 'ios', 'android']; // weighted
+// Weighted device profiles based on real-world browser market share
+// Chrome ~65%, Safari ~18%, Firefox ~3%, Edge ~5%, Samsung Internet ~2.5%, Opera ~2.5%
+const DEVICE_PROFILES: [number, () => Omit<DeviceProfile, 'browser_version' | 'os_version'>][] = [
+  // Desktop Chrome on Windows (~35%)
+  [35, () => ({ device_type: 'desktop', browser: 'Chrome', os: 'Windows', platform: 'web' })],
+  // Desktop Chrome on macOS (~10%)
+  [10, () => ({ device_type: 'desktop', browser: 'Chrome', os: 'macOS', platform: 'web' })],
+  // Desktop Chrome on Linux (~3%)
+  [3, () => ({ device_type: 'desktop', browser: 'Chrome', os: 'Linux', platform: 'web' })],
+  // Mobile Chrome on Android (~17%)
+  [17, () => ({ device_type: 'mobile', browser: 'Chrome', os: 'Android', platform: 'android' })],
+  // Desktop Safari on macOS (~7%)
+  [7, () => ({ device_type: 'desktop', browser: 'Safari', os: 'macOS', platform: 'web' })],
+  // Mobile Safari on iOS (~11%)
+  [11, () => ({ device_type: 'mobile', browser: 'Safari', os: 'iOS', platform: 'ios' })],
+  // Tablet Safari on iOS (~2%)
+  [2, () => ({ device_type: 'tablet', browser: 'Safari', os: 'iOS', platform: 'ios' })],
+  // Desktop Edge on Windows (~5%)
+  [5, () => ({ device_type: 'desktop', browser: 'Edge', os: 'Windows', platform: 'web' })],
+  // Desktop Firefox on Windows (~1.5%)
+  [1.5, () => ({ device_type: 'desktop', browser: 'Firefox', os: 'Windows', platform: 'web' })],
+  // Desktop Firefox on macOS (~0.5%)
+  [0.5, () => ({ device_type: 'desktop', browser: 'Firefox', os: 'macOS', platform: 'web' })],
+  // Desktop Firefox on Linux (~1%)
+  [1, () => ({ device_type: 'desktop', browser: 'Firefox', os: 'Linux', platform: 'web' })],
+  // Samsung Internet on Android (~2.5%)
+  [2.5, () => ({ device_type: 'mobile', browser: 'Samsung Internet', os: 'Android', platform: 'android' })],
+  // Tablet Chrome on Android (~2%)
+  [2, () => ({ device_type: 'tablet', browser: 'Chrome', os: 'Android', platform: 'android' })],
+];
+
+function pickDeviceProfile(): DeviceProfile {
+  const profile = weightedPick(DEVICE_PROFILES)();
+  return {
+    ...profile,
+    browser_version: pick(BROWSER_VERSIONS[profile.browser]),
+    os_version: pick(OS_VERSIONS[profile.os]),
+  };
+}
 
 const COUNTRIES = [
   { code: 'USA', state: 'California', city: 'San Francisco' },
@@ -193,10 +231,20 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function weightedPick<T>(weighted: [number, T][]): T {
+  const total = weighted.reduce((sum, [w]) => sum + w, 0);
+  let r = Math.random() * total;
+  for (const [weight, value] of weighted) {
+    r -= weight;
+    if (r <= 0) return value;
+  }
+  return weighted[weighted.length - 1][1];
+}
+
 function weightedTimestamp(startMs: number, endMs: number): number {
   // More events towards "now" — simulates growing traffic
   const r = Math.random();
-  const biased = r * r; // quadratic bias towards 1 (recent)
+  const biased = 1 - (1 - r) * (1 - r); // quadratic bias towards 1 (recent)
   return Math.floor(startMs + biased * (endMs - startMs));
 }
 
@@ -214,12 +262,7 @@ interface Session {
   sessionId: string;
   userId: string;
   startMs: number;
-  browser: string;
-  browserVersion: string;
-  os: string;
-  osVersion: string;
-  deviceType: string;
-  platform: string;
+  device: DeviceProfile;
   country: (typeof COUNTRIES)[number];
   eventCount: number;
 }
@@ -228,18 +271,11 @@ const endMs = Date.now();
 const startMs = endMs - DAYS_BACK * 24 * 60 * 60 * 1000;
 
 function createSession(timestampMs: number): Session {
-  const browser = pick(BROWSERS);
-  const os = pick(OS_LIST);
   return {
     sessionId: uuidv7(timestampMs),
     userId: pick(users),
     startMs: timestampMs,
-    browser,
-    browserVersion: pick(BROWSER_VERSIONS[browser]),
-    os,
-    osVersion: pick(OS_VERSIONS[os]),
-    deviceType: pick(DEVICE_TYPES),
-    platform: pick(PLATFORMS),
+    device: pickDeviceProfile(),
     country: pick(COUNTRIES),
     eventCount: 0,
   };
@@ -264,12 +300,12 @@ function generateEvent(session: Session): Record<string, unknown> {
     country: session.country.code,
     state: session.country.state,
     city: session.country.city,
-    device_type: session.deviceType,
-    platform: session.platform,
-    browser: session.browser,
-    browser_version: session.browserVersion,
-    os: session.os,
-    os_version: session.osVersion,
+    device_type: session.device.device_type,
+    platform: session.device.platform,
+    browser: session.device.browser,
+    browser_version: session.device.browser_version,
+    os: session.device.os,
+    os_version: session.device.os_version,
   };
 
   // Custom properties — vary by event type
