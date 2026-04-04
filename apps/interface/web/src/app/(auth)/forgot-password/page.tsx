@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
     const email = formData.get('email') as string;
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/request-password-reset`, {
+      await fetch(`${API_URL}/api/auth/request-password-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -41,17 +41,10 @@ export default function ForgotPasswordPage() {
         }),
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? 'Failed to send reset email');
-      }
-
       track('password_reset_requested');
       setSent(true);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to send reset email',
-      );
+    } catch {
+      toast.error('Failed to send reset email');
     } finally {
       setLoading(false);
     }

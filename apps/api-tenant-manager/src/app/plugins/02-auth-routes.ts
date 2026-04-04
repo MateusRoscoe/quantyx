@@ -28,7 +28,12 @@ export default fp(async function authRoutes(fastify: FastifyInstance) {
 
       const response = await auth.handler(webRequest);
 
-      reply.status(response.status);
+      // Prevent user enumeration: always return 200 for password reset requests
+      const isPasswordReset = request.url.endsWith(
+        '/api/auth/request-password-reset',
+      );
+      reply.status(isPasswordReset ? 200 : response.status);
+
       for (const [key, value] of response.headers.entries()) {
         reply.header(key, value);
       }
