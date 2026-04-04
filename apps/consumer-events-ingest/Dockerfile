@@ -2,16 +2,28 @@
 #
 # Run the container with `npx nx docker:run consumer-events-ingest`.
 #
-FROM docker.io/node:24-alpine
+FROM docker.io/node:24-alpine AS build
 
+RUN apk add --no-cache python3 make g++
 RUN corepack enable
 
 WORKDIR /app
 
 COPY dist .
 
-# You can remove this install step if you build with `--bundle` option.
-# The bundled output will include external dependencies.
-RUN pnpm install
+# Strip workspace devDependencies and allow native builds
+RUN node -e "\
+const p=require('./package.json');\
+delete p.devDependencies;\
+p.pnpm={onlyBuiltDependencies:['@confluentinc/kafka-javascript']};\
+require('fs').writeFileSync('package.json',JSON.stringify(p))"
+
+RUN pnpm install --prod
+
+FROM docker.io/node:24-alpine
+
+WORKDIR /app
+
+COPY --from=build /app .
 
 CMD [ "node", "main.js" ]

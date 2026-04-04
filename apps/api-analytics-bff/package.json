@@ -29,9 +29,40 @@
         "configurations": {
           "development": {},
           "production": {
+            "generateLockfile": true,
             "sourcemap": false
           }
         }
+      },
+      "prune-lockfile": {
+        "dependsOn": ["build"],
+        "cache": true,
+        "executor": "@nx/js:prune-lockfile",
+        "outputs": [
+          "{workspaceRoot}/apps/api-analytics-bff/dist/package.json",
+          "{workspaceRoot}/apps/api-analytics-bff/dist/pnpm-lock.yaml"
+        ],
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "copy-workspace-modules": {
+        "dependsOn": ["build"],
+        "cache": true,
+        "outputs": [
+          "{workspaceRoot}/apps/api-analytics-bff/dist/workspace_modules"
+        ],
+        "executor": "@nx/js:copy-workspace-modules",
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "prune": {
+        "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+        "executor": "nx:noop"
+      },
+      "docker:build": {
+        "dependsOn": ["build", "prune"]
       },
       "serve": {
         "continuous": true,
@@ -56,14 +87,21 @@
     }
   },
   "dependencies": {
-    "fastify": "~5.8.4",
-    "fastify-plugin": "~5.1.0",
+    "@clickhouse/client": "^1.18.2",
     "@fastify/autoload": "~6.3.1",
-    "@fastify/sensible": "~6.0.4",
     "@fastify/cors": "^11.2.0",
+    "@fastify/sensible": "~6.0.4",
     "@fastify/swagger": "~9.7.0",
     "@fastify/swagger-ui": "~5.2.5",
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "better-auth": "^1.5.6",
+    "fastify": "~5.8.4",
+    "fastify-plugin": "~5.1.0",
     "fastify-type-provider-zod": "~6.1.0",
+    "nodemailer": "^8.0.4",
+    "pg": "^8.20.0",
+    "pino": "^10.3.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {

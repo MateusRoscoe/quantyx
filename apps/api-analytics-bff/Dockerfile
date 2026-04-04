@@ -1,6 +1,6 @@
-# Build the docker image with `npx nx docker:build api-tenant-manager`.
+# Build the docker image with `npx nx docker:build api-analytics-bff`.
 #
-# Run the container with `npx nx docker:run api-tenant-manager -p 3000:3000`.
+# Run the container with `npx nx docker:run api-analytics-bff -p 3004:3004`.
 #
 FROM docker.io/node:24-alpine
 

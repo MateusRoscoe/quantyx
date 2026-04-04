@@ -4,21 +4,29 @@
 #
 # Run the container with `nx docker:run api-event-webhook -p 3000:3000`.
 #
-FROM docker.io/node:24-alpine
+FROM docker.io/node:24-alpine AS build
 
-ENV HOST=0.0.0.0
-ENV PORT=3000
-
+RUN apk add --no-cache python3 make g++
 RUN corepack enable
-
 
 WORKDIR /app
 
 COPY dist .
 
-# You can remove this install step if you build with `--bundle` option.
-# The bundled output will include external dependencies.
+# Strip workspace devDependencies and allow native builds
+RUN node -e "\
+const p=require('./package.json');\
+delete p.devDependencies;\
+p.pnpm={onlyBuiltDependencies:['@confluentinc/kafka-javascript','@prisma/client','@prisma/engines','prisma']};\
+require('fs').writeFileSync('package.json',JSON.stringify(p))"
 
-RUN pnpm install
+RUN pnpm install --prod
+
+FROM docker.io/node:24-alpine
+
+
+WORKDIR /app
+
+COPY --from=build /app .
 
 CMD [ "node", "main.js" ]
