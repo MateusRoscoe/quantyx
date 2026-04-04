@@ -90,17 +90,40 @@ afterAll(async () => {
   await server.close();
 });
 
-describe('GET /healthz', () => {
-  it('should return 200 with status', async () => {
+describe('GET /healthz/live', () => {
+  it('should return 200', async () => {
     const response = await server.inject({
       method: 'GET',
-      url: '/healthz',
+      url: '/healthz/live',
     });
 
     expect(response.statusCode).toBe(200);
-    const body = response.json();
-    expect(body.message).toBe('Alive');
-    expect(body.status.kafka).toBe('connected');
+    expect(response.json().status).toBe('ok');
+  });
+});
+
+describe('GET /healthz/ready', () => {
+  it('should return 200 when buffer has capacity', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/healthz/ready',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().status).toBe('ok');
+  });
+});
+
+describe('GET /healthz/startup', () => {
+  it('should return 200 when dependencies are connected', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/healthz/startup',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().status).toBe('ok');
+    expect(response.json().dependencies.kafka).toBe('connected');
   });
 });
 

@@ -1,4 +1,4 @@
-import { sendEvent, sendEventBulk } from '../models/kafka';
+import { sendEvent, sendEventBulk, BufferFullError } from '../models/kafka';
 import * as z from 'zod';
 
 import { EventMessageInput, MAX_USER_AGENT_LENGTH } from '@quantyx/shared';
@@ -20,6 +20,10 @@ export default async function (fastify: server) {
           message: z.string(),
           error: z.string(),
         }),
+        503: z.object({
+          message: z.string(),
+          error: z.string(),
+        }),
       },
     },
     handler: async (request, reply) => {
@@ -32,9 +36,16 @@ export default async function (fastify: server) {
             request.headers['user-agent']?.slice(0, MAX_USER_AGENT_LENGTH) ||
             undefined,
         };
-        await sendEvent(eventData);
+        sendEvent(eventData);
         reply.status(204).send(null);
       } catch (error) {
+        if (error instanceof BufferFullError) {
+          reply.status(503).send({
+            message: 'API is at capacity. Please try again later.',
+            error: 'Service Unavailable',
+          });
+          return;
+        }
         fastify.log.error(error, `Failed to send event to Kafka`);
         reply
           .status(500)
@@ -56,6 +67,10 @@ export default async function (fastify: server) {
           message: z.string(),
           error: z.string(),
         }),
+        503: z.object({
+          message: z.string(),
+          error: z.string(),
+        }),
       },
     },
     handler: async (request, reply) => {
@@ -68,9 +83,16 @@ export default async function (fastify: server) {
             request.headers['user-agent']?.slice(0, MAX_USER_AGENT_LENGTH) ||
             undefined,
         }));
-        await sendEventBulk(events);
+        sendEventBulk(events);
         reply.status(204).send(null);
       } catch (error) {
+        if (error instanceof BufferFullError) {
+          reply.status(503).send({
+            message: 'API is at capacity. Please try again later.',
+            error: 'Service Unavailable',
+          });
+          return;
+        }
         fastify.log.error(error, `Failed to send event to Kafka`);
         reply
           .status(500)

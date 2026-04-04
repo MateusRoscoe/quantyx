@@ -15,5 +15,7 @@
   "nx": {
     "name": "kafka"
   },
-  "dependencies": {}
+  "dependencies": {
+    "kafkajs-lz4": "2.0.0-beta.0"
+  }
 }

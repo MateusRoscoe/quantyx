@@ -1,6 +1,9 @@
-import { Kafka, SASLOptions } from 'kafkajs';
+import { CompressionTypes, CompressionCodecs, Kafka, SASLOptions } from 'kafkajs';
+import LZ4Codec from 'kafkajs-lz4';
 
 import { environment } from './env';
+
+CompressionCodecs[CompressionTypes.LZ4] = new LZ4Codec().codec;
 
 export const kafka = new Kafka({
   clientId: environment.KAFKA_CLIENT_ID,

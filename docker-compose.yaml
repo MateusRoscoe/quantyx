@@ -65,7 +65,8 @@ services:
       KAFKA_LOG_RETENTION_HOURS: 168 # 7 days
       KAFKA_LOG_RETENTION_BYTES: 1073741824 # 1 GB per partition
       KAFKA_LOG_SEGMENT_BYTES: 104857600 # 100 MB segments
-      KAFKA_COMPRESSION_TYPE: lz4
+      KAFKA_COMPRESSION_TYPE: producer
+      KAFKA_MESSAGE_MAX_BYTES: 5242880 # 5 MB
 
       # Storage path
       KAFKA_LOG_DIRS: /var/lib/kafka/data

@@ -8,85 +8,130 @@ import { environment } from '../helpers/env.js';
 
 import { CompressionTypes } from 'kafkajs';
 
-const eventsBuffer: EventMessage[] = [];
+const buffer: EventMessage[] = [];
+let flushTimer: ReturnType<typeof setTimeout>;
+let flushInProgress: Promise<void> | null = null;
+let isDisconnecting = false;
+
+const maxBufferCapacity =
+  environment.EVENTS_MAX_BUFFER_SIZE *
+  environment.EVENTS_BUFFER_CAPACITY_MULTIPLIER;
 
 const producer = kafka.producer();
 
 export async function connectProducer() {
   await producer.connect();
+  scheduleFlush();
 }
-
-let isDisconnecting = false;
 
 export async function disconnectProducer() {
   if (isDisconnecting) return;
   isDisconnecting = true;
-  if (flushTimeout) {
-    clearTimeout(flushTimeout);
-  }
-  await flushBuffer();
-  for (let i = 0; eventsBuffer.length > 0 && i < 10; i += 1) {
-    logger.warn(
-      `Still have ${
-        eventsBuffer.length
-      } unsent events in buffer. Retrying flush... (${i + 1}/10)`,
-    );
-    await sleep(1000);
-    await flushBuffer();
-  }
+  clearTimeout(flushTimer);
 
-  if (eventsBuffer.length > 0) {
-    logger.error(
-      `Failed to flush all events before shutdown. Dropping ${eventsBuffer.length} events.`,
-    );
-  }
+  // Wait for any in-flight flush, then drain remaining buffer
+  if (flushInProgress) await flushInProgress;
+  await drainBuffer();
 
   await producer.disconnect();
 }
 
-async function checkFlush() {
-  if (eventsBuffer.length >= environment.EVENTS_MAX_BUFFER_SIZE) {
-    flushBuffer().catch((error) => {
-      console.error('Error flushing events buffer:', error);
-    });
+export function getBufferStatus() {
+  return {
+    size: buffer.length,
+    capacity: maxBufferCapacity,
+    isFlushing: flushInProgress !== null,
+  };
+}
+
+export function sendEvent(event: EventMessage) {
+  if (buffer.length >= maxBufferCapacity) {
+    throw new BufferFullError(buffer.length);
+  }
+  buffer.push(event);
+  if (buffer.length >= environment.EVENTS_MAX_BUFFER_SIZE) {
+    triggerFlush();
   }
 }
-export async function sendEvent(event: EventMessage) {
-  eventsBuffer.push(event);
-  checkFlush();
-}
 
-export async function sendEventBulk(event: EventMessage[]) {
-  eventsBuffer.push(...event);
-  checkFlush();
-}
-
-let isFlushing = false;
-
-const flushBuffer = async () => {
-  if (eventsBuffer.length > 0 && !isFlushing) {
-    isFlushing = true;
-    logger.debug(`Flushing ${eventsBuffer.length} events to Kafka`);
-    const eventsToSend = eventsBuffer.splice(0, eventsBuffer.length);
-    await producer.send({
-      topic: environment.EVENT_TOPIC,
-      messages: eventsToSend.map((event) => ({
-        value: JSON.stringify(event),
-      })),
-      compression: CompressionTypes.GZIP,
-    });
-    logger.debug('Flush complete');
-    isFlushing = false;
+export function sendEventBulk(events: EventMessage[]) {
+  if (buffer.length + events.length > maxBufferCapacity) {
+    throw new BufferFullError(buffer.length);
   }
-  flushTimeout.refresh();
-};
+  buffer.push(...events);
+  if (buffer.length >= environment.EVENTS_MAX_BUFFER_SIZE) {
+    triggerFlush();
+  }
+}
 
-const flushTimeout = setTimeout(async () => {
-  flushBuffer().catch((error) => {
-    logger.error('Error flushing events buffer:', error);
+export class BufferFullError extends Error {
+  constructor(currentSize: number) {
+    super(
+      `Event buffer is full (${currentSize}/${maxBufferCapacity}). Try again later.`
+    );
+    this.name = 'BufferFullError';
+  }
+}
+
+function triggerFlush() {
+  // If a flush is already running, don't stack another —
+  // the in-flight flush finishing will re-check the buffer.
+  if (flushInProgress) return;
+
+  flushInProgress = flush()
+    .catch((error) => logger.error(error, 'Error flushing events to Kafka'))
+    .finally(() => {
+      flushInProgress = null;
+      // If events accumulated during the flush, flush again immediately
+      if (buffer.length >= environment.EVENTS_MAX_BUFFER_SIZE) {
+        triggerFlush();
+      }
+    });
+}
+
+async function flush() {
+  if (buffer.length === 0) return;
+
+  // Take at most EVENTS_MAX_BUFFER_SIZE events to keep batch size bounded
+  const batch = buffer.splice(0, environment.EVENTS_MAX_BUFFER_SIZE);
+  logger.debug(`Flushing ${batch.length} events to Kafka`);
+
+  await producer.send({
+    topic: environment.EVENT_TOPIC,
+    acks: environment.KAFKA_PRODUCER_ACKS,
+    messages: batch.map((event) => ({
+      value: JSON.stringify(event),
+    })),
+    compression: CompressionTypes.LZ4,
   });
-}, environment.EVENTS_BUFFER_FLUSH_INTERVAL);
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  logger.debug('Flush complete');
+  scheduleFlush();
+}
+
+function scheduleFlush() {
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(() => {
+    triggerFlush();
+  }, environment.EVENTS_BUFFER_FLUSH_INTERVAL);
+}
+
+async function drainBuffer() {
+  for (let attempt = 0; buffer.length > 0 && attempt < 10; attempt++) {
+    logger.warn(
+      `${buffer.length} unsent events in buffer, retrying flush (${
+        attempt + 1
+      }/10)`
+    );
+    try {
+      await flush();
+    } catch {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+  if (buffer.length > 0) {
+    logger.error(
+      `Dropping ${buffer.length} events — failed to flush before shutdown`
+    );
+  }
 }
