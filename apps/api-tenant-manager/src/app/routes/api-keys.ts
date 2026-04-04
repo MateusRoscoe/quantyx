@@ -52,6 +52,7 @@ export default async function (fastify: server) {
     handler: async (request, reply) => {
       const project = await prisma.project.findFirst({
         where: { id: request.params.projectId, deletedAt: null },
+        select: { organizationId: true },
       });
       if (!project) {
         return reply.notFound('Project not found');
@@ -86,6 +87,7 @@ export default async function (fastify: server) {
     handler: async (request, reply) => {
       const project = await prisma.project.findFirst({
         where: { id: request.params.projectId, deletedAt: null },
+        select: { id: true, organizationId: true },
       });
       if (!project) {
         return reply.notFound('Project not found');

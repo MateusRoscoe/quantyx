@@ -9,26 +9,26 @@ export default fp(async function authorization(fastify: FastifyInstance) {
       request: FastifyRequest,
       projectId: string,
     ): Promise<{ organizationId: string }> {
-      // Find the project and verify user has org membership
       const project = await prisma.project.findUnique({
         where: { id: projectId, deletedAt: null },
-        select: { organizationId: true },
+        select: {
+          organizationId: true,
+          organization: {
+            select: {
+              members: {
+                where: { userId: request.userId },
+                select: { id: true },
+              },
+            },
+          },
+        },
       });
 
       if (!project) {
         throw fastify.httpErrors.notFound('Project not found');
       }
 
-      const membership = await prisma.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId: request.userId,
-            organizationId: project.organizationId,
-          },
-        },
-      });
-
-      if (!membership) {
+      if (project.organization.members.length === 0) {
         throw fastify.httpErrors.forbidden(
           'You are not a member of this organization',
         );

@@ -12,6 +12,7 @@ import {
 import { getLogger } from '@quantyx/shared-backend';
 import { environment } from './helpers/env';
 import { prisma } from '@quantyx/postgres';
+import { disconnectRedis } from '@quantyx/redis';
 
 const logger = getLogger('main');
 
@@ -19,7 +20,10 @@ const host = environment.HOST;
 const port = environment.PORT;
 
 const server = Fastify({
-  logger: true,
+  logger: { level: environment.LOG_LEVEL },
+  trustProxy: environment.TRUST_PROXY === 'true' || environment.TRUST_PROXY,
+  requestTimeout: environment.REQUEST_TIMEOUT_MS || undefined,
+  keepAliveTimeout: environment.KEEP_ALIVE_TIMEOUT_MS,
 }).withTypeProvider<ZodTypeProvider>();
 
 export type server = typeof server;
@@ -62,7 +66,7 @@ for (const signal of SIGNALS) {
     try {
       logger.info(`Received ${signal}, closing server...`);
       await server.close();
-      await prisma.$disconnect();
+      await Promise.all([prisma.$disconnect(), disconnectRedis()]);
       logger.info('Server closed gracefully.');
       process.exit(0);
     } catch (error) {

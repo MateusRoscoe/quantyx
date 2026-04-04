@@ -9,19 +9,21 @@ const globalForPrisma = global as unknown as {
 };
 
 function createPrismaClient() {
-  // Create connection pool
   const pool = new Pool({
     connectionString: environment.POSTGRES_URL,
     max: environment.POSTGRES_POOL_MAX,
+    idleTimeoutMillis: environment.POSTGRES_POOL_IDLE_TIMEOUT_MS,
+    connectionTimeoutMillis: environment.POSTGRES_POOL_CONNECTION_TIMEOUT_MS,
   });
 
-  // Create adapter
   const adapter = new PrismaPg(pool);
 
-  // Create Prisma Client with adapter
   return new PrismaClient({
     adapter,
-    log: ['query', 'error', 'warn'],
+    log:
+      environment.POSTGRES_LOG_QUERIES === 'true'
+        ? ['query', 'error', 'warn']
+        : ['error', 'warn'],
   });
 }
 

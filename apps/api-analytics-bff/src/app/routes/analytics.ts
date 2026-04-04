@@ -358,13 +358,19 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           uniqueUsers: Number(r.unique_users),
         }));
 
-      // Build a lookup map of city coordinates
-      const coordsMap = new Map(
-        cityCoords.map((c) => [
-          `${c.city}::${c.country}`,
-          { latitude: Number(c.latitude), longitude: Number(c.longitude) },
-        ]),
-      );
+      // Build a city-name-keyed lookup for O(n+m) instead of O(n*m)
+      const coordsByCityName = new Map<
+        string,
+        { latitude: number; longitude: number }
+      >();
+      for (const c of cityCoords) {
+        if (!coordsByCityName.has(c.city)) {
+          coordsByCityName.set(c.city, {
+            latitude: Number(c.latitude),
+            longitude: Number(c.longitude),
+          });
+        }
+      }
 
       return {
         continents: mapRows(continents),
@@ -375,15 +381,10 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         })),
         regions: mapRows(regions),
         cities: cities.map((c) => {
-          const coords = coordsMap.get(`${c.value}::`) ?? { latitude: 0, longitude: 0 };
-          // Try all country variants for coordinate lookup
-          for (const [key, val] of coordsMap) {
-            if (key.startsWith(`${c.value}::`)) {
-              coords.latitude = val.latitude;
-              coords.longitude = val.longitude;
-              break;
-            }
-          }
+          const coords = coordsByCityName.get(c.value) ?? {
+            latitude: 0,
+            longitude: 0,
+          };
           return {
             value: c.value,
             count: Number(c.count),

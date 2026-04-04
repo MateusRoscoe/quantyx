@@ -19,16 +19,19 @@
   ],
   "references": [
     {
-      "path": "../../libs/auth/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/shared-backend/tsconfig.lib.json"
     },
     {
       "path": "../../libs/shared/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/redis/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/postgres/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/auth/tsconfig.lib.json"
     }
   ]
 }

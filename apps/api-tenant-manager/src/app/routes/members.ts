@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { prisma } from '@quantyx/postgres';
+import { prisma, Prisma } from '@quantyx/postgres';
 import {
   AddMemberBody,
   UpdateMemberRoleBody,
@@ -90,27 +90,27 @@ export default async function (fastify: server) {
         return reply.notFound('User not found');
       }
 
-      const existing = await prisma.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
+      try {
+        const member = await prisma.organizationMember.create({
+          data: {
             userId: user.id,
             organizationId: request.params.orgId,
+            role: request.body.role,
           },
-        },
-      });
-      if (existing) {
-        return reply.conflict('User is already a member of this organization');
+          include: { user: { select: { id: true, name: true, email: true } } },
+        });
+        return reply.status(201).send(toResponse(member));
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          return reply.conflict(
+            'User is already a member of this organization',
+          );
+        }
+        throw error;
       }
-
-      const member = await prisma.organizationMember.create({
-        data: {
-          userId: user.id,
-          organizationId: request.params.orgId,
-          role: request.body.role,
-        },
-        include: { user: { select: { id: true, name: true, email: true } } },
-      });
-      return reply.status(201).send(toResponse(member));
     },
   });
 
@@ -138,6 +138,7 @@ export default async function (fastify: server) {
           id: request.params.id,
           organizationId: request.params.orgId,
         },
+        select: { id: true, role: true },
       });
       if (!member) {
         return reply.notFound('Member not found');
@@ -178,6 +179,7 @@ export default async function (fastify: server) {
           id: request.params.id,
           organizationId: request.params.orgId,
         },
+        select: { id: true, role: true },
       });
       if (!member) {
         return reply.notFound('Member not found');

@@ -36,7 +36,7 @@ model Project {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   apiKeys        ApiKey[]
 
-  @@index([organizationId], name: "idx_projects_organization_id")
+  @@index([organizationId, deletedAt], name: "idx_projects_organization_id")
   @@map("projects")
 }
 
@@ -56,8 +56,8 @@ model ApiKey {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([prefix])
-  @@index([projectId])
-  @@index([organizationId])
+  @@index([projectId, deletedAt])
+  @@index([organizationId, deletedAt])
   @@map("api_keys")
 }
 

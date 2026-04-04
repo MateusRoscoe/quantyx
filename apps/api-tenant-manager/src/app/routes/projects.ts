@@ -62,13 +62,7 @@ export default async function (fastify: server) {
       },
     },
     handler: async (request, reply) => {
-      const org = await prisma.organization.findFirst({
-        where: { id: request.params.orgId, deletedAt: null },
-      });
-      if (!org) {
-        return reply.notFound('Organization not found');
-      }
-      await fastify.verifyOrgMembership(request, org.id);
+      await fastify.verifyOrgMembership(request, request.params.orgId);
       const project = await prisma.project.create({
         data: {
           name: request.body.name,
