@@ -4,7 +4,7 @@ import { useDateRange } from './use-date-range';
 
 interface EventsData {
   breakdown: { eventName: string; count: number; uniqueUsers: number }[];
-  timeseries: { date: string; eventName: string; count: number }[];
+  timeseries: { hour: string; eventName: string; count: number }[];
 }
 
 export function useAnalyticsEvents(projectId: string) {

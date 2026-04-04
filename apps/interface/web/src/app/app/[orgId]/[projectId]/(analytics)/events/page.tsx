@@ -41,17 +41,17 @@ export default function EventsPage() {
   const chartData: Record<string, string | number>[] = [];
 
   if (data?.timeseries) {
-    const byDate = new Map<string, Record<string, number>>();
+    const byHour = new Map<string, Record<string, number>>();
     for (const row of data.timeseries) {
       if (!topEvents.includes(row.eventName)) continue;
-      const entry = byDate.get(row.date) ?? {};
+      const entry = byHour.get(row.hour) ?? {};
       entry[row.eventName] = row.count;
-      byDate.set(row.date, entry);
+      byHour.set(row.hour, entry);
     }
-    for (const [date, values] of byDate) {
+    for (const [date, values] of byHour) {
       chartData.push({ date, ...values });
     }
-    chartData.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    chartData.sort((a, b) => String(a.hour).localeCompare(String(b.hour)));
   }
 
   return (
@@ -62,7 +62,7 @@ export default function EventsPage() {
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid {...gridStyle} vertical={false} />
-            <XAxis dataKey="date" {...axisStyle} />
+            <XAxis dataKey="hour" {...axisStyle} />
             <YAxis {...axisStyle} />
             <Tooltip contentStyle={tooltipStyle} />
             {topEvents.map((name, i) => (

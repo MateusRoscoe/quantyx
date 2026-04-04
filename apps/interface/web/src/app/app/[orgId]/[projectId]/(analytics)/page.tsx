@@ -63,7 +63,7 @@ export default function OverviewPage() {
           label="Total Events"
           icon={Zap}
           value={kpis?.totalEvents ?? 0}
-          sparklineData={timeseries.map((d) => ({ value: d.events }))}
+          sparklineData={timeseries.map((d: { events: number }) => ({ value: d.events }))}
           isLoading={overviewLoading}
         />
         <StatCard
@@ -97,7 +97,7 @@ export default function OverviewPage() {
               </linearGradient>
             </defs>
             <CartesianGrid {...gridStyle} vertical={false} />
-            <XAxis dataKey="date" {...axisStyle} />
+            <XAxis dataKey="hour" {...axisStyle} />
             <YAxis {...axisStyle} />
             <Tooltip contentStyle={tooltipStyle} />
             <Area

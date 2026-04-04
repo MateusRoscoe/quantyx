@@ -2,29 +2,48 @@
 
 import { useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { subDays, format, parseISO, startOfDay } from 'date-fns';
+import { subDays, addDays } from 'date-fns';
+import { useTimezone } from './use-timezone';
 
 export type PeriodPreset = '1d' | '7d' | '30d' | '90d' | 'custom';
 
 export interface DateRange {
   from: Date;
-  to: Date;
+  to: Date; // inclusive display day (toStr adds +1 day for exclusive API upper bound)
   period: PeriodPreset;
 }
 
-function getPresetRange(period: PeriodPreset): { from: Date; to: Date } {
-  const to = startOfDay(new Date());
+function toUTCString(date: Date): string {
+  return date.toISOString().replace(/\.\d{3}Z$/, '');
+}
+
+/**
+ * Get today's date in the given IANA timezone, returned as a local Date at midnight.
+ */
+function getTodayInTz(tz: string): Date {
+  const dateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function getPresetRange(period: PeriodPreset, tz: string): { from: Date; to: Date } {
+  const today = getTodayInTz(tz);
   switch (period) {
     case '1d':
-      return { from: to, to };
+      return { from: today, to: today };
     case '7d':
-      return { from: subDays(to, 6), to };
+      return { from: subDays(today, 6), to: today };
     case '30d':
-      return { from: subDays(to, 29), to };
+      return { from: subDays(today, 29), to: today };
     case '90d':
-      return { from: subDays(to, 89), to };
+      return { from: subDays(today, 89), to: today };
     default:
-      return { from: subDays(to, 6), to };
+      return { from: subDays(today, 6), to: today };
   }
 }
 
@@ -36,6 +55,7 @@ export function useDateRange(): DateRange & {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { timezone } = useTimezone();
 
   const range = useMemo(() => {
     const periodParam = searchParams.get('period') as PeriodPreset | null;
@@ -43,22 +63,19 @@ export function useDateRange(): DateRange & {
     const toParam = searchParams.get('to');
 
     if (periodParam && periodParam !== 'custom') {
-      const preset = getPresetRange(periodParam);
-      return { ...preset, period: periodParam };
+      return { ...getPresetRange(periodParam, timezone), period: periodParam };
     }
 
     if (fromParam && toParam) {
       return {
-        from: parseISO(fromParam),
-        to: parseISO(toParam),
+        from: new Date(fromParam),
+        to: new Date(toParam),
         period: 'custom' as PeriodPreset,
       };
     }
 
-    // Default: last 7 days
-    const preset = getPresetRange('7d');
-    return { ...preset, period: '7d' as PeriodPreset };
-  }, [searchParams]);
+    return { ...getPresetRange('7d', timezone), period: '7d' as PeriodPreset };
+  }, [searchParams, timezone]);
 
   const setRange = useCallback(
     (update: Partial<DateRange>) => {
@@ -71,8 +88,8 @@ export function useDateRange(): DateRange & {
       } else {
         const from = update.from ?? range.from;
         const to = update.to ?? range.to;
-        params.set('from', format(from, 'yyyy-MM-dd'));
-        params.set('to', format(to, 'yyyy-MM-dd'));
+        params.set('from', from.toISOString());
+        params.set('to', to.toISOString());
         params.set('period', 'custom');
       }
 
@@ -81,10 +98,13 @@ export function useDateRange(): DateRange & {
     [searchParams, range, router, pathname],
   );
 
+  const fromUTC = toUTCString(range.from);
+  const toUTC = toUTCString(addDays(range.to, 1));
+
   return {
     ...range,
-    fromStr: format(range.from, 'yyyy-MM-dd'),
-    toStr: format(range.to, 'yyyy-MM-dd'),
+    fromStr: fromUTC,
+    toStr: toUTC,
     setRange,
   };
 }

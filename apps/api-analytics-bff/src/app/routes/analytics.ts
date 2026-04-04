@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { queryClickHouse } from '../../helpers/query';
 
 const dateRangeSchema = z.object({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  from: z.string(), // ISO datetime or YYYY-MM-DD
+  to: z.string(),
 });
 
 const filterSchema = z.object({
@@ -40,10 +40,10 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         `SELECT
           sumMerge(event_count) as total_events,
           uniqMerge(unique_users) as unique_users
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'overall'`,
         { projectId, from, to },
       );
@@ -57,7 +57,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           WHERE project_id = {projectId:String}
           GROUP BY session_id
           HAVING minMerge(started_at) >= toDateTime({from:String})
-            AND minMerge(started_at) <= toDateTime({to:String} || ' 23:59:59')
+            AND minMerge(started_at) < toDateTime({to:String})
         )`,
         { projectId, from, to },
       );
@@ -65,32 +65,32 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       // Page views
       const pageViews = await queryClickHouse<{ page_views: string }>(
         `SELECT sumMerge(event_count) as page_views
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'event_name'
           AND dimension_value = 'page_view'`,
         { projectId, from, to },
       );
 
-      // Daily time series for sparklines
+      // Hourly time series for sparklines
       const timeseries = await queryClickHouse<{
-        date: string;
+        hour: string;
         events: string;
         users: string;
       }>(
         `SELECT
-          date,
+          hour,
           sumMerge(event_count) as events,
           uniqMerge(unique_users) as users
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'overall'
-        GROUP BY date
-        ORDER BY date`,
+        GROUP BY hour
+        ORDER BY hour`,
         { projectId, from, to },
       );
 
@@ -102,7 +102,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           pageViews: Number(pageViews[0]?.page_views ?? 0),
         },
         timeseries: timeseries.map((row) => ({
-          date: row.date,
+          hour: row.hour,
           events: Number(row.events),
           users: Number(row.users),
         })),
@@ -132,10 +132,10 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           dimension_value as event_name,
           sumMerge(event_count) as event_count,
           uniqMerge(unique_users) as unique_users
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'event_name'
         GROUP BY dimension_value
         ORDER BY event_count DESC`,
@@ -143,21 +143,21 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       );
 
       const timeseries = await queryClickHouse<{
-        date: string;
+        hour: string;
         event_name: string;
         count: string;
       }>(
         `SELECT
-          date,
+          hour,
           dimension_value as event_name,
           sumMerge(event_count) as count
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'event_name'
-        GROUP BY date, dimension_value
-        ORDER BY date`,
+        GROUP BY hour, dimension_value
+        ORDER BY hour`,
         { projectId, from, to },
       );
 
@@ -168,7 +168,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           uniqueUsers: Number(e.unique_users),
         })),
         timeseries: timeseries.map((row) => ({
-          date: row.date,
+          hour: row.hour,
           eventName: row.event_name,
           count: Number(row.count),
         })),
@@ -198,10 +198,10 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           dimension_value as path,
           sumMerge(event_count) as views,
           uniqMerge(unique_users) as unique_users
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'path'
         GROUP BY dimension_value
         ORDER BY views DESC`,
@@ -241,10 +241,10 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             dimension_value as value,
             sumMerge(event_count) as count,
             uniqMerge(unique_users) as unique_users
-          FROM analytics.metrics_daily
+          FROM analytics.metrics_hourly
           WHERE project_id = {projectId:String}
-            AND date >= {from:String}
-            AND date <= {to:String}
+            AND hour >= toDateTime({from:String})
+            AND hour < toDateTime({to:String})
             AND dimension_name = {dim:String}
           GROUP BY dimension_value
           ORDER BY count DESC`,
@@ -295,10 +295,10 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           dimension_value as country,
           sumMerge(event_count) as count,
           uniqMerge(unique_users) as unique_users
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'country'
         GROUP BY dimension_value
         ORDER BY count DESC`,
@@ -363,7 +363,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         WHERE project_id = {projectId:String}
         GROUP BY session_id
         HAVING started_at >= toDateTime({from:String})
-          AND started_at <= toDateTime({to:String} || ' 23:59:59')
+          AND started_at < toDateTime({to:String})
         ORDER BY started_at DESC
         LIMIT {limit:UInt32} OFFSET {offset:UInt32}`,
         { projectId, from, to, limit, offset },
@@ -394,14 +394,80 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         projectId: z.string().uuid(),
         sessionId: z.string(),
       }),
+      querystring: z.object({
+        limit: z.coerce.number().min(1).max(200).default(50),
+        direction: z.enum(['asc', 'desc']).default('asc'),
+        cursor_ts: z.string().optional(),
+        cursor_id: z.string().optional(),
+      }),
     },
     handler: async (request, reply) => {
       const { projectId, sessionId } = request.params as {
         projectId: string;
         sessionId: string;
       };
+      const { limit, direction, cursor_ts, cursor_id } = request.query as {
+        limit: number;
+        direction: 'asc' | 'desc';
+        cursor_ts?: string;
+        cursor_id?: string;
+      };
 
       await fastify.verifyProjectAccess(request, projectId);
+
+      // Fetch session metadata from the aggregate table
+      const sessionRows = await queryClickHouse<{
+        session_id: string;
+        user_id: string;
+        started_at: string;
+        ended_at: string;
+        total_events: string;
+        page_views: string;
+        browser: string;
+        os: string;
+        device_type: string;
+        country: string;
+      }>(
+        `SELECT
+          session_id,
+          anyLastMerge(user_id) as user_id,
+          minMerge(started_at) as started_at,
+          maxMerge(ended_at) as ended_at,
+          sumMerge(total_events) as total_events,
+          sumMerge(page_views) as page_views,
+          anyMerge(browser) as browser,
+          anyMerge(os) as os,
+          anyMerge(device_type) as device_type,
+          anyMerge(country) as country
+        FROM analytics.sessions
+        WHERE project_id = {projectId:String}
+          AND session_id = {sessionId:String}
+        GROUP BY session_id`,
+        { projectId, sessionId },
+      );
+
+      const s = sessionRows[0];
+      const session = s
+        ? {
+            sessionId: s.session_id,
+            userId: s.user_id,
+            startedAt: s.started_at,
+            endedAt: s.ended_at,
+            totalEvents: Number(s.total_events),
+            pageViews: Number(s.page_views),
+            browser: s.browser,
+            os: s.os,
+            deviceType: s.device_type,
+            country: s.country,
+          }
+        : null;
+
+      // Build cursor-based event query
+      const hasCursor = cursor_ts && cursor_id;
+      const op = direction === 'asc' ? '>' : '<';
+      const cursorClause = hasCursor
+        ? `AND (timestamp, event_id) ${op} ({cursorTs:String}, {cursorId:String})`
+        : '';
 
       const events = await queryClickHouse<{
         event_id: string;
@@ -419,11 +485,21 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         FROM analytics.events
         WHERE project_id = {projectId:String}
           AND session_id = {sessionId:String}
-        ORDER BY timestamp ASC`,
-        { projectId, sessionId },
+          ${cursorClause}
+        ORDER BY timestamp ${direction === 'asc' ? 'ASC' : 'DESC'}, event_id ${direction === 'asc' ? 'ASC' : 'DESC'}
+        LIMIT {fetchLimit:UInt32}`,
+        {
+          projectId,
+          sessionId,
+          ...(hasCursor && { cursorTs: cursor_ts, cursorId: cursor_id }),
+          fetchLimit: limit + 1,
+        },
       );
 
-      return { events };
+      const hasMore = events.length > limit;
+      const page = hasMore ? events.slice(0, limit) : events;
+
+      return { session, events: page, hasMore };
     },
   });
 
@@ -553,25 +629,25 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           : 'sumMerge(event_count)';
 
       const rows = await queryClickHouse<{
-        date: string;
+        hour: string;
         value: string;
       }>(
         `SELECT
-          date,
+          hour,
           ${metricExpr} as value
-        FROM analytics.metrics_daily
+        FROM analytics.metrics_hourly
         WHERE project_id = {projectId:String}
-          AND date >= {from:String}
-          AND date <= {to:String}
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND dimension_name = 'overall'
-        GROUP BY date
-        ORDER BY date`,
+        GROUP BY hour
+        ORDER BY hour`,
         { projectId, from, to },
       );
 
       return {
         timeseries: rows.map((r) => ({
-          date: r.date,
+          hour: r.hour,
           value: Number(r.value),
         })),
       };

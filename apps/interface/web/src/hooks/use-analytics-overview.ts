@@ -9,7 +9,7 @@ interface OverviewData {
     totalSessions: number;
     pageViews: number;
   };
-  timeseries: { date: string; events: number; users: number }[];
+  timeseries: { hour: string; events: number; users: number }[];
 }
 
 export function useAnalyticsOverview(projectId: string) {

@@ -347,7 +347,7 @@
           "datasource": { "type": "grafana-clickhouse-datasource", "uid": "" },
           "editorType": "sql",
           "format": 0,
-          "rawSql": "SELECT toDateTime(date) AS time, sumMerge(event_count) AS event_count, uniqMerge(unique_users) AS unique_users FROM analytics.metrics_daily WHERE dimension_name = 'overall' AND date >= today() - 30 GROUP BY date ORDER BY date",
+          "rawSql": "SELECT hour AS time, sumMerge(event_count) AS event_count, uniqMerge(unique_users) AS unique_users FROM analytics.metrics_hourly WHERE dimension_name = 'overall' AND hour >= now() - INTERVAL 30 DAY GROUP BY hour ORDER BY hour",
           "refId": "A"
         }
       ]
@@ -372,7 +372,7 @@
           "datasource": { "type": "grafana-clickhouse-datasource", "uid": "" },
           "editorType": "sql",
           "format": 1,
-          "rawSql": "SELECT dimension_value AS event_name, sumMerge(event_count) AS count FROM analytics.metrics_daily WHERE dimension_name = 'event_name' AND date >= today() - 30 GROUP BY dimension_value ORDER BY count DESC LIMIT 10",
+          "rawSql": "SELECT dimension_value AS event_name, sumMerge(event_count) AS count FROM analytics.metrics_hourly WHERE dimension_name = 'event_name' AND hour >= now() - INTERVAL 30 DAY GROUP BY dimension_value ORDER BY count DESC LIMIT 10",
           "refId": "A"
         }
       ]
@@ -397,7 +397,7 @@
           "datasource": { "type": "grafana-clickhouse-datasource", "uid": "" },
           "editorType": "sql",
           "format": 1,
-          "rawSql": "SELECT dimension_value AS browser, sumMerge(event_count) AS count FROM analytics.metrics_daily WHERE dimension_name = 'browser' AND date >= today() - 30 GROUP BY dimension_value ORDER BY count DESC LIMIT 10",
+          "rawSql": "SELECT dimension_value AS browser, sumMerge(event_count) AS count FROM analytics.metrics_hourly WHERE dimension_name = 'browser' AND hour >= now() - INTERVAL 30 DAY GROUP BY dimension_value ORDER BY count DESC LIMIT 10",
           "refId": "A"
         }
       ]
@@ -425,7 +425,7 @@
           "datasource": { "type": "grafana-clickhouse-datasource", "uid": "" },
           "editorType": "sql",
           "format": 1,
-          "rawSql": "SELECT dimension_value AS page, sumMerge(event_count) AS count FROM analytics.metrics_daily WHERE dimension_name = 'path' AND date >= today() - 30 GROUP BY dimension_value ORDER BY count DESC LIMIT 20",
+          "rawSql": "SELECT dimension_value AS page, sumMerge(event_count) AS count FROM analytics.metrics_hourly WHERE dimension_name = 'path' AND hour >= now() - INTERVAL 30 DAY GROUP BY dimension_value ORDER BY count DESC LIMIT 20",
           "refId": "A"
         }
       ]

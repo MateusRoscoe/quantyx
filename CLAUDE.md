@@ -93,7 +93,7 @@ HTTP Request + X-API-Key → api-event-webhook (Fastify)
 
 ### Infrastructure
 
-- **ClickHouse**: `analytics` database. Init SQL in `infrastructure/clickhouse/init/`. Tables: `events` (MergeTree, 90-day TTL), `users` (AggregatingMergeTree), `sessions` (AggregatingMergeTree), `metrics_daily` (AggregatingMergeTree), `property_metadata` (AggregatingMergeTree). 12 materialized views handle pre-aggregation from the `events` table into the aggregate tables. Migrations in `infrastructure/clickhouse/migrations/`.
+- **ClickHouse**: `analytics` database. Init SQL in `infrastructure/clickhouse/init/`. Tables: `events` (MergeTree, 90-day TTL), `users` (AggregatingMergeTree), `sessions` (AggregatingMergeTree), `metrics_hourly` (AggregatingMergeTree), `property_metadata` (AggregatingMergeTree). 12 materialized views handle pre-aggregation from the `events` table into the aggregate tables. Migrations in `infrastructure/clickhouse/migrations/`.
 - **PostgreSQL**: `quantyx` database. Prisma schema in `libs/postgres/prisma/schema.prisma`.
 - **Redis**: API key cache with configurable TTL. Port 6379.
 - **Kafka**: Single-node KRaft mode on port 29092 (host access). Kafbat UI on port 8080.

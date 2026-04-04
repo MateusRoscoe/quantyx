@@ -59,11 +59,11 @@ CREATE TABLE
 ORDER BY
     (project_id, user_id);
 
--- Daily metrics (pre-aggregated for performance)
+-- Hourly metrics (pre-aggregated for performance, supports timezone-aware queries)
 CREATE TABLE
-    IF NOT EXISTS analytics.metrics_daily (
+    IF NOT EXISTS analytics.metrics_hourly (
         project_id String,
-        `date` Date,
+        hour DateTime,
         metric_type LowCardinality (String),
         dimension_name LowCardinality (String),
         dimension_value String,
@@ -71,11 +71,11 @@ CREATE TABLE
         unique_users AggregateFunction (uniq, String)
     ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
-    toYYYYMM (`date`)
+    toYYYYMM (hour)
 ORDER BY
     (
         project_id,
-        `date`,
+        hour,
         metric_type,
         dimension_name,
         dimension_value
@@ -161,28 +161,28 @@ FROM analytics.events
 WHERE session_id != ''
 GROUP BY project_id, session_id;
 
--- MV: Daily metrics — one MV per dimension (ClickHouse processes each independently)
+-- MV: Hourly metrics — one MV per dimension (ClickHouse processes each independently)
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_overall
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'overall' AS dimension_name,
     '' AS dimension_value,
     sumState(toUInt64(1)) AS event_count,
     uniqState(user_id) AS unique_users
 FROM analytics.events
-GROUP BY project_id, `date`;
+GROUP BY project_id, hour;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_event_name
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'event_name' AS dimension_name,
     event_name AS dimension_value,
@@ -190,14 +190,14 @@ SELECT
     uniqState(user_id) AS unique_users
 FROM analytics.events
 WHERE event_name != ''
-GROUP BY project_id, `date`, event_name;
+GROUP BY project_id, hour, event_name;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_browser
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'browser' AS dimension_name,
     browser AS dimension_value,
@@ -205,14 +205,14 @@ SELECT
     uniqState(user_id) AS unique_users
 FROM analytics.events
 WHERE browser != ''
-GROUP BY project_id, `date`, browser;
+GROUP BY project_id, hour, browser;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_os
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'os' AS dimension_name,
     os AS dimension_value,
@@ -220,14 +220,14 @@ SELECT
     uniqState(user_id) AS unique_users
 FROM analytics.events
 WHERE os != ''
-GROUP BY project_id, `date`, os;
+GROUP BY project_id, hour, os;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_device_type
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'device_type' AS dimension_name,
     device_type AS dimension_value,
@@ -235,14 +235,14 @@ SELECT
     uniqState(user_id) AS unique_users
 FROM analytics.events
 WHERE device_type != ''
-GROUP BY project_id, `date`, device_type;
+GROUP BY project_id, hour, device_type;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_platform
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'platform' AS dimension_name,
     platform AS dimension_value,
@@ -250,14 +250,14 @@ SELECT
     uniqState(user_id) AS unique_users
 FROM analytics.events
 WHERE platform != ''
-GROUP BY project_id, `date`, platform;
+GROUP BY project_id, hour, platform;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_country
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'country' AS dimension_name,
     country AS dimension_value,
@@ -265,14 +265,14 @@ SELECT
     uniqState(user_id) AS unique_users
 FROM analytics.events
 WHERE country != ''
-GROUP BY project_id, `date`, country;
+GROUP BY project_id, hour, country;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_path
-TO analytics.metrics_daily
+TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
-    `date`,
+    toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'path' AS dimension_name,
     props_str['path'] AS dimension_value,
@@ -280,7 +280,7 @@ SELECT
     uniqState(user_id) AS unique_users
 FROM analytics.events
 WHERE event_name = 'page_view' AND props_str['path'] != ''
-GROUP BY project_id, `date`, dimension_value;
+GROUP BY project_id, hour, dimension_value;
 
 -- MV 3: Property metadata — one MV per property type
 

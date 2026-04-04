@@ -6,6 +6,7 @@ import { CalendarIcon } from 'lucide-react';
 import type { DateRange as DayPickerDateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { useDateRange, type PeriodPreset } from '@/hooks/use-date-range';
+import { useTimezone } from '@/hooks/use-timezone';
 import { cn } from '@/lib/utils';
 
 const presets: { label: string; value: PeriodPreset }[] = [
@@ -77,8 +78,10 @@ export function DateRangePicker() {
     }
   }
 
+  const { abbreviation: tzAbbr } = useTimezone();
+
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative flex items-center gap-2" ref={containerRef}>
       <div className="inline-flex items-center overflow-hidden rounded-md border bg-background text-sm shadow-sm">
         {presets.map((p) => (
           <button
@@ -123,6 +126,7 @@ export function DateRangePicker() {
           />
         </div>
       )}
+      <span className="text-xs text-muted-foreground">{tzAbbr}</span>
     </div>
   );
 }

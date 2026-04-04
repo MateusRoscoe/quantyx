@@ -12,6 +12,7 @@ import {
 import { useMembership } from '@/hooks/use-membership';
 import { getLastVisitedProject } from '@/lib/last-project';
 import { ProjectSwitcher } from '@/components/project-switcher';
+import { TimezonePicker } from '@/components/timezone-picker';
 import {
   SidebarProvider,
   Sidebar,
@@ -195,6 +196,9 @@ export default function DashboardLayout({
 
         <SidebarFooter>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <TimezonePicker />
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() =>

@@ -1,4 +1,5 @@
 import type { CellContext } from '@tanstack/react-table';
+import { useTimezone } from '@/hooks/use-timezone';
 import {
   Tooltip,
   TooltipContent,
@@ -29,17 +30,27 @@ export function NumberCell<T>({ getValue }: CellContext<T, unknown>) {
 }
 
 export function DateCell<T>({ getValue }: CellContext<T, unknown>) {
+  const { timezone } = useTimezone();
   return (
     <span className="text-sm">
-      {new Date(getValue() as string).toLocaleDateString()}
+      {new Date(getValue() as string).toLocaleDateString(undefined, { timeZone: timezone })}
     </span>
   );
 }
 
 export function DateTimeCell<T>({ getValue }: CellContext<T, unknown>) {
+  const { timezone } = useTimezone();
   return (
     <span className="text-sm">
-      {new Date(getValue() as string).toLocaleString()}
+      {new Date(getValue() as string).toLocaleString(undefined, {
+        timeZone: timezone,
+        year: '2-digit',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      })}
     </span>
   );
 }
