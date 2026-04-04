@@ -23,7 +23,19 @@ const port = environment.PORT;
 // Instantiate Fastify with some config
 const server = Fastify({
   logger: true,
+  disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
+
+// Custom request logging that silences 401 responses
+server.addHook('onResponse', (request, reply, done) => {
+  if (reply.statusCode !== 401) {
+    request.log.info(
+      { req: request, res: reply, responseTime: reply.elapsedTime },
+      'request completed',
+    );
+  }
+  done();
+});
 
 export type server = typeof server;
 
