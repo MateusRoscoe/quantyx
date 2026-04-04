@@ -108,13 +108,15 @@
   "dependencies": {
     "@clickhouse/client": "^1.18.2",
     "@confluentinc/kafka-javascript": "^1.9.0",
+    "@ip-location-db/dbip-city-mmdb": "^2.3.2026040119",
+    "maxmind": "^5.0.6",
     "pino": "^10.3.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@quantyx/shared": "workspace:*",
-    "@quantyx/shared-backend": "workspace:*",
+    "@quantyx/clickhouse": "workspace:*",
     "@quantyx/kafka": "workspace:*",
-    "@quantyx/clickhouse": "workspace:*"
+    "@quantyx/shared": "workspace:*",
+    "@quantyx/shared-backend": "workspace:*"
   }
 }

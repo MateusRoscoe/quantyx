@@ -278,30 +278,186 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
 
       await fastify.verifyProjectAccess(request, projectId);
 
-      const countries = await queryClickHouse<{
-        country: string;
-        count: string;
-        unique_users: string;
-      }>(
-        `SELECT
-          dimension_value as country,
-          sumMerge(event_count) as count,
-          uniqMerge(unique_users) as unique_users
-        FROM analytics.metrics_hourly
-        WHERE project_id = {projectId:String}
-          AND hour >= toDateTime({from:String})
-          AND hour < toDateTime({to:String})
-          AND dimension_name = 'country'
-        GROUP BY dimension_value
-        ORDER BY count DESC`,
-        { projectId, from, to },
+      async function getDimension(
+        dimensionName: string,
+        limit?: number,
+      ) {
+        const limitClause = limit ? `LIMIT {limit:UInt32}` : '';
+        return queryClickHouse<{
+          value: string;
+          count: string;
+          unique_users: string;
+        }>(
+          `SELECT
+            dimension_value as value,
+            sumMerge(event_count) as count,
+            uniqMerge(unique_users) as unique_users
+          FROM analytics.metrics_hourly
+          WHERE project_id = {projectId:String}
+            AND hour >= toDateTime({from:String})
+            AND hour < toDateTime({to:String})
+            AND dimension_name = {dim:String}
+          GROUP BY dimension_value
+          ORDER BY count DESC
+          ${limitClause}`,
+          { projectId, from, to, dim: dimensionName, ...(limit && { limit }) },
+        );
+      }
+
+      const [continents, countries, regions, cities, cityCoords] =
+        await Promise.all([
+          getDimension('continent'),
+          getDimension('country'),
+          getDimension('region'),
+          getDimension('city', 100),
+          queryClickHouse<{
+            city: string;
+            country: string;
+            latitude: string;
+            longitude: string;
+            event_count: string;
+          }>(
+            `SELECT
+              city,
+              country,
+              anyMerge(latitude) as latitude,
+              anyMerge(longitude) as longitude,
+              sumMerge(event_count) as event_count
+            FROM analytics.city_coordinates
+            WHERE project_id = {projectId:String}
+            GROUP BY city, country
+            ORDER BY event_count DESC
+            LIMIT 100`,
+            { projectId },
+          ),
+        ]);
+
+      const mapRows = (
+        rows: { value: string; count: string; unique_users: string }[],
+      ) =>
+        rows.map((r) => ({
+          value: r.value,
+          count: Number(r.count),
+          uniqueUsers: Number(r.unique_users),
+        }));
+
+      // Build a lookup map of city coordinates
+      const coordsMap = new Map(
+        cityCoords.map((c) => [
+          `${c.city}::${c.country}`,
+          { latitude: Number(c.latitude), longitude: Number(c.longitude) },
+        ]),
       );
 
       return {
+        continents: mapRows(continents),
         countries: countries.map((c) => ({
-          country: c.country,
+          country: c.value,
           count: Number(c.count),
           uniqueUsers: Number(c.unique_users),
+        })),
+        regions: mapRows(regions),
+        cities: cities.map((c) => {
+          const coords = coordsMap.get(`${c.value}::`) ?? { latitude: 0, longitude: 0 };
+          // Try all country variants for coordinate lookup
+          for (const [key, val] of coordsMap) {
+            if (key.startsWith(`${c.value}::`)) {
+              coords.latitude = val.latitude;
+              coords.longitude = val.longitude;
+              break;
+            }
+          }
+          return {
+            value: c.value,
+            count: Number(c.count),
+            uniqueUsers: Number(c.unique_users),
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          };
+        }),
+      };
+    },
+  });
+
+  // ─── Geography Drill-Down ───
+
+  fastify.get('/projects/:projectId/geography/drill-down', {
+    schema: {
+      params: z.object({ projectId: z.string().uuid() }),
+      querystring: dateRangeSchema.extend({
+        dimension: z.enum(['country', 'city', 'state']),
+        continent: z.string().optional(),
+        country: z.string().optional(),
+        limit: z.coerce.number().min(1).max(200).default(50),
+      }),
+    },
+    handler: async (request, reply) => {
+      const { projectId } = request.params as { projectId: string };
+      const { from, to, dimension, continent, country, limit } =
+        request.query as {
+          from: string;
+          to: string;
+          dimension: 'country' | 'city' | 'state';
+          continent?: string;
+          country?: string;
+          limit: number;
+        };
+
+      await fastify.verifyProjectAccess(request, projectId);
+
+      const filters: string[] = [];
+      const params: Record<string, string | number> = { projectId, from, to, limit };
+
+      if (continent) {
+        filters.push('AND continent = {continent:String}');
+        params.continent = continent;
+      }
+      if (country) {
+        filters.push('AND country = {country:String}');
+        params.country = country;
+      }
+
+      const filterClause = filters.join(' ');
+
+      // For city/state drill-down, also return lat/lon
+      const latLonSelect =
+        dimension === 'city'
+          ? ', any(latitude) as latitude, any(longitude) as longitude'
+          : '';
+
+      const rows = await queryClickHouse<{
+        value: string;
+        count: string;
+        unique_users: string;
+        latitude?: string;
+        longitude?: string;
+      }>(
+        `SELECT
+          ${dimension} as value,
+          count() as count,
+          uniq(user_id) as unique_users
+          ${latLonSelect}
+        FROM analytics.events
+        WHERE project_id = {projectId:String}
+          AND timestamp >= toDateTime({from:String})
+          AND timestamp < toDateTime({to:String})
+          AND ${dimension} != ''
+          ${filterClause}
+        GROUP BY ${dimension}
+        ORDER BY count DESC
+        LIMIT {limit:UInt32}`,
+        params,
+      );
+
+      return {
+        data: rows.map((r) => ({
+          value: r.value,
+          count: Number(r.count),
+          uniqueUsers: Number(r.unique_users),
+          ...(dimension === 'city' && {
+            latitude: Number(r.latitude ?? 0),
+            longitude: Number(r.longitude ?? 0),
+          }),
         })),
       };
     },

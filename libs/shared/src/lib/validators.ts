@@ -64,6 +64,8 @@ export const EventMessage = EventMessageInput.extend({
   ip_address: z.ipv4().or(z.ipv6()),
   continent: Continent.optional(),
   region: Region.optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   user_agent: z.string().max(MAX_USER_AGENT_LENGTH).optional(),
 });
 

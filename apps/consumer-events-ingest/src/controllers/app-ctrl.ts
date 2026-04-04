@@ -2,12 +2,14 @@ import { environment } from '../helpers/env';
 import { insertEventsToClickHouse } from '../models/clickhouse';
 import { getAndConnectConsumer } from '../models/kafka';
 import { EventService } from '../services/event-service';
+import { initGeoService } from '../services/geo-service';
 
 import { getLogger } from '@quantyx/shared-backend';
 const logger = getLogger('app-ctrl');
 
 export class AppCtrl {
   static async start() {
+    await initGeoService();
     const consumer = await getAndConnectConsumer();
 
     await consumer.subscribe({

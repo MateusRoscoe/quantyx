@@ -48,6 +48,8 @@ export type ClickHouseEvent = {
   region: string;
   state: string;
   city: string;
+  latitude: number;
+  longitude: number;
   device_type: string;
   platform: string;
   browser: string;

@@ -1,6 +1,18 @@
 import { EventMessage } from '@quantyx/shared';
 import { EventService } from './event-service';
 
+vi.mock('./geo-service', () => ({
+  enrichGeo: (_ip: string, existing: Record<string, unknown>) => ({
+    country: existing.country || '',
+    continent: existing.continent || '',
+    region: existing.region || '',
+    state: existing.state || '',
+    city: existing.city || '',
+    latitude: existing.latitude || 0,
+    longitude: existing.longitude || 0,
+  }),
+}));
+
 function makeEvent(overrides: Partial<EventMessage> = {}): EventMessage {
   return {
     event_id: '019712a0-1234-7000-8000-000000000001',
@@ -18,7 +30,7 @@ describe('EventService', () => {
   describe('transformToClickHouseFormat', () => {
     it('transforms a fully-populated event', () => {
       const event = makeEvent({
-        country: 'US',
+        country: 'USA',
         continent: 'North America',
         region: 'North America',
         state: 'California',
@@ -46,11 +58,13 @@ describe('EventService', () => {
         timestamp: Math.floor(
           new Date('2025-06-15T14:30:00.000Z').getTime() / 1000,
         ),
-        country: 'US',
+        country: 'USA',
         continent: 'North America',
         region: 'North America',
         state: 'California',
         city: 'San Francisco',
+        latitude: 0,
+        longitude: 0,
         device_type: 'desktop',
         platform: 'web',
         browser: 'Chrome',
@@ -74,6 +88,8 @@ describe('EventService', () => {
       expect(result.region).toBe('');
       expect(result.state).toBe('');
       expect(result.city).toBe('');
+      expect(result.latitude).toBe(0);
+      expect(result.longitude).toBe(0);
       expect(result.device_type).toBe('');
       expect(result.platform).toBe('');
       expect(result.browser).toBe('');

@@ -15,6 +15,8 @@ CREATE TABLE
         region LowCardinality (String),
         `state` LowCardinality (String),
         city String CODEC(ZSTD(1)),
+        latitude Float64 DEFAULT 0 CODEC(ZSTD(1)),
+        longitude Float64 DEFAULT 0 CODEC(ZSTD(1)),
         device_type LowCardinality (String),
         platform LowCardinality (String),
         browser LowCardinality (String),
@@ -123,6 +125,19 @@ CREATE TABLE
     ) ENGINE = ReplacingMergeTree ()
 ORDER BY
     (project_id, user_id, session_id);
+
+-- City coordinates (representative lat/lon per city for point-on-map)
+CREATE TABLE
+    IF NOT EXISTS analytics.city_coordinates (
+        project_id String,
+        city String,
+        country LowCardinality (String),
+        latitude AggregateFunction (any, Float64),
+        longitude AggregateFunction (any, Float64),
+        event_count AggregateFunction (sum, UInt64)
+    ) ENGINE = AggregatingMergeTree ()
+ORDER BY
+    (project_id, city, country);
 
 -- ════════════════════════════════════════════════
 -- Materialized Views
@@ -284,6 +299,80 @@ SELECT
 FROM analytics.events
 WHERE country != ''
 GROUP BY project_id, hour, country;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_continent
+TO analytics.metrics_hourly
+AS
+SELECT
+    project_id,
+    toStartOfHour(timestamp) AS hour,
+    'event' AS metric_type,
+    'continent' AS dimension_name,
+    continent AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE continent != ''
+GROUP BY project_id, hour, continent;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_region
+TO analytics.metrics_hourly
+AS
+SELECT
+    project_id,
+    toStartOfHour(timestamp) AS hour,
+    'event' AS metric_type,
+    'region' AS dimension_name,
+    region AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE region != ''
+GROUP BY project_id, hour, region;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_city
+TO analytics.metrics_hourly
+AS
+SELECT
+    project_id,
+    toStartOfHour(timestamp) AS hour,
+    'event' AS metric_type,
+    'city' AS dimension_name,
+    city AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE city != ''
+GROUP BY project_id, hour, city;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_state
+TO analytics.metrics_hourly
+AS
+SELECT
+    project_id,
+    toStartOfHour(timestamp) AS hour,
+    'event' AS metric_type,
+    'state' AS dimension_name,
+    state AS dimension_value,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE state != ''
+GROUP BY project_id, hour, state;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_city_coordinates
+TO analytics.city_coordinates
+AS
+SELECT
+    project_id,
+    city,
+    country,
+    anyState(latitude) AS latitude,
+    anyState(longitude) AS longitude,
+    sumState(toUInt64(1)) AS event_count
+FROM analytics.events
+WHERE city != '' AND latitude != 0 AND longitude != 0
+GROUP BY project_id, city, country;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_path
 TO analytics.metrics_hourly

@@ -1,5 +1,6 @@
 import { ClickHouseEvent } from '@quantyx/clickhouse';
 import { EventMessage } from '@quantyx/shared';
+import { enrichGeo } from './geo-service';
 
 export class EventService {
   static transformToClickHouseFormat(event: EventMessage): ClickHouseEvent {
@@ -8,6 +9,21 @@ export class EventService {
     // Extract path from props_str to top-level column
     const { path: extractedPath, ...remainingProps } = event.props_str || {};
 
+    // Enrich geo data from IP address
+    const geo = enrichGeo(
+      event.ip_address,
+      {
+        country: event.country,
+        continent: event.continent,
+        region: event.region,
+        state: event.state,
+        city: event.city,
+        latitude: event.latitude,
+        longitude: event.longitude,
+      },
+      event.event_id,
+    );
+
     return {
       event_id: event.event_id,
       project_id: event.project_id,
@@ -15,11 +31,13 @@ export class EventService {
       session_id: event.session_id,
       event_name: event.event_name,
       timestamp: Math.floor(timestampDate.getTime() / 1000),
-      country: event.country || '',
-      continent: event.continent || '',
-      region: event.region || '',
-      state: event.state || '',
-      city: event.city || '',
+      country: geo.country,
+      continent: geo.continent,
+      region: geo.region,
+      state: geo.state,
+      city: geo.city,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
       device_type: event.device_type || '',
       platform: event.platform || '',
       browser: event.browser || '',
