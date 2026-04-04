@@ -3,18 +3,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import {
-  Loader2,
-  ChevronDown,
-  ChevronRight,
-  Monitor,
-  Globe as GlobeIcon,
-} from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useEventsFeed, type RawEvent } from '@/hooks/use-events-feed';
 import { useFilters } from '@/hooks/use-filters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BrowserIcon, OsIcon, DeviceIcon } from '@/lib/dimension-icons';
+import { countryToFlag, countryName } from '@/lib/country';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 function EventRow({
   event,
@@ -73,7 +74,7 @@ function EventRow({
       </button>
 
       {expanded && (
-        <div className="border-t bg-muted/30 px-4 py-3 space-y-3">
+        <div className="border-t bg-card px-4 py-3 space-y-3">
           {/* Identifiers */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
             <div>
@@ -110,25 +111,35 @@ function EventRow({
           <div className="flex flex-wrap gap-1.5">
             {event.browser && (
               <Badge variant="outline" className="gap-1 text-[10px]">
-                <Monitor className="h-3 w-3" />
+                <BrowserIcon browser={event.browser} className="h-3 w-3" />
                 {event.browser}
               </Badge>
             )}
             {event.os && (
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <OsIcon os={event.os} className="h-3 w-3" />
                 {event.os}
               </Badge>
             )}
             {event.device_type && (
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <DeviceIcon deviceType={event.device_type} className="h-3 w-3" />
                 {event.device_type}
               </Badge>
             )}
             {event.country && (
-              <Badge variant="outline" className="gap-1 text-[10px]">
-                <GlobeIcon className="h-3 w-3" />
-                {event.country}
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="gap-1 text-[10px]">
+                    {countryToFlag(event.country) ?? event.country}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    {countryName(event.country) ?? event.country}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
 
@@ -214,7 +225,7 @@ export function EventExplorerView({ projectId }: { projectId: string }) {
         </Button>
       </div>
 
-      <div className="rounded-lg border">
+      <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
         {isLoading ? (
           <div className="space-y-0">
             {Array.from({ length: 10 }).map((_, i) => (

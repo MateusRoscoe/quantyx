@@ -14,6 +14,8 @@ services:
     env_file:
       - .env
       - apps/api-event-webhook/.env
+    environment:
+      NODE_OPTIONS: --max-old-space-size=512
 
   consumer-events-ingest:
     image: apps-consumer-events-ingest:latest

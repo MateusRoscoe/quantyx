@@ -2,14 +2,19 @@
 
 import { useParams } from 'next/navigation';
 import { useAnalyticsGeography } from '@/hooks/use-analytics-geography';
-import { DataTable, PageHeader, NumberCell } from '@/components/dashboard';
+import {
+  DataTable,
+  PageHeader,
+  NumberCell,
+  CountryCell,
+} from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
 
 type CountryRow = { country: string; count: number; uniqueUsers: number };
 
 const columns: ColumnDef<CountryRow, unknown>[] = [
-  { accessorKey: 'country', header: 'Country' },
+  { accessorKey: 'country', header: 'Country', cell: CountryCell },
   { accessorKey: 'count', header: 'Events', cell: NumberCell },
   { accessorKey: 'uniqueUsers', header: 'Unique Users', cell: NumberCell },
 ];

@@ -13,10 +13,12 @@ export {
   gridStyle,
 } from './chart-theme';
 export {
+  TruncateWithTooltip,
   MonoCell,
   NumberCell,
   DateCell,
   DateTimeCell,
   TruncatedIdCell,
+  BrowserCell,
   CountryCell,
 } from './cells';

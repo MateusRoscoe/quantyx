@@ -9,7 +9,9 @@ import {
   DataTable,
   DateTimeCell,
   NumberCell,
+  BrowserCell,
   CountryCell,
+  TruncateWithTooltip,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,25 +38,28 @@ function useSessionColumns() {
     {
       accessorKey: 'sessionId',
       header: 'Session',
+      size: 180,
       cell: (info) => {
         const id = info.getValue() as string;
         return (
-          <Link
-            href={`/app/${orgId}/${projectId}/sessions/${id}`}
-            className="font-mono text-xs font-medium text-foreground underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {id}
-          </Link>
+          <TruncateWithTooltip tooltip={id} className="font-mono text-xs">
+            <Link
+              href={`/app/${orgId}/${projectId}/sessions/${id}`}
+              className="font-medium text-foreground underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {id}
+            </Link>
+          </TruncateWithTooltip>
         );
       },
     },
     { accessorKey: 'startedAt', header: 'Started', cell: DateTimeCell },
     { accessorKey: 'endedAt', header: 'Last Event', cell: DateTimeCell },
-    { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell },
-    { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell },
-    { accessorKey: 'browser', header: 'Browser' },
-    { accessorKey: 'country', header: 'Country', cell: CountryCell },
+    { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell, size: 80 },
+    { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell, size: 80 },
+    { accessorKey: 'browser', header: 'Browser', cell: BrowserCell, size: 120 },
+    { accessorKey: 'country', header: 'Country', cell: CountryCell, size: 60 },
   ];
 
   return columns;

@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { Zap, Users, Activity, FileText } from 'lucide-react';
+import { BrowserIcon, OsIcon, DeviceIcon } from '@/lib/dimension-icons';
 import { useAnalyticsOverview } from '@/hooks/use-analytics-overview';
 import { useAnalyticsEvents } from '@/hooks/use-analytics-events';
 import { useAnalyticsPages } from '@/hooks/use-analytics-pages';
@@ -164,11 +165,13 @@ export default function OverviewPage() {
 
       {devicesData && (
         <div className="grid gap-4 lg:grid-cols-3">
-          {[
-            { title: 'Device Types', data: devicesData.deviceTypes },
-            { title: 'Browsers', data: devicesData.browsers },
-            { title: 'Operating Systems', data: devicesData.operatingSystems },
-          ].map(({ title, data }) => {
+          {(
+            [
+              { title: 'Device Types', data: devicesData.deviceTypes, type: 'device' },
+              { title: 'Browsers', data: devicesData.browsers, type: 'browser' },
+              { title: 'Operating Systems', data: devicesData.operatingSystems, type: 'os' },
+            ] as const
+          ).map(({ title, data, type }) => {
             const total = data.reduce((s, d) => s + d.count, 0);
             return (
               <Card key={title}>
@@ -182,8 +185,17 @@ export default function OverviewPage() {
                     const pct = total > 0 ? (item.count / total) * 100 : 0;
                     return (
                       <div key={item.value} className="flex items-center gap-2">
-                        <span className="w-24 truncate text-sm">
-                          {item.value || '(unknown)'}
+                        <span className="flex w-28 items-center gap-1.5 truncate text-sm">
+                          {item.value ? (
+                            <>
+                              {type === 'browser' && <BrowserIcon browser={item.value} className="h-3.5 w-3.5 shrink-0" />}
+                              {type === 'os' && <OsIcon os={item.value} className="h-3.5 w-3.5 shrink-0" />}
+                              {type === 'device' && <DeviceIcon deviceType={item.value} className="h-3.5 w-3.5 shrink-0" />}
+                              {item.value}
+                            </>
+                          ) : (
+                            '(unknown)'
+                          )}
                         </span>
                         <div className="h-2 flex-1 rounded-full bg-muted">
                           <div

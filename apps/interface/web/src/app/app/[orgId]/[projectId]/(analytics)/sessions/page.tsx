@@ -8,7 +8,9 @@ import {
   PageHeader,
   NumberCell,
   DateTimeCell,
+  BrowserCell,
   CountryCell,
+  TruncateWithTooltip,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,29 +31,36 @@ const columns: ColumnDef<SessionRow, unknown>[] = [
   {
     accessorKey: 'sessionId',
     header: 'Session',
-    cell: (info) => (
-      <span className="font-mono text-xs">
-        {(info.getValue() as string).slice(0, 12)}...
-      </span>
-    ),
+    cell: (info) => {
+      const v = info.getValue() as string;
+      return (
+        <TruncateWithTooltip tooltip={v} className="font-mono text-xs">
+          {v}
+        </TruncateWithTooltip>
+      );
+    },
+    size: 180,
   },
   {
     accessorKey: 'userId',
     header: 'User',
     cell: (info) => {
       const v = info.getValue() as string;
-      return (
-        <span className="text-sm">
-          {v ? `${v.slice(0, 12)}...` : '(anonymous)'}
-        </span>
+      return v ? (
+        <TruncateWithTooltip tooltip={v} className="text-sm">
+          {v}
+        </TruncateWithTooltip>
+      ) : (
+        <span className="text-sm text-muted-foreground">(anonymous)</span>
       );
     },
+    size: 160,
   },
   { accessorKey: 'startedAt', header: 'Started', cell: DateTimeCell },
-  { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell },
-  { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell },
-  { accessorKey: 'browser', header: 'Browser' },
-  { accessorKey: 'country', header: 'Country', cell: CountryCell },
+  { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell, size: 80 },
+  { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell, size: 80 },
+  { accessorKey: 'browser', header: 'Browser', cell: BrowserCell, size: 120 },
+  { accessorKey: 'country', header: 'Country', cell: CountryCell, size: 60 },
 ];
 
 export default function SessionsPage() {

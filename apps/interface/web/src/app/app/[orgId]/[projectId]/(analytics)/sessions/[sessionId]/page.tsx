@@ -12,12 +12,12 @@ import {
   Clock,
   Zap,
   FileText,
-  Globe as GlobeIcon,
-  Monitor,
   User,
   Calendar,
   Loader2,
 } from 'lucide-react';
+import { BrowserIcon, OsIcon, DeviceIcon } from '@/lib/dimension-icons';
+import { countryToFlag, countryName } from '@/lib/country';
 
 function formatDuration(startedAt: string, endedAt: string): string {
   const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime();
@@ -115,7 +115,7 @@ export default function SessionDetailPage() {
           </Card>
 
           {/* Stats */}
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
             {[
               {
                 icon: Calendar,
@@ -137,18 +137,6 @@ export default function SessionDetailPage() {
                 label: 'Pages',
                 value: session.pageViews.toLocaleString(),
               },
-              {
-                icon: Monitor,
-                label: 'Browser / OS',
-                value:
-                  [session.browser, session.os].filter(Boolean).join(' / ') ||
-                  '—',
-              },
-              {
-                icon: GlobeIcon,
-                label: 'Country',
-                value: session.country || '—',
-              },
             ].map(({ icon: Icon, label, value }) => (
               <Card key={label} className="gap-0 p-4">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -159,13 +147,92 @@ export default function SessionDetailPage() {
               </Card>
             ))}
           </div>
+
+          {/* Environment */}
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            <Card className="gap-0 p-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                Browser
+              </p>
+              <div className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+                {session.browser ? (
+                  <>
+                    <BrowserIcon
+                      browser={session.browser}
+                      className="h-3.5 w-3.5 shrink-0"
+                    />
+                    {session.browser}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </div>
+            </Card>
+
+            <Card className="gap-0 p-4">
+              <p className="text-xs font-medium text-muted-foreground">OS</p>
+              <div className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+                {session.os ? (
+                  <>
+                    <OsIcon
+                      os={session.os}
+                      className="h-3.5 w-3.5 shrink-0"
+                    />
+                    {session.os}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </div>
+            </Card>
+
+            <Card className="gap-0 p-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                Device
+              </p>
+              <div className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+                {session.deviceType ? (
+                  <>
+                    <DeviceIcon
+                      deviceType={session.deviceType}
+                      className="h-3.5 w-3.5 shrink-0"
+                    />
+                    {session.deviceType}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </div>
+            </Card>
+
+            <Card className="gap-0 p-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                Country
+              </p>
+              <div className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+                {session.country ? (
+                  <>
+                    <span>{countryToFlag(session.country)}</span>
+                    {countryName(session.country) ?? session.country}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </div>
+            </Card>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
           <Skeleton className="h-16" />
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-16" />
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={`s${i}`} className="h-16" />
+            ))}
+          </div>
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={`e${i}`} className="h-16" />
             ))}
           </div>
         </div>

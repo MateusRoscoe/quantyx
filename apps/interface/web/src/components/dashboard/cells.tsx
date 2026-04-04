@@ -1,22 +1,32 @@
 import type { CellContext } from '@tanstack/react-table';
+import type { ReactNode } from 'react';
 import { useTimezone } from '@/hooks/use-timezone';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { BrowserIcon } from '@/lib/dimension-icons';
+import { countryToFlag, countryName } from '@/lib/country';
 
-/**
- * Convert an ISO 3166-1 alpha-2 or alpha-3 country code to a flag emoji.
- * Returns null if the code isn't a valid 2-letter code.
- */
-function countryToFlag(code: string): string | null {
-  // Handle alpha-3 by taking first 2 chars (rough but covers most cases)
-  const c =
-    code.length === 3 ? code.slice(0, 2).toUpperCase() : code.toUpperCase();
-  if (c.length !== 2 || !/^[A-Z]{2}$/.test(c)) return null;
-  return String.fromCodePoint(
-    ...[...c].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65),
+export function TruncateWithTooltip({
+  children,
+  tooltip,
+  className,
+}: {
+  children: ReactNode;
+  tooltip: string;
+  className?: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={`block truncate ${className ?? ''}`}>{children}</span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="max-w-80 break-all font-mono text-xs">{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -72,26 +82,28 @@ export function TruncatedIdCell<T>({
   );
 }
 
+export function BrowserCell<T>({ getValue }: CellContext<T, unknown>) {
+  const value = getValue() as string;
+  if (!value) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm">
+      <BrowserIcon browser={value} className="h-3.5 w-3.5" />
+      {value}
+    </span>
+  );
+}
+
 export function CountryCell<T>({ getValue }: CellContext<T, unknown>) {
   const code = getValue() as string;
   if (!code) return <span className="text-muted-foreground">—</span>;
 
   const flag = countryToFlag(code);
+  const name = countryName(code);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="cursor-default text-base">
-          {flag ?? (
-            <span className="font-mono text-xs text-muted-foreground">
-              {code}
-            </span>
-          )}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p className="text-xs">{code}</p>
-      </TooltipContent>
-    </Tooltip>
+    <span className="inline-flex items-center gap-1.5 text-sm">
+      {flag && <span>{flag}</span>}
+      {name ?? code}
+    </span>
   );
 }

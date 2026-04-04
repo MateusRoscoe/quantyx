@@ -62,17 +62,19 @@ export function DataTable<TData>({
 
   return (
     <div>
-      <Table>
+      <Table className="table-fixed w-full">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const canSort = header.column.getCanSort();
                 const sorted = header.column.getIsSorted();
+                const colSize = header.column.columnDef.size;
                 return (
                   <TableHead
                     key={header.id}
                     className={canSort ? 'cursor-pointer select-none' : ''}
+                    style={colSize ? { width: colSize } : undefined}
                     onClick={
                       canSort
                         ? header.column.getToggleSortingHandler()
