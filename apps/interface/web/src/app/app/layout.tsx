@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import {
   useRouter,
   usePathname,
@@ -65,6 +65,24 @@ const analyticsNavItems = [
 ];
 
 export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          <Skeleton className="h-8 w-48" />
+        </div>
+      }
+    >
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </Suspense>
+  );
+}
+
+function DashboardLayoutInner({
   children,
 }: {
   children: React.ReactNode;

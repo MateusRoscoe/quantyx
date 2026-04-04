@@ -23,9 +23,9 @@ const { values } = parseArgs({
   options: {
     'api-key': { type: 'string' },
     endpoint: { type: 'string', default: 'http://localhost:3002' },
-    total: { type: 'string', default: '10000000' },
+    total: { type: 'string', default: '1000000000' },
     'batch-size': { type: 'string', default: '1000' },
-    concurrency: { type: 'string', default: '10' },
+    concurrency: { type: 'string', default: '100' },
     'days-back': { type: 'string', default: '90' },
   },
   strict: true,
@@ -45,31 +45,53 @@ const DAYS_BACK = parseInt(values['days-back']!, 10);
 
 // ── UUIDv7 generation (adapted from libs/react-sdk/src/utils/uuid.ts) ───────
 
+// Pre-computed hex lookup table — avoids toString(16)+padStart per byte
+const HEX = Array.from({ length: 256 }, (_, i) =>
+  i.toString(16).padStart(2, '0'),
+);
+
+// Reuse a single buffer instead of allocating 16 bytes per call
+const uuidBuf = new Uint8Array(16);
+
 function uuidv7(timestampMs: number): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
+  crypto.getRandomValues(uuidBuf);
 
   // 48-bit timestamp (big-endian) in bytes 0-5
-  bytes[0] = (timestampMs / 2 ** 40) & 0xff;
-  bytes[1] = (timestampMs / 2 ** 32) & 0xff;
-  bytes[2] = (timestampMs / 2 ** 24) & 0xff;
-  bytes[3] = (timestampMs / 2 ** 16) & 0xff;
-  bytes[4] = (timestampMs / 2 ** 8) & 0xff;
-  bytes[5] = timestampMs & 0xff;
+  uuidBuf[0] = (timestampMs / 2 ** 40) & 0xff;
+  uuidBuf[1] = (timestampMs / 2 ** 32) & 0xff;
+  uuidBuf[2] = (timestampMs / 2 ** 24) & 0xff;
+  uuidBuf[3] = (timestampMs / 2 ** 16) & 0xff;
+  uuidBuf[4] = (timestampMs / 2 ** 8) & 0xff;
+  uuidBuf[5] = timestampMs & 0xff;
 
   // Version 7: set bits 6[7:4] = 0111
-  bytes[6] = 0x70 | (bytes[6] & 0x0f);
+  uuidBuf[6] = 0x70 | (uuidBuf[6] & 0x0f);
 
   // Variant 10xx: set bits 8[7:6] = 10
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  uuidBuf[8] = (uuidBuf[8] & 0x3f) | 0x80;
 
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(
-    ''
+  return (
+    HEX[uuidBuf[0]] +
+    HEX[uuidBuf[1]] +
+    HEX[uuidBuf[2]] +
+    HEX[uuidBuf[3]] +
+    '-' +
+    HEX[uuidBuf[4]] +
+    HEX[uuidBuf[5]] +
+    '-' +
+    HEX[uuidBuf[6]] +
+    HEX[uuidBuf[7]] +
+    '-' +
+    HEX[uuidBuf[8]] +
+    HEX[uuidBuf[9]] +
+    '-' +
+    HEX[uuidBuf[10]] +
+    HEX[uuidBuf[11]] +
+    HEX[uuidBuf[12]] +
+    HEX[uuidBuf[13]] +
+    HEX[uuidBuf[14]] +
+    HEX[uuidBuf[15]]
   );
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(
-    12,
-    16
-  )}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 // ── Realistic data pools ────────────────────────────────────────────────────
@@ -142,7 +164,7 @@ const OS_VERSIONS: Record<string, string[]> = {
 // Chrome ~65%, Safari ~18%, Firefox ~3%, Edge ~5%, Samsung Internet ~2.5%, Opera ~2.5%
 const DEVICE_PROFILES: [
   number,
-  () => Omit<DeviceProfile, 'browser_version' | 'os_version'>
+  () => Omit<DeviceProfile, 'browser_version' | 'os_version'>,
 ][] = [
   // Desktop Chrome on Windows (~35%)
   [
@@ -309,24 +331,49 @@ const COUNTRIES = [
 ];
 
 // User-Agent templates per browser
-const USER_AGENTS: Record<string, (bv: string, os: string, osv: string) => string> = {
+const USER_AGENTS: Record<
+  string,
+  (bv: string, os: string, osv: string) => string
+> = {
   Chrome: (bv, os, osv) => {
-    if (os === 'Android') return `Mozilla/5.0 (Linux; Android ${osv}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Mobile Safari/537.36`;
-    if (os === 'macOS') return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace('.', '_')}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
-    if (os === 'Linux') return `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
-    return `Mozilla/5.0 (Windows NT ${osv === '11' ? '10.0' : '10.0'}; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
+    if (os === 'Android')
+      return `Mozilla/5.0 (Linux; Android ${osv}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Mobile Safari/537.36`;
+    if (os === 'macOS')
+      return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace(
+        '.',
+        '_',
+      )}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
+    if (os === 'Linux')
+      return `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
+    return `Mozilla/5.0 (Windows NT ${
+      osv === '11' ? '10.0' : '10.0'
+    }; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
   },
   Safari: (bv, os, osv) => {
-    if (os === 'iOS') return `Mozilla/5.0 (iPhone; CPU iPhone OS ${osv.replace('.', '_')} like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${bv} Mobile/15E148 Safari/604.1`;
-    return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace('.', '_')}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${bv} Safari/605.1.15`;
+    if (os === 'iOS')
+      return `Mozilla/5.0 (iPhone; CPU iPhone OS ${osv.replace(
+        '.',
+        '_',
+      )} like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${bv} Mobile/15E148 Safari/604.1`;
+    return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace(
+      '.',
+      '_',
+    )}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${bv} Safari/605.1.15`;
   },
   Firefox: (bv, _os, osv) => {
-    if (_os === 'macOS') return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace('.', '_')}; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
-    if (_os === 'Linux') return `Mozilla/5.0 (X11; Linux x86_64; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
+    if (_os === 'macOS')
+      return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace(
+        '.',
+        '_',
+      )}; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
+    if (_os === 'Linux')
+      return `Mozilla/5.0 (X11; Linux x86_64; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
     return `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
   },
-  Edge: (bv) => `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36 Edg/${bv}`,
-  'Samsung Internet': (bv, _os, osv) => `Mozilla/5.0 (Linux; Android ${osv}) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/${bv} Chrome/120.0 Mobile Safari/537.36`,
+  Edge: (bv) =>
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36 Edg/${bv}`,
+  'Samsung Internet': (bv, _os, osv) =>
+    `Mozilla/5.0 (Linux; Android ${osv}) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/${bv} Chrome/120.0 Mobile Safari/537.36`,
 };
 
 const REFERRERS = [
@@ -369,14 +416,17 @@ function weightedPick<T>(weighted: [number, T][]): T {
   return weighted[weighted.length - 1][1];
 }
 
+// Hoisted — avoids allocating a 251-element array on every call
+const PUBLIC_FIRST_OCTETS = [
+  ...Array.from({ length: 126 }, (_, i) => i + 1), // 1-126 (skip 10.x, 127.x)
+  ...Array.from({ length: 63 }, (_, i) => i + 128), // 128-190 (skip 172.16-31)
+  ...Array.from({ length: 62 }, (_, i) => i + 193), // 193-254 (skip 192.168)
+];
+
 function randomPublicIPv4(): string {
-  // Generate IPs avoiding private/reserved ranges
-  const first = pick([
-    ...Array.from({ length: 126 }, (_, i) => i + 1),   // 1-126 (skip 10.x, 127.x)
-    ...Array.from({ length: 63 }, (_, i) => i + 128),   // 128-190 (skip 172.16-31)
-    ...Array.from({ length: 62 }, (_, i) => i + 193),   // 193-254 (skip 192.168)
-  ] as number[]);
-  return `${first}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
+  const first =
+    PUBLIC_FIRST_OCTETS[(Math.random() * PUBLIC_FIRST_OCTETS.length) | 0];
+  return `${first}.${(Math.random() * 256) | 0}.${(Math.random() * 256) | 0}.${((Math.random() * 254) | 0) + 1}`;
 }
 
 // ── Time range ───────────────────────────────────────────────────────────────
@@ -474,7 +524,7 @@ function realisticTimestamp(): number {
 const NUM_USERS = Math.max(100, Math.floor(TOTAL / 30));
 const users: string[] = Array.from(
   { length: NUM_USERS },
-  () => `user_${randomUUID().slice(0, 12)}`
+  () => `user_${randomUUID().slice(0, 12)}`,
 );
 // Some events are anonymous
 users.push('', '', '');
@@ -617,7 +667,22 @@ function generateBatch(size: number): Record<string, unknown>[] {
 
 // ── Latency histogram ───────────────────────────────────────────────────────
 
-const BUCKETS = [1, 2, 5, 10, 15, 25, 50, 75, 100, 150, 250, 500, 1000, Infinity];
+const BUCKETS = [
+  1,
+  2,
+  5,
+  10,
+  15,
+  25,
+  50,
+  75,
+  100,
+  150,
+  250,
+  500,
+  1000,
+  Infinity,
+];
 const histogram = new Uint32Array(BUCKETS.length);
 let latencyMin = Infinity;
 let latencyMax = 0;
@@ -650,11 +715,17 @@ function printHistogram() {
         : `≤ ${String(BUCKETS[i]).padStart(5)}ms`;
     const bar = '█'.repeat(Math.ceil((histogram[i] / latencyCount) * 50));
     console.log(
-      `  ${label}  ${String(histogram[i]).padStart(8)}  ${pct.padStart(5)}%  ${bar}`,
+      `  ${label}  ${String(histogram[i]).padStart(8)}  ${pct.padStart(
+        5,
+      )}%  ${bar}`,
     );
   }
   console.log(
-    `\n  min: ${latencyMin.toFixed(1)}ms  avg: ${(latencySum / latencyCount).toFixed(1)}ms  max: ${latencyMax.toFixed(1)}ms  samples: ${latencyCount.toLocaleString()}`,
+    `\n  min: ${latencyMin.toFixed(1)}ms  avg: ${(
+      latencySum / latencyCount
+    ).toFixed(1)}ms  max: ${latencyMax.toFixed(
+      1,
+    )}ms  samples: ${latencyCount.toLocaleString()}`,
   );
 }
 
@@ -715,7 +786,7 @@ async function run(): Promise<void> {
             const elapsed = ((now - t0) / 1000).toFixed(1);
             const rate = Math.floor(sent / ((now - t0) / 1000));
             process.stdout.write(
-              `\r  Sent ${sent.toLocaleString()} / ${TOTAL.toLocaleString()} events (${elapsed}s, ~${rate.toLocaleString()} events/s)`
+              `\r  Sent ${sent.toLocaleString()} / ${TOTAL.toLocaleString()} events (${elapsed}s, ~${rate.toLocaleString()} events/s)`,
             );
           }
         })
@@ -743,7 +814,7 @@ async function run(): Promise<void> {
   const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
   const rate = Math.floor(sent / ((performance.now() - t0) / 1000));
   console.log(
-    `\n\nDone in ${elapsed}s — ${sent.toLocaleString()} events sent (~${rate.toLocaleString()} events/s)`
+    `\n\nDone in ${elapsed}s — ${sent.toLocaleString()} events sent (~${rate.toLocaleString()} events/s)`,
   );
   if (failed > 0) console.log(`  ${failed} batches failed`);
   printHistogram();

@@ -1,50 +1,121 @@
-# Run all Quantyx apps in containers with host networking.
-# Uses the same .env files as local development — no config duplication.
+# Run all Quantyx apps in containers behind Traefik for load balancing.
+# Apps connect to infrastructure services via the shared quantyx-net network.
 #
 # Prerequisites:
 #   1. Build all app images: npx nx run-many -t docker:build
 #   2. Start infrastructure:  docker compose up -d
 #   3. Start apps:            docker compose -f docker-compose.apps.yaml up -d
+#
+# Scaling:
+#   Adjust WEBHOOK_REPLICAS / CONSUMER_REPLICAS env vars or deploy.replicas below.
+#   Consumer replicas should not exceed the number of Kafka partitions.
 
 services:
+  traefik:
+    image: traefik:v3
+    container_name: quantyx-traefik
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=quantyx-net
+      # api-event-webhook
+      - --entrypoints.webhook.address=:3002
+      # api-tenant-manager
+      - --entrypoints.tenant.address=:3001
+      # api-analytics-bff
+      - --entrypoints.analytics.address=:3004
+      # Traefik dashboard (optional, disable in prod)
+      - --api.insecure=true
+      - --entrypoints.dashboard.address=:8081
+    ports:
+      - "3002:3002"
+      - "3001:3001"
+      - "3004:3004"
+      - "8081:8081"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   api-event-webhook:
     image: apps-api-event-webhook:latest
-    container_name: quantyx-api-event-webhook
-    network_mode: host
+    deploy:
+      replicas: ${WEBHOOK_REPLICAS:-4}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.webhook.rule=PathPrefix(`/`)
+      - traefik.http.routers.webhook.entrypoints=webhook
+      - traefik.http.services.webhook.loadbalancer.server.port=3002
     env_file:
       - .env
       - apps/api-event-webhook/.env
     environment:
+      # Override localhost addresses → Docker service names
+      HOST: 0.0.0.0
+      PORT: 3002
+      KAFKA_BROKERS: kafka:9092
+      POSTGRES_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/quantyx
+      REDIS_URL: redis://redis:6379
       NODE_OPTIONS: --max-old-space-size=512
+      LOG_LEVEL: error
 
   consumer-events-ingest:
     image: apps-consumer-events-ingest:latest
-    container_name: quantyx-consumer-events-ingest
-    network_mode: host
+    deploy:
+      replicas: ${CONSUMER_REPLICAS:-4}
     env_file:
       - .env
       - apps/consumer-events-ingest/.env
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      LOG_LEVEL: error
 
   api-tenant-manager:
     image: apps-api-tenant-manager:latest
-    container_name: quantyx-api-tenant-manager
-    network_mode: host
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.tenant.rule=PathPrefix(`/`)
+      - traefik.http.routers.tenant.entrypoints=tenant
+      - traefik.http.services.tenant.loadbalancer.server.port=3001
     env_file:
       - .env
       - apps/api-tenant-manager/.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+      KAFKA_BROKERS: kafka:9092
+      POSTGRES_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/quantyx
+      REDIS_URL: redis://redis:6379
 
   api-analytics-bff:
     image: apps-api-analytics-bff:latest
-    container_name: quantyx-api-analytics-bff
-    network_mode: host
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.analytics.rule=PathPrefix(`/`)
+      - traefik.http.routers.analytics.entrypoints=analytics
+      - traefik.http.services.analytics.loadbalancer.server.port=3004
     env_file:
       - .env
       - apps/api-analytics-bff/.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3004
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      POSTGRES_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/quantyx
+      REDIS_URL: redis://redis:6379
 
   interface-web:
     image: apps-interface-web:latest
-    container_name: quantyx-interface-web
-    network_mode: host
+    ports:
+      - "3000:3000"
     env_file:
       - .env
       - apps/interface/web/.env
+
+networks:
+  default:
+    name: quantyx-net
+    external: true

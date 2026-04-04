@@ -9,7 +9,7 @@ import {
   validatorCompiler,
   ZodTypeProvider,
 } from 'fastify-type-provider-zod';
-import { getLogger } from '@quantyx/shared-backend';
+import { getLogger, logger as baseLogger } from '@quantyx/shared-backend';
 import { environment } from './app/helpers/env';
 import { disconnectProducer } from './app/models/kafka';
 import { disconnectRedis } from '@quantyx/redis';
@@ -22,7 +22,7 @@ const port = environment.PORT;
 
 // Instantiate Fastify with some config
 const server = Fastify({
-  logger: true,
+  logger: baseLogger,
   disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
 

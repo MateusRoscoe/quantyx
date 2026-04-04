@@ -127,3 +127,7 @@ volumes:
   kafka-data:
   redis-data:
   grafana-data:
+
+networks:
+  default:
+    name: quantyx-net
