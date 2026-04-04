@@ -21,7 +21,7 @@ const port = environment.PORT;
 
 const server = Fastify({
   logger: { level: environment.LOG_LEVEL },
-  trustProxy: environment.TRUST_PROXY === 'true' || environment.TRUST_PROXY,
+  trustProxy: environment.TRUST_PROXY,
   requestTimeout: environment.REQUEST_TIMEOUT_MS || undefined,
   keepAliveTimeout: environment.KEEP_ALIVE_TIMEOUT_MS,
 }).withTypeProvider<ZodTypeProvider>();

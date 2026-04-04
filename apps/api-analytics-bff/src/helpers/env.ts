@@ -9,7 +9,10 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   DATABASE_URL: z.string().min(1),
   WEB_APP_URL: z.string().url().default('http://localhost:3000'),
-  TRUST_PROXY: z.string().default('false'),
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().min(0).default(0),
   KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().min(0).default(72_000),
   SESSION_CACHE_TTL_SECONDS: z.coerce.number().int().min(0).default(60),
