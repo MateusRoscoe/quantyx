@@ -36,7 +36,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Users" />
+      <PageHeader title="Users" showFilterBar={false} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-medium">All Users</CardTitle>

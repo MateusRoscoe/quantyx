@@ -60,7 +60,7 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Overview" />
+      <PageHeader title="Overview" showFilterBar={false} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard

@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, usePathname, useParams } from 'next/navigation';
+import {
+  useRouter,
+  usePathname,
+  useParams,
+  useSearchParams,
+} from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from '@/lib/auth-client';
 import {
@@ -72,6 +77,8 @@ export default function DashboardLayout({
   const track = useAnalyticsTrack();
   const identify = useAnalyticsIdentify();
   const { theme, setTheme } = useTheme();
+
+  const searchParams = useSearchParams();
 
   const paramsOrgId = params.orgId;
   const paramsProjectId = params.projectId;
@@ -153,7 +160,9 @@ export default function DashboardLayout({
               <SidebarGroupContent>
                 <SidebarMenu>
                   {analyticsNavItems.map((item) => {
-                    const href = `${projectBase}${item.segment}`;
+                    const basePath = `${projectBase}${item.segment}`;
+                    const qs = searchParams.toString();
+                    const href = qs ? `${basePath}?${qs}` : basePath;
                     const isActive =
                       item.segment === ''
                         ? pathname === projectBase

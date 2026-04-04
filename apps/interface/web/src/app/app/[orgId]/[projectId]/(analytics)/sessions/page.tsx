@@ -79,7 +79,7 @@ export default function SessionsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Sessions" />
+      <PageHeader title="Sessions" showFilterBar={false} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-medium">

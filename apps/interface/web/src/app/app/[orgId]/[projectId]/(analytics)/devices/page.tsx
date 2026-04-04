@@ -55,7 +55,7 @@ export default function DevicesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Devices & Browsers" />
+      <PageHeader title="Devices & Browsers" showFilterBar={false} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <ChartCard

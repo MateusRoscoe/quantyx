@@ -21,4 +21,5 @@ export {
   TruncatedIdCell,
   BrowserCell,
   CountryCell,
+  CountryNameCell,
 } from './cells';

@@ -55,7 +55,7 @@ export default function PropertiesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Custom Properties" />
+      <PageHeader title="Custom Properties" showDateRange={false} showFilterBar={false} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-medium">

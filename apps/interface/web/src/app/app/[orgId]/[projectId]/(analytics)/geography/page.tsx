@@ -6,7 +6,7 @@ import {
   DataTable,
   PageHeader,
   NumberCell,
-  CountryCell,
+  CountryNameCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -14,7 +14,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 type CountryRow = { country: string; count: number; uniqueUsers: number };
 
 const columns: ColumnDef<CountryRow, unknown>[] = [
-  { accessorKey: 'country', header: 'Country', cell: CountryCell },
+  { accessorKey: 'country', header: 'Country', cell: CountryNameCell },
   { accessorKey: 'count', header: 'Events', cell: NumberCell },
   { accessorKey: 'uniqueUsers', header: 'Unique Users', cell: NumberCell },
 ];
@@ -25,7 +25,7 @@ export default function GeographyPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Geography" />
+      <PageHeader title="Geography" showFilterBar={false} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-medium">Countries</CardTitle>

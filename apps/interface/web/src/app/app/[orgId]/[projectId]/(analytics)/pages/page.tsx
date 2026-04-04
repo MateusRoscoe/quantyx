@@ -39,7 +39,7 @@ export default function PagesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Pages" />
+      <PageHeader title="Pages" showFilterBar={false} />
 
       <ChartCard
         title="Top 10 Pages"

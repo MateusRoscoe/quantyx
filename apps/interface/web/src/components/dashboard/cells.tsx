@@ -101,6 +101,31 @@ export function CountryCell<T>({ getValue }: CellContext<T, unknown>) {
   const name = countryName(code);
 
   return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="cursor-default text-base">
+          {flag ?? (
+            <span className="font-mono text-xs text-muted-foreground">
+              {code}
+            </span>
+          )}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="text-xs">{name ?? code}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+export function CountryNameCell<T>({ getValue }: CellContext<T, unknown>) {
+  const code = getValue() as string;
+  if (!code) return <span className="text-muted-foreground">—</span>;
+
+  const flag = countryToFlag(code);
+  const name = countryName(code);
+
+  return (
     <span className="inline-flex items-center gap-1.5 text-sm">
       {flag && <span>{flag}</span>}
       {name ?? code}
