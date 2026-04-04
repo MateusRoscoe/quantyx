@@ -38,7 +38,6 @@ PARTITION BY
     toYYYYMM (`timestamp`)
 ORDER BY
     (project_id, `timestamp`)
-TTL `timestamp` + INTERVAL 90 DAY
 SETTINGS index_granularity = 8192;
 
 -- Users table (aggregated user data)

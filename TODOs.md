@@ -7,6 +7,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 ## Infrastructure / DevOps
 
 - [ ] **Kubernetes deployment example** — Add a Kustomize-based deployment example so users can clone, build images, push to a private registry, and deploy. Operators/resources: Strimzi (Kafka), CNPG (PostgreSQL), Redis Operator, ClickHouse (operator TBD). Include base manifests for all apps + infrastructure, with image references users can override via Kustomize.
+- [ ] **ClickHouse data retention CronJob** — Add a K8s CronJob that drops old ClickHouse partitions instead of using TTL (avoids repeated merge rewrites on partially-expired monthly partitions). Targets: `analytics.events` (configurable, default 90 days) and `analytics.metrics_hourly` (configurable, default 1 year). Runs `ALTER TABLE ... DROP PARTITION` monthly.
 
 ---
 
