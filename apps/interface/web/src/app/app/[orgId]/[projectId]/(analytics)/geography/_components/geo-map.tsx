@@ -1,18 +1,12 @@
 'use client';
 
-import { memo, useState, useMemo } from 'react';
+import { memo, useState, useMemo, useCallback } from 'react';
 import {
   ComposableMap,
   Geographies,
   Geography,
   Marker,
 } from 'react-simple-maps';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { countryToFlag, countryName } from '@/lib/country';
 
 const WORLD_TOPO_URL =
@@ -60,7 +54,11 @@ interface GeoMapProps {
 }
 
 function GeoMapInner({ countries, cities, metric }: GeoMapProps) {
-  const [tooltipContent, setTooltipContent] = useState('');
+  const [tooltip, setTooltip] = useState<{
+    content: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const countryMap = useMemo(() => {
     const map = new Map<string, { count: number; uniqueUsers: number }>();
@@ -85,106 +83,163 @@ function GeoMapInner({ countries, cities, metric }: GeoMapProps) {
     return Math.max(...cities.map((c) => c.count));
   }, [cities]);
 
-  function getColor(numericId: string): string {
-    const data = countryMap.get(numericId);
-    if (!data) return 'var(--color-muted)';
-    const value = metric === 'events' ? data.count : data.uniqueUsers;
-    const intensity = Math.max(0.08, value / maxValue);
-    return `oklch(from var(--color-chart-1) calc(l + ${((1 - intensity) * 0.3).toFixed(3)}) c h)`;
+  const getColor = useCallback(
+    (numericId: string): string => {
+      const data = countryMap.get(numericId);
+      if (!data) return 'var(--color-muted)';
+      const value = metric === 'events' ? data.count : data.uniqueUsers;
+      const intensity = Math.max(0.08, value / maxValue);
+      return `oklch(from var(--color-chart-1) calc(l + ${((1 - intensity) * 0.3).toFixed(3)}) c h)`;
+    },
+    [countryMap, metric, maxValue],
+  );
+
+  function showTooltip(e: React.MouseEvent, content: string) {
+    const rect = (
+      e.currentTarget.closest('.geo-map-container') as HTMLElement
+    )?.getBoundingClientRect();
+    if (!rect) return;
+    setTooltip({
+      content,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
   }
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <Tooltip open={!!tooltipContent}>
-        <TooltipTrigger asChild>
-          <div>
-            <ComposableMap
-              projection="geoNaturalEarth1"
-              projectionConfig={{ scale: 155 }}
-              width={800}
-              height={420}
-              style={{ width: '100%', height: 'auto' }}
-            >
-              <Geographies geography={WORLD_TOPO_URL}>
-                {({ geographies }) =>
-                  geographies.map((geo, i) => {
-                    const id = geo.id;
-                    const data = countryMap.get(id);
-                    const alpha3 = Object.entries(ALPHA3_TO_NUMERIC).find(
-                      ([, v]) => v === id,
-                    )?.[0];
-                    const name = alpha3
-                      ? countryName(alpha3)
-                      : geo.properties.name;
-                    const flag = alpha3 ? countryToFlag(alpha3) : '';
+    <div className="geo-map-container relative">
+      <ComposableMap
+        projection="geoNaturalEarth1"
+        projectionConfig={{ scale: 155 }}
+        width={800}
+        height={420}
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+      >
+        <Geographies geography={WORLD_TOPO_URL}>
+          {({ geographies }) =>
+            geographies.map((geo, i) => {
+              const id = geo.id;
+              const data = countryMap.get(id);
+              const alpha3 = Object.entries(ALPHA3_TO_NUMERIC).find(
+                ([, v]) => v === id,
+              )?.[0];
+              const name = alpha3
+                ? countryName(alpha3)
+                : geo.properties.name;
+              const flag = alpha3 ? countryToFlag(alpha3) : '';
 
-                    return (
-                      <Geography
-                        key={`${geo.id ?? i}-${geo.rpiid ?? i}`}
-                        geography={geo}
-                        fill={getColor(id)}
-                        stroke="var(--color-border)"
-                        strokeWidth={0.4}
-                        style={{ outline: 'none', cursor: 'pointer' }}
-                        onMouseEnter={(e) => {
-                          (e.target as SVGPathElement).style.fill =
-                            'var(--color-chart-1)';
-                          const val = data
-                            ? metric === 'events'
-                              ? `${data.count.toLocaleString()} events`
-                              : `${data.uniqueUsers.toLocaleString()} users`
-                            : 'No data';
-                          setTooltipContent(
-                            `${flag ?? ''} ${name ?? 'Unknown'} — ${val}`,
-                          );
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.target as SVGPathElement).style.fill =
-                            getColor(id);
-                          setTooltipContent('');
-                        }}
-                      />
+              return (
+                <Geography
+                  key={`${geo.id ?? i}-${geo.rpiid ?? i}`}
+                  geography={geo}
+                  fill={getColor(id)}
+                  stroke="var(--color-border)"
+                  strokeWidth={0.4}
+                  style={{ outline: 'none', cursor: 'pointer' }}
+                  onMouseEnter={(e) => {
+                    (e.target as SVGPathElement).style.fill =
+                      'var(--color-chart-1)';
+                    const val = data
+                      ? metric === 'events'
+                        ? `${data.count.toLocaleString()} events`
+                        : `${data.uniqueUsers.toLocaleString()} users`
+                      : 'No data';
+                    showTooltip(
+                      e as unknown as React.MouseEvent,
+                      `${flag ?? ''} ${name ?? 'Unknown'} — ${val}`,
                     );
-                  })
-                }
-              </Geographies>
-              {cities
-                .filter((c) => c.latitude !== 0 && c.longitude !== 0)
-                .map((city) => {
-                  const radius = Math.max(
-                    2,
-                    Math.min(12, (city.count / maxCityValue) * 12),
-                  );
-                  return (
-                    <Marker
-                      key={`${city.value}-${city.latitude}-${city.longitude}`}
-                      coordinates={[city.longitude, city.latitude]}
-                    >
-                      <circle
-                        r={radius}
-                        fill="var(--color-chart-2)"
-                        fillOpacity={0.6}
-                        stroke="var(--color-chart-2)"
-                        strokeWidth={1}
-                        strokeOpacity={0.8}
-                        onMouseEnter={() =>
-                          setTooltipContent(
-                            `${city.value} — ${city.count.toLocaleString()} events`,
-                          )
-                        }
-                        onMouseLeave={() => setTooltipContent('')}
-                      />
-                    </Marker>
-                  );
-                })}
-            </ComposableMap>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="pointer-events-none text-sm">
-          {tooltipContent}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+                  }}
+                  onMouseMove={(e) => {
+                    if (tooltip) {
+                      const rect = (
+                        (e.target as SVGPathElement).closest(
+                          '.geo-map-container',
+                        ) as HTMLElement
+                      )?.getBoundingClientRect();
+                      if (rect) {
+                        setTooltip((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                x: e.clientX - rect.left,
+                                y: e.clientY - rect.top,
+                              }
+                            : null,
+                        );
+                      }
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as SVGPathElement).style.fill = getColor(id);
+                    setTooltip(null);
+                  }}
+                />
+              );
+            })
+          }
+        </Geographies>
+        {cities
+          .filter((c) => c.latitude !== 0 && c.longitude !== 0)
+          .map((city) => {
+            const radius = Math.max(
+              2,
+              Math.min(12, (city.count / maxCityValue) * 12),
+            );
+            return (
+              <Marker
+                key={`${city.value}-${city.latitude}-${city.longitude}`}
+                coordinates={[city.longitude, city.latitude]}
+              >
+                <circle
+                  r={radius}
+                  fill="var(--color-chart-2)"
+                  fillOpacity={0.6}
+                  stroke="var(--color-chart-2)"
+                  strokeWidth={1}
+                  strokeOpacity={0.8}
+                  onMouseEnter={(e) =>
+                    showTooltip(
+                      e as unknown as React.MouseEvent,
+                      `${city.value} — ${city.count.toLocaleString()} events`,
+                    )
+                  }
+                  onMouseMove={(e) => {
+                    const rect = (
+                      (e.target as SVGCircleElement).closest(
+                        '.geo-map-container',
+                      ) as HTMLElement
+                    )?.getBoundingClientRect();
+                    if (rect) {
+                      setTooltip((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              x: e.clientX - rect.left,
+                              y: e.clientY - rect.top,
+                            }
+                          : null,
+                      );
+                    }
+                  }}
+                  onMouseLeave={() => setTooltip(null)}
+                />
+              </Marker>
+            );
+          })}
+      </ComposableMap>
+      {tooltip && (
+        <div
+          className="pointer-events-none absolute z-50 rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: 'translate(-50%, -100%) translateY(-8px)',
+          }}
+        >
+          {tooltip.content}
+        </div>
+      )}
+    </div>
   );
 }
 
