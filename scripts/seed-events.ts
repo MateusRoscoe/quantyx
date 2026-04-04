@@ -496,9 +496,53 @@ function generateBatch(size: number): Record<string, unknown>[] {
   return batch;
 }
 
+// ── Latency histogram ───────────────────────────────────────────────────────
+
+const BUCKETS = [1, 2, 5, 10, 15, 25, 50, 75, 100, 150, 250, 500, 1000, Infinity];
+const histogram = new Uint32Array(BUCKETS.length);
+let latencyMin = Infinity;
+let latencyMax = 0;
+let latencySum = 0;
+let latencyCount = 0;
+
+function recordLatency(ms: number) {
+  latencyCount++;
+  latencySum += ms;
+  if (ms < latencyMin) latencyMin = ms;
+  if (ms > latencyMax) latencyMax = ms;
+  for (let i = 0; i < BUCKETS.length; i++) {
+    if (ms <= BUCKETS[i]) {
+      histogram[i]++;
+      break;
+    }
+  }
+}
+
+function printHistogram() {
+  console.log('\nLatency histogram:');
+  let cumulative = 0;
+  for (let i = 0; i < BUCKETS.length; i++) {
+    if (histogram[i] === 0) continue;
+    cumulative += histogram[i];
+    const pct = ((cumulative / latencyCount) * 100).toFixed(1);
+    const label =
+      BUCKETS[i] === Infinity
+        ? `> ${BUCKETS[i - 1]}ms`
+        : `≤ ${String(BUCKETS[i]).padStart(5)}ms`;
+    const bar = '█'.repeat(Math.ceil((histogram[i] / latencyCount) * 50));
+    console.log(
+      `  ${label}  ${String(histogram[i]).padStart(8)}  ${pct.padStart(5)}%  ${bar}`,
+    );
+  }
+  console.log(
+    `\n  min: ${latencyMin.toFixed(1)}ms  avg: ${(latencySum / latencyCount).toFixed(1)}ms  max: ${latencyMax.toFixed(1)}ms  samples: ${latencyCount.toLocaleString()}`,
+  );
+}
+
 // ── HTTP sender with concurrency control ────────────────────────────────────
 
 async function sendBatch(batch: Record<string, unknown>[]): Promise<void> {
+  const start = performance.now();
   const res = await fetch(`${ENDPOINT}/ingest-bulk`, {
     method: 'POST',
     headers: {
@@ -507,6 +551,7 @@ async function sendBatch(batch: Record<string, unknown>[]): Promise<void> {
     },
     body: JSON.stringify(batch),
   });
+  recordLatency(performance.now() - start);
 
   if (!res.ok) {
     const text = await res.text();
@@ -582,6 +627,7 @@ async function run(): Promise<void> {
     `\n\nDone in ${elapsed}s — ${sent.toLocaleString()} events sent (~${rate.toLocaleString()} events/s)`
   );
   if (failed > 0) console.log(`  ${failed} batches failed`);
+  printHistogram();
 }
 
 run().catch((err) => {
