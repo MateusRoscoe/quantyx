@@ -120,7 +120,7 @@ function GeoMapInner({ countries, cities, metric }: GeoMapProps) {
 
                     return (
                       <Geography
-                        key={geo.rpiid ?? geo.id ?? i}
+                        key={`${geo.id ?? i}-${geo.rpiid ?? i}`}
                         geography={geo}
                         fill={getColor(id)}
                         stroke="var(--color-border)"

@@ -371,7 +371,7 @@ SELECT
     anyState(longitude) AS longitude,
     sumState(toUInt64(1)) AS event_count
 FROM analytics.events
-WHERE city != '' AND latitude != 0 AND longitude != 0
+WHERE city != '' AND latitude != toFloat64(0) AND longitude != toFloat64(0)
 GROUP BY project_id, city, country;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_path
