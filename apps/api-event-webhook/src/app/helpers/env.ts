@@ -17,6 +17,13 @@ const envSchema = z.object({
   POSTGRES_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   API_KEY_CACHE_TTL_SECONDS: z.coerce.number().min(1).default(300),
+
+  // When true, the API accepts ip_address and user_agent from the request body
+  // instead of inferring them from the HTTP request. For testing/seeding only.
+  ALLOW_CLIENT_IP_AND_UA: z
+    .enum(['true', 'false', '1', '0'])
+    .default('false')
+    .transform((v) => v === 'true' || v === '1'),
 });
 
 type Env = z.infer<typeof envSchema>;

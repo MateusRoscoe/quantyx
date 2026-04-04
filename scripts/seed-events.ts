@@ -308,6 +308,27 @@ const COUNTRIES = [
   { code: 'NLD', state: 'North Holland', city: 'Amsterdam' },
 ];
 
+// User-Agent templates per browser
+const USER_AGENTS: Record<string, (bv: string, os: string, osv: string) => string> = {
+  Chrome: (bv, os, osv) => {
+    if (os === 'Android') return `Mozilla/5.0 (Linux; Android ${osv}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Mobile Safari/537.36`;
+    if (os === 'macOS') return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace('.', '_')}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
+    if (os === 'Linux') return `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
+    return `Mozilla/5.0 (Windows NT ${osv === '11' ? '10.0' : '10.0'}; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36`;
+  },
+  Safari: (bv, os, osv) => {
+    if (os === 'iOS') return `Mozilla/5.0 (iPhone; CPU iPhone OS ${osv.replace('.', '_')} like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${bv} Mobile/15E148 Safari/604.1`;
+    return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace('.', '_')}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${bv} Safari/605.1.15`;
+  },
+  Firefox: (bv, _os, osv) => {
+    if (_os === 'macOS') return `Mozilla/5.0 (Macintosh; Intel Mac OS X ${osv.replace('.', '_')}; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
+    if (_os === 'Linux') return `Mozilla/5.0 (X11; Linux x86_64; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
+    return `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${bv}) Gecko/20100101 Firefox/${bv}`;
+  },
+  Edge: (bv) => `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${bv} Safari/537.36 Edg/${bv}`,
+  'Samsung Internet': (bv, _os, osv) => `Mozilla/5.0 (Linux; Android ${osv}) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/${bv} Chrome/120.0 Mobile Safari/537.36`,
+};
+
 const REFERRERS = [
   'google',
   'google',
@@ -348,6 +369,16 @@ function weightedPick<T>(weighted: [number, T][]): T {
   return weighted[weighted.length - 1][1];
 }
 
+function randomPublicIPv4(): string {
+  // Generate IPs avoiding private/reserved ranges
+  const first = pick([
+    ...Array.from({ length: 126 }, (_, i) => i + 1),   // 1-126 (skip 10.x, 127.x)
+    ...Array.from({ length: 63 }, (_, i) => i + 128),   // 128-190 (skip 172.16-31)
+    ...Array.from({ length: 62 }, (_, i) => i + 193),   // 193-254 (skip 192.168)
+  ] as number[]);
+  return `${first}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
+}
+
 function weightedTimestamp(startMs: number, endMs: number): number {
   // More events towards "now" — simulates growing traffic
   const r = Math.random();
@@ -370,6 +401,8 @@ interface Session {
   userId: string;
   startMs: number;
   device: DeviceProfile;
+  userAgent: string;
+  ipAddress: string;
   country: (typeof COUNTRIES)[number];
   eventCount: number;
 }
@@ -378,11 +411,15 @@ const endMs = Date.now();
 const startMs = endMs - DAYS_BACK * 24 * 60 * 60 * 1000;
 
 function createSession(timestampMs: number): Session {
+  const device = pickDeviceProfile();
+  const uaFn = USER_AGENTS[device.browser];
   return {
     sessionId: uuidv7(timestampMs),
     userId: pick(users),
     startMs: timestampMs,
-    device: pickDeviceProfile(),
+    device,
+    userAgent: uaFn(device.browser_version, device.os, device.os_version),
+    ipAddress: randomPublicIPv4(),
     country: pick(COUNTRIES),
     eventCount: 0,
   };
@@ -413,6 +450,8 @@ function generateEvent(session: Session): Record<string, unknown> {
     browser_version: session.device.browser_version,
     os: session.device.os,
     os_version: session.device.os_version,
+    ip_address: session.ipAddress,
+    user_agent: session.userAgent,
   };
 
   // Custom properties — vary by event type

@@ -11,6 +11,8 @@ export const CountryCode = z
 
 export type CountryCode = z.infer<typeof CountryCode>;
 
+export const MAX_USER_AGENT_LENGTH = 1024;
+
 export const EventMessageInput = z.object({
   // Core identifiers
   event_id: z.uuidv7(),
@@ -43,9 +45,11 @@ export const EventMessageInput = z.object({
   props_str: z.record(z.string().max(256), z.string().max(256)).optional(),
   props_num: z.record(z.string().max(256), z.number()).optional(),
   props_bool: z.record(z.string().max(256), z.boolean()).optional(),
-});
 
-export const MAX_USER_AGENT_LENGTH = 1024;
+  // Optional client-provided overrides (only honored when ALLOW_CLIENT_IP_AND_UA is enabled)
+  ip_address: z.ipv4().or(z.ipv6()).optional(),
+  user_agent: z.string().max(MAX_USER_AGENT_LENGTH).optional(),
+});
 
 export const Continent = z.enum(CONTINENTS).describe('Continent name');
 

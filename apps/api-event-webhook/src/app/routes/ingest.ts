@@ -5,6 +5,7 @@ import { EventMessageInput, MAX_USER_AGENT_LENGTH } from '@quantyx/shared';
 
 import type { server } from '../../main';
 import { ErrorResponseSchema } from '../helpers/error-schema';
+import { environment } from '../helpers/env';
 
 export default async function (fastify: server) {
   fastify.route({
@@ -24,17 +25,21 @@ export default async function (fastify: server) {
     },
     handler: async (request, reply) => {
       try {
+        const allowOverrides = environment.ALLOW_CLIENT_IP_AND_UA;
         sendMessages([
           Buffer.from(
             JSON.stringify({
               ...request.body,
               project_id: request.projectId,
-              ip_address: request.ip,
+              ip_address:
+                (allowOverrides && request.body.ip_address) || request.ip,
               user_agent:
+                (allowOverrides && request.body.user_agent) ||
                 request.headers['user-agent']?.slice(
                   0,
                   MAX_USER_AGENT_LENGTH,
-                ) || undefined,
+                ) ||
+                undefined,
             }),
           ),
         ]);
@@ -69,7 +74,8 @@ export default async function (fastify: server) {
     },
     handler: async (request, reply) => {
       try {
-        const userAgent =
+        const allowOverrides = environment.ALLOW_CLIENT_IP_AND_UA;
+        const headerUA =
           request.headers['user-agent']?.slice(0, MAX_USER_AGENT_LENGTH) ||
           undefined;
 
@@ -79,8 +85,10 @@ export default async function (fastify: server) {
               JSON.stringify({
                 ...event,
                 project_id: request.projectId,
-                ip_address: request.ip,
-                user_agent: userAgent,
+                ip_address:
+                  (allowOverrides && event.ip_address) || request.ip,
+                user_agent:
+                  (allowOverrides && event.user_agent) || headerUA,
               }),
             ),
           ),
