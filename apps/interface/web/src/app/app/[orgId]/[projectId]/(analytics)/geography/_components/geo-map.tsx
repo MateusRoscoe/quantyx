@@ -108,7 +108,7 @@ function GeoMapInner({ countries, cities, metric }: GeoMapProps) {
               <ZoomableGroup>
                 <Geographies geography={WORLD_TOPO_URL}>
                   {({ geographies }) =>
-                    geographies.map((geo) => {
+                    geographies.map((geo, i) => {
                       const id = geo.id;
                       const data = countryMap.get(id);
                       // Try to find the alpha-3 code for this numeric ID
@@ -122,7 +122,7 @@ function GeoMapInner({ countries, cities, metric }: GeoMapProps) {
 
                       return (
                         <Geography
-                          key={geo.rpiid}
+                          key={geo.rpiid ?? geo.id ?? i}
                           geography={geo}
                           fill={getColor(id)}
                           stroke="var(--color-border)"
