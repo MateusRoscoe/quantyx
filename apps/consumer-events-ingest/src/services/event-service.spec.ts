@@ -30,7 +30,7 @@ describe('EventService', () => {
         os: 'macOS',
         os_version: '15.1',
         user_agent: 'Mozilla/5.0',
-        props_str: { page: '/home' },
+        props_str: { page: '/home', path: '/dashboard' },
         props_num: { load_time: 1.5 },
         props_bool: { logged_in: true, is_admin: false },
       });
@@ -57,6 +57,7 @@ describe('EventService', () => {
         browser_version: '125.0',
         os: 'macOS',
         os_version: '15.1',
+        path: '/dashboard',
         props_str: { page: '/home' },
         props_num: { load_time: 1.5 },
         props_bool: { logged_in: 1, is_admin: 0 },
@@ -79,6 +80,7 @@ describe('EventService', () => {
       expect(result.browser_version).toBe('');
       expect(result.os).toBe('');
       expect(result.os_version).toBe('');
+      expect(result.path).toBe('');
       expect(result.user_agent).toBe('');
     });
 

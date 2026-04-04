@@ -54,6 +54,7 @@ export type ClickHouseEvent = {
   browser_version: string;
   os: string;
   os_version: string;
+  path: string;
   // Custom properties (flexible schema)
   props_str: Record<string, string>;
   props_num: Record<string, number>;

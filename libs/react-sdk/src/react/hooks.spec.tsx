@@ -6,7 +6,9 @@ import { QuantyxClient } from '../client.js';
 import type { QuantyxConfig } from '../types.js';
 
 vi.mock('../client.js', () => {
-  const QuantyxClient = vi.fn().mockImplementation(function () {
+  const QuantyxClient = vi.fn().mockImplementation(function (
+    this: Record<string, unknown>,
+  ) {
     this.track = vi.fn();
     this.identify = vi.fn();
     this.flush = vi.fn().mockResolvedValue(undefined);

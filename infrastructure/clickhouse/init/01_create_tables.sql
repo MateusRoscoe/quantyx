@@ -3,34 +3,36 @@ CREATE DATABASE IF NOT EXISTS analytics;
 -- Events table (main data store)
 CREATE TABLE
     IF NOT EXISTS analytics.events (
-        event_id String,
+        event_id String CODEC(ZSTD(1)),
         project_id String,
-        user_id String,
-        session_id String,
+        user_id String CODEC(ZSTD(1)),
+        session_id String CODEC(ZSTD(1)),
         event_name LowCardinality (String),
         `timestamp` DateTime,
         -- Standard dimensions
         country LowCardinality (String),
         continent LowCardinality (String),
         region LowCardinality (String),
-        `state` String,
-        city String,
+        `state` String CODEC(ZSTD(1)),
+        city String CODEC(ZSTD(1)),
         device_type LowCardinality (String),
         platform LowCardinality (String),
         browser LowCardinality (String),
-        browser_version String,
+        browser_version String CODEC(ZSTD(1)),
         os LowCardinality (String),
-        os_version String,
+        os_version String CODEC(ZSTD(1)),
+        path String DEFAULT '' CODEC(ZSTD(1)),
         -- Custom properties (flexible schema)
         props_str Map (String, String),
         props_num Map (String, Float64),
         props_bool Map (String, UInt8),
         -- Metadata
-        ip_address IPv6,
-        user_agent String,
+        ip_address IPv6 CODEC(ZSTD(1)),
+        user_agent String CODEC(ZSTD(3)),
         INDEX idx_event_name event_name TYPE bloom_filter GRANULARITY 1,
         INDEX idx_user_id user_id TYPE bloom_filter GRANULARITY 1,
-        INDEX idx_session_id session_id TYPE bloom_filter GRANULARITY 1
+        INDEX idx_session_id session_id TYPE bloom_filter GRANULARITY 1,
+        INDEX idx_path path TYPE bloom_filter GRANULARITY 1
     ) ENGINE = MergeTree ()
 PARTITION BY
     toYYYYMM (`timestamp`)
@@ -271,12 +273,12 @@ SELECT
     toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
     'path' AS dimension_name,
-    props_str['path'] AS dimension_value,
+    path AS dimension_value,
     sumState(toUInt64(1)) AS event_count,
     uniqState(user_id) AS unique_users
 FROM analytics.events
-WHERE event_name = 'page_view' AND props_str['path'] != ''
-GROUP BY project_id, hour, dimension_value;
+WHERE event_name = 'page_view' AND path != ''
+GROUP BY project_id, hour, path;
 
 -- MV 3: Property metadata — one MV per property type
 
