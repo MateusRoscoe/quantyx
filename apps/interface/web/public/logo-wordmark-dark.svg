@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none">
+  <g transform="translate(4, 4)">
+    <path d="M16 2L28.124 9V23L16 30L3.876 23V9L16 2Z" fill="#4DB8AC"/>
+    <path d="M10 20L16 14L22 20L26 16" stroke="#1A1D24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="44" y="27" font-family="'Instrument Sans', system-ui, sans-serif" font-size="22" font-weight="700" fill="#F0F0F0">Quantyx</text>
+</svg>

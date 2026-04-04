@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/banner.svg" alt="Quantyx - Event Analytics Platform" width="100%" />
+</p>
+
 # Quantyx
 
 A multi-tenant event analytics platform. Users send behavioral events (page views, clicks, custom actions) via HTTP, which flow through Kafka into ClickHouse for analytics, with tenant and organization management backed by PostgreSQL.

@@ -1,4 +1,5 @@
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Logo } from '@/components/logo';
 import { AuthPageTracker } from './page-tracker';
 
 export default function AuthLayout({
@@ -10,9 +11,7 @@ export default function AuthLayout({
     <div className="relative flex min-h-screen items-center justify-center bg-muted p-4">
       <AuthPageTracker />
       <div className="absolute top-4 left-4">
-        <span className="font-display text-lg font-bold text-primary">
-          Quantyx
-        </span>
+        <Logo variant="wordmark" size={20} className="text-primary" />
       </div>
       <div className="absolute top-4 right-4">
         <ThemeToggle />

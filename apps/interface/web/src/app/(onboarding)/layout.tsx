@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/auth-client';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function OnboardingLayout({
@@ -33,9 +34,7 @@ export default function OnboardingLayout({
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-muted p-4">
       <div className="absolute top-4 left-4">
-        <span className="font-display text-lg font-bold text-primary">
-          Quantyx
-        </span>
+        <Logo variant="wordmark" size={20} className="text-primary" />
       </div>
       <div className="absolute top-4 right-4">
         <ThemeToggle />
