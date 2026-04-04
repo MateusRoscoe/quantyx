@@ -22,11 +22,12 @@ interface SessionsData {
 
 export function useAnalyticsSessions(
   projectId: string,
-  opts?: { limit?: number; direction?: 'asc' | 'desc' },
+  opts?: { limit?: number; direction?: 'asc' | 'desc'; userId?: string },
 ) {
   const { fromStr, toStr } = useDateRange();
   const direction = opts?.direction ?? 'desc';
   const limit = opts?.limit ?? 50;
+  const userId = opts?.userId;
 
   return useInfiniteQuery({
     queryKey: [
@@ -37,6 +38,7 @@ export function useAnalyticsSessions(
       toStr,
       direction,
       limit,
+      userId,
     ],
     queryFn: ({ pageParam }) =>
       analyticsApi.get<SessionsData>(`/projects/${projectId}/sessions`, {
@@ -44,6 +46,7 @@ export function useAnalyticsSessions(
         to: toStr,
         limit: String(limit),
         direction,
+        ...(userId && { user_id: userId }),
         ...(pageParam && {
           cursor_ts: pageParam.cursorTs,
           cursor_id: pageParam.cursorId,

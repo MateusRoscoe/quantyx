@@ -71,15 +71,12 @@ export default function UserDetailPage() {
   const { data: usersData, isLoading: usersLoading } =
     useAnalyticsUsers(projectId);
   const { data: sessionsData, isLoading: sessionsLoading } =
-    useAnalyticsSessions(projectId);
+    useAnalyticsSessions(projectId, { userId });
 
   const user = usersData?.users?.find((u) => u.userId === userId);
   const userSessions = useMemo(
-    () =>
-      sessionsData?.pages
-        .flatMap((p) => p.sessions)
-        .filter((s) => s.userId === userId) ?? [],
-    [sessionsData, userId],
+    () => sessionsData?.pages.flatMap((p) => p.sessions) ?? [],
+    [sessionsData],
   );
 
   return (

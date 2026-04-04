@@ -23,9 +23,9 @@ const { values } = parseArgs({
   options: {
     'api-key': { type: 'string' },
     endpoint: { type: 'string', default: 'http://localhost:3002' },
-    total: { type: 'string', default: '1000000' },
-    'batch-size': { type: 'string', default: '500' },
-    concurrency: { type: 'string', default: '5' },
+    total: { type: 'string', default: '10000000' },
+    'batch-size': { type: 'string', default: '1000' },
+    concurrency: { type: 'string', default: '10' },
     'days-back': { type: 'string', default: '90' },
   },
   strict: true,
@@ -140,33 +140,140 @@ const OS_VERSIONS: Record<string, string[]> = {
 
 // Weighted device profiles based on real-world browser market share
 // Chrome ~65%, Safari ~18%, Firefox ~3%, Edge ~5%, Samsung Internet ~2.5%, Opera ~2.5%
-const DEVICE_PROFILES: [number, () => Omit<DeviceProfile, 'browser_version' | 'os_version'>][] = [
+const DEVICE_PROFILES: [
+  number,
+  () => Omit<DeviceProfile, 'browser_version' | 'os_version'>
+][] = [
   // Desktop Chrome on Windows (~35%)
-  [35, () => ({ device_type: 'desktop', browser: 'Chrome', os: 'Windows', platform: 'web' })],
+  [
+    35,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Chrome',
+      os: 'Windows',
+      platform: 'web',
+    }),
+  ],
   // Desktop Chrome on macOS (~10%)
-  [10, () => ({ device_type: 'desktop', browser: 'Chrome', os: 'macOS', platform: 'web' })],
+  [
+    10,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Chrome',
+      os: 'macOS',
+      platform: 'web',
+    }),
+  ],
   // Desktop Chrome on Linux (~3%)
-  [3, () => ({ device_type: 'desktop', browser: 'Chrome', os: 'Linux', platform: 'web' })],
+  [
+    3,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Chrome',
+      os: 'Linux',
+      platform: 'web',
+    }),
+  ],
   // Mobile Chrome on Android (~17%)
-  [17, () => ({ device_type: 'mobile', browser: 'Chrome', os: 'Android', platform: 'android' })],
+  [
+    17,
+    () => ({
+      device_type: 'mobile',
+      browser: 'Chrome',
+      os: 'Android',
+      platform: 'android',
+    }),
+  ],
   // Desktop Safari on macOS (~7%)
-  [7, () => ({ device_type: 'desktop', browser: 'Safari', os: 'macOS', platform: 'web' })],
+  [
+    7,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Safari',
+      os: 'macOS',
+      platform: 'web',
+    }),
+  ],
   // Mobile Safari on iOS (~11%)
-  [11, () => ({ device_type: 'mobile', browser: 'Safari', os: 'iOS', platform: 'ios' })],
+  [
+    11,
+    () => ({
+      device_type: 'mobile',
+      browser: 'Safari',
+      os: 'iOS',
+      platform: 'ios',
+    }),
+  ],
   // Tablet Safari on iOS (~2%)
-  [2, () => ({ device_type: 'tablet', browser: 'Safari', os: 'iOS', platform: 'ios' })],
+  [
+    2,
+    () => ({
+      device_type: 'tablet',
+      browser: 'Safari',
+      os: 'iOS',
+      platform: 'ios',
+    }),
+  ],
   // Desktop Edge on Windows (~5%)
-  [5, () => ({ device_type: 'desktop', browser: 'Edge', os: 'Windows', platform: 'web' })],
+  [
+    5,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Edge',
+      os: 'Windows',
+      platform: 'web',
+    }),
+  ],
   // Desktop Firefox on Windows (~1.5%)
-  [1.5, () => ({ device_type: 'desktop', browser: 'Firefox', os: 'Windows', platform: 'web' })],
+  [
+    1.5,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Firefox',
+      os: 'Windows',
+      platform: 'web',
+    }),
+  ],
   // Desktop Firefox on macOS (~0.5%)
-  [0.5, () => ({ device_type: 'desktop', browser: 'Firefox', os: 'macOS', platform: 'web' })],
+  [
+    0.5,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Firefox',
+      os: 'macOS',
+      platform: 'web',
+    }),
+  ],
   // Desktop Firefox on Linux (~1%)
-  [1, () => ({ device_type: 'desktop', browser: 'Firefox', os: 'Linux', platform: 'web' })],
+  [
+    1,
+    () => ({
+      device_type: 'desktop',
+      browser: 'Firefox',
+      os: 'Linux',
+      platform: 'web',
+    }),
+  ],
   // Samsung Internet on Android (~2.5%)
-  [2.5, () => ({ device_type: 'mobile', browser: 'Samsung Internet', os: 'Android', platform: 'android' })],
+  [
+    2.5,
+    () => ({
+      device_type: 'mobile',
+      browser: 'Samsung Internet',
+      os: 'Android',
+      platform: 'android',
+    }),
+  ],
   // Tablet Chrome on Android (~2%)
-  [2, () => ({ device_type: 'tablet', browser: 'Chrome', os: 'Android', platform: 'android' })],
+  [
+    2,
+    () => ({
+      device_type: 'tablet',
+      browser: 'Chrome',
+      os: 'Android',
+      platform: 'android',
+    }),
+  ],
 ];
 
 function pickDeviceProfile(): DeviceProfile {
@@ -422,6 +529,7 @@ async function run(): Promise<void> {
   let sent = 0;
   let failed = 0;
   const t0 = performance.now();
+  let lastLog = 0;
 
   // Process batches with bounded concurrency
   let batchIndex = 0;
@@ -437,11 +545,15 @@ async function run(): Promise<void> {
       const p = sendBatch(batch)
         .then(() => {
           sent += size;
-          const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
-          const rate = Math.floor(sent / ((performance.now() - t0) / 1000));
-          process.stdout.write(
-            `\r  Sent ${sent.toLocaleString()} / ${TOTAL.toLocaleString()} events (${elapsed}s, ~${rate.toLocaleString()} events/s)`
-          );
+          const now = performance.now();
+          if (now - lastLog > 1000) {
+            lastLog = now;
+            const elapsed = ((now - t0) / 1000).toFixed(1);
+            const rate = Math.floor(sent / ((now - t0) / 1000));
+            process.stdout.write(
+              `\r  Sent ${sent.toLocaleString()} / ${TOTAL.toLocaleString()} events (${elapsed}s, ~${rate.toLocaleString()} events/s)`
+            );
+          }
         })
         .catch((err) => {
           failed++;

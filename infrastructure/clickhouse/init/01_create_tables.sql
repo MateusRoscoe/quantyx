@@ -99,7 +99,6 @@ CREATE TABLE
     IF NOT EXISTS analytics.sessions (
         project_id String,
         session_id String,
-        user_id AggregateFunction (anyLast, String),
         started_at AggregateFunction (min, DateTime),
         ended_at AggregateFunction (max, DateTime),
         total_events AggregateFunction (sum, UInt64),
@@ -113,6 +112,16 @@ CREATE TABLE
     ) ENGINE = AggregatingMergeTree ()
 ORDER BY
     (project_id, session_id);
+
+-- Session-user lookup (maps user_id → session_ids for fast user-scoped queries)
+CREATE TABLE
+    IF NOT EXISTS analytics.session_user_map (
+        project_id String,
+        user_id String,
+        session_id String
+    ) ENGINE = ReplacingMergeTree ()
+ORDER BY
+    (project_id, user_id, session_id);
 
 -- ════════════════════════════════════════════════
 -- Materialized Views
@@ -143,7 +152,6 @@ AS
 SELECT
     project_id,
     session_id,
-    anyLastState(user_id) AS user_id,
     minState(timestamp) AS started_at,
     maxState(timestamp) AS ended_at,
     sumState(toUInt64(1)) AS total_events,
@@ -157,6 +165,17 @@ SELECT
 FROM analytics.events
 WHERE session_id != ''
 GROUP BY project_id, session_id;
+
+-- MV: Populate session-user lookup
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_session_user_map
+TO analytics.session_user_map
+AS
+SELECT
+    project_id,
+    user_id,
+    session_id
+FROM analytics.events
+WHERE session_id != '' AND user_id != '';
 
 -- MV: Hourly metrics — one MV per dimension (ClickHouse processes each independently)
 

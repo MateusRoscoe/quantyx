@@ -317,11 +317,12 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         direction: z.enum(['asc', 'desc']).default('desc'),
         cursor_ts: z.string().optional(),
         cursor_id: z.string().optional(),
+        user_id: z.string().optional(),
       }),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
-      const { from, to, limit, direction, cursor_ts, cursor_id } =
+      const { from, to, limit, direction, cursor_ts, cursor_id, user_id } =
         request.query as {
           from: string;
           to: string;
@@ -329,6 +330,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           direction: 'asc' | 'desc';
           cursor_ts?: string;
           cursor_id?: string;
+          user_id?: string;
         };
 
       await fastify.verifyProjectAccess(request, projectId);
@@ -337,6 +339,14 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       const op = direction === 'desc' ? '<' : '>';
       const cursorClause = hasCursor
         ? `AND (started_at, session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
+        : '';
+      const userSessionFilter = user_id
+        ? `AND session_id IN (
+            SELECT session_id
+            FROM analytics.session_user_map
+            WHERE project_id = {projectId:String}
+              AND user_id = {userId:String}
+          )`
         : '';
 
       const sessions = await queryClickHouse<{
@@ -352,28 +362,47 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         country: string;
       }>(
         `SELECT
-          session_id,
-          anyLastMerge(user_id) as user_id,
-          minMerge(started_at) as started_at,
-          maxMerge(ended_at) as ended_at,
-          sumMerge(total_events) as total_events,
-          sumMerge(page_views) as page_views,
-          anyMerge(browser) as browser,
-          anyMerge(os) as os,
-          anyMerge(device_type) as device_type,
-          anyMerge(country) as country
-        FROM analytics.sessions
-        WHERE project_id = {projectId:String}
-        GROUP BY session_id
-        HAVING started_at >= toDateTime({from:String})
-          AND started_at < toDateTime({to:String})
-          ${cursorClause}
-        ORDER BY started_at ${direction === 'desc' ? 'DESC' : 'ASC'}, session_id ${direction === 'desc' ? 'DESC' : 'ASC'}
-        LIMIT {fetchLimit:UInt32}`,
+          s.session_id,
+          m.user_id,
+          s.started_at,
+          s.ended_at,
+          s.total_events,
+          s.page_views,
+          s.browser,
+          s.os,
+          s.device_type,
+          s.country
+        FROM (
+          SELECT
+            session_id,
+            minMerge(started_at) as started_at,
+            maxMerge(ended_at) as ended_at,
+            sumMerge(total_events) as total_events,
+            sumMerge(page_views) as page_views,
+            anyMerge(browser) as browser,
+            anyMerge(os) as os,
+            anyMerge(device_type) as device_type,
+            anyMerge(country) as country
+          FROM analytics.sessions
+          WHERE project_id = {projectId:String}
+            ${userSessionFilter}
+          GROUP BY session_id
+          HAVING started_at >= toDateTime({from:String})
+            AND started_at < toDateTime({to:String})
+            ${cursorClause}
+          ORDER BY started_at ${direction === 'desc' ? 'DESC' : 'ASC'}, session_id ${direction === 'desc' ? 'DESC' : 'ASC'}
+          LIMIT {fetchLimit:UInt32}
+        ) s
+        LEFT JOIN (
+          SELECT DISTINCT session_id, user_id
+          FROM analytics.session_user_map
+          WHERE project_id = {projectId:String}
+        ) m ON s.session_id = m.session_id`,
         {
           projectId,
           from,
           to,
+          ...(user_id && { userId: user_id }),
           ...(hasCursor && { cursorTs: cursor_ts, cursorId: cursor_id }),
           fetchLimit: limit + 1,
         },
@@ -443,20 +472,38 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         country: string;
       }>(
         `SELECT
-          session_id,
-          anyLastMerge(user_id) as user_id,
-          minMerge(started_at) as started_at,
-          maxMerge(ended_at) as ended_at,
-          sumMerge(total_events) as total_events,
-          sumMerge(page_views) as page_views,
-          anyMerge(browser) as browser,
-          anyMerge(os) as os,
-          anyMerge(device_type) as device_type,
-          anyMerge(country) as country
-        FROM analytics.sessions
-        WHERE project_id = {projectId:String}
-          AND session_id = {sessionId:String}
-        GROUP BY session_id`,
+          s.session_id,
+          m.user_id,
+          s.started_at,
+          s.ended_at,
+          s.total_events,
+          s.page_views,
+          s.browser,
+          s.os,
+          s.device_type,
+          s.country
+        FROM (
+          SELECT
+            session_id,
+            minMerge(started_at) as started_at,
+            maxMerge(ended_at) as ended_at,
+            sumMerge(total_events) as total_events,
+            sumMerge(page_views) as page_views,
+            anyMerge(browser) as browser,
+            anyMerge(os) as os,
+            anyMerge(device_type) as device_type,
+            anyMerge(country) as country
+          FROM analytics.sessions
+          WHERE project_id = {projectId:String}
+            AND session_id = {sessionId:String}
+          GROUP BY session_id
+        ) s
+        LEFT JOIN (
+          SELECT DISTINCT session_id, user_id
+          FROM analytics.session_user_map
+          WHERE project_id = {projectId:String}
+            AND session_id = {sessionId:String}
+        ) m ON s.session_id = m.session_id`,
         { projectId, sessionId },
       );
 
