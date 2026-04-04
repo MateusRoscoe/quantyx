@@ -1,6 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { queryClickHouse } from '../../helpers/query';
+import {
+  queryClickHouse,
+  buildEventFilters,
+  parsePropertyFilters,
+  buildPropertyFilterClauses,
+} from '../../helpers/query';
 
 const dateRangeSchema = z.object({
   from: z.string(), // ISO datetime or YYYY-MM-DD
@@ -601,6 +606,159 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           exampleValue: p.example_value,
         })),
       };
+    },
+  });
+
+  // ─── Event Feed (raw events explorer) ───
+
+  fastify.get('/projects/:projectId/events/feed', {
+    schema: {
+      params: z.object({ projectId: z.string().uuid() }),
+      querystring: querySchema.extend({
+        user_id: z.string().optional(),
+        session_id: z.string().optional(),
+        limit: z.coerce.number().min(1).max(200).default(50),
+        direction: z.enum(['asc', 'desc']).default('desc'),
+        cursor_ts: z.string().optional(),
+        cursor_id: z.string().optional(),
+      }).passthrough(), // Allow prop_str.*, prop_num.*, prop_bool.* params
+    },
+    handler: async (request, reply) => {
+      const { projectId } = request.params as { projectId: string };
+      const { from, to, limit, direction, cursor_ts, cursor_id, ...rest } =
+        request.query as Record<string, string> & {
+          from: string;
+          to: string;
+          limit: number;
+          direction: 'asc' | 'desc';
+          cursor_ts?: string;
+          cursor_id?: string;
+        };
+
+      await fastify.verifyProjectAccess(request, projectId);
+
+      // Build dimension filters
+      const dimFilters = buildEventFilters({
+        browser: rest.browser,
+        os: rest.os,
+        country: rest.country,
+        device_type: rest.device_type,
+        event_name: rest.event_name,
+        path: rest.path,
+        user_id: rest.user_id,
+        session_id: rest.session_id,
+      });
+
+      // Build property filters
+      const propFilters = parsePropertyFilters(rest);
+      const propClauses = buildPropertyFilterClauses(propFilters);
+
+      // Build cursor clause
+      const hasCursor = cursor_ts && cursor_id;
+      const op = direction === 'desc' ? '<' : '>';
+      const cursorClause = hasCursor
+        ? `AND (timestamp, event_id) ${op} ({cursorTs:String}, {cursorId:String})`
+        : '';
+
+      const allClauses = [...dimFilters.clauses, ...propClauses.clauses];
+      const filterWhere =
+        allClauses.length > 0 ? `AND ${allClauses.join(' AND ')}` : '';
+
+      const events = await queryClickHouse<{
+        event_id: string;
+        event_name: string;
+        timestamp: string;
+        user_id: string;
+        session_id: string;
+        browser: string;
+        os: string;
+        device_type: string;
+        country: string;
+        props_str: Record<string, string>;
+        props_num: Record<string, number>;
+        props_bool: Record<string, number>;
+      }>(
+        `SELECT
+          event_id, event_name, timestamp, user_id, session_id,
+          browser, os, device_type, country,
+          props_str, props_num, props_bool
+        FROM analytics.events
+        WHERE project_id = {projectId:String}
+          AND timestamp >= toDateTime({from:String})
+          AND timestamp < toDateTime({to:String})
+          ${cursorClause}
+          ${filterWhere}
+        ORDER BY timestamp ${direction === 'desc' ? 'DESC' : 'ASC'}, event_id ${direction === 'desc' ? 'DESC' : 'ASC'}
+        LIMIT {fetchLimit:UInt32}`,
+        {
+          projectId,
+          from,
+          to,
+          ...(hasCursor && { cursorTs: cursor_ts, cursorId: cursor_id }),
+          ...dimFilters.params,
+          ...propClauses.params,
+          fetchLimit: limit + 1,
+        },
+      );
+
+      const hasMore = events.length > limit;
+      const page = hasMore ? events.slice(0, limit) : events;
+
+      return { events: page, hasMore };
+    },
+  });
+
+  // ─── Property Values ───
+
+  fastify.get('/projects/:projectId/properties/:propertyName/values', {
+    schema: {
+      params: z.object({
+        projectId: z.string().uuid(),
+        propertyName: z.string(),
+      }),
+      querystring: z.object({
+        type: z.enum(['str', 'num', 'bool']),
+        search: z.string().optional(),
+        limit: z.coerce.number().min(1).max(200).default(50),
+      }),
+    },
+    handler: async (request, reply) => {
+      const { projectId, propertyName } = request.params as {
+        projectId: string;
+        propertyName: string;
+      };
+      const { type, search, limit } = request.query as {
+        type: 'str' | 'num' | 'bool';
+        search?: string;
+        limit: number;
+      };
+
+      await fastify.verifyProjectAccess(request, projectId);
+
+      const colMap = { str: 'props_str', num: 'props_num', bool: 'props_bool' } as const;
+      const col = colMap[type];
+
+      const searchClause = search
+        ? `AND ${col}[{name:String}] LIKE {search:String}`
+        : '';
+
+      const rows = await queryClickHouse<{ value: string }>(
+        `SELECT DISTINCT toString(${col}[{name:String}]) as value
+        FROM analytics.events
+        WHERE project_id = {projectId:String}
+          AND mapContains(${col}, {name:String})
+          ${searchClause}
+        ORDER BY value
+        LIMIT {limit:UInt32}`,
+        {
+          projectId,
+          name: propertyName,
+          ...(search && { search: `${search}%` }),
+          limit,
+        },
+      );
+
+      return { values: rows.map((r) => r.value) };
     },
   });
 

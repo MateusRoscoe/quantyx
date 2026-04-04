@@ -10,6 +10,14 @@ export interface AnalyticsFilters {
   device_type?: string[];
   event_name?: string[];
   path?: string[];
+  user_id?: string[];
+  session_id?: string[];
+}
+
+export interface PropertyFilterEntry {
+  type: 'str' | 'num' | 'bool';
+  name: string;
+  value: string;
 }
 
 const FILTER_KEYS: (keyof AnalyticsFilters)[] = [
@@ -19,16 +27,13 @@ const FILTER_KEYS: (keyof AnalyticsFilters)[] = [
   'device_type',
   'event_name',
   'path',
+  'user_id',
+  'session_id',
 ];
 
-export function useFilters(): {
-  filters: AnalyticsFilters;
-  setFilter: (key: keyof AnalyticsFilters, values: string[]) => void;
-  removeFilter: (key: keyof AnalyticsFilters) => void;
-  clearFilters: () => void;
-  activeFilterCount: number;
-  filterParams: Record<string, string>;
-} {
+const PROP_PREFIX_RE = /^prop_(str|num|bool)\.(.+)$/;
+
+export function useFilters() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -44,9 +49,25 @@ export function useFilters(): {
     return result;
   }, [searchParams]);
 
+  const propertyFilters = useMemo(() => {
+    const result: PropertyFilterEntry[] = [];
+    searchParams.forEach((value, key) => {
+      const match = key.match(PROP_PREFIX_RE);
+      if (match) {
+        result.push({
+          type: match[1] as 'str' | 'num' | 'bool',
+          name: match[2],
+          value,
+        });
+      }
+    });
+    return result;
+  }, [searchParams]);
+
   const activeFilterCount = useMemo(
-    () => Object.keys(filters).length,
-    [filters],
+    () =>
+      Object.keys(filters).length + propertyFilters.length,
+    [filters, propertyFilters],
   );
 
   const filterParams = useMemo(() => {
@@ -55,8 +76,11 @@ export function useFilters(): {
       const value = searchParams.get(key);
       if (value) result[key] = value;
     }
+    for (const pf of propertyFilters) {
+      result[`prop_${pf.type}.${pf.name}`] = pf.value;
+    }
     return result;
-  }, [searchParams]);
+  }, [searchParams, propertyFilters]);
 
   const updateParams = useCallback(
     (updater: (params: URLSearchParams) => void) => {
@@ -87,18 +111,45 @@ export function useFilters(): {
     [updateParams],
   );
 
+  const setPropertyFilter = useCallback(
+    (type: 'str' | 'num' | 'bool', name: string, value: string) => {
+      updateParams((params) => {
+        params.set(`prop_${type}.${name}`, value);
+      });
+    },
+    [updateParams],
+  );
+
+  const removePropertyFilter = useCallback(
+    (type: 'str' | 'num' | 'bool', name: string) => {
+      updateParams((params) => {
+        params.delete(`prop_${type}.${name}`);
+      });
+    },
+    [updateParams],
+  );
+
   const clearFilters = useCallback(() => {
     updateParams((params) => {
       for (const key of FILTER_KEYS) {
         params.delete(key);
       }
+      // Clear property filters
+      const toDelete: string[] = [];
+      params.forEach((_, key) => {
+        if (PROP_PREFIX_RE.test(key)) toDelete.push(key);
+      });
+      for (const key of toDelete) params.delete(key);
     });
   }, [updateParams]);
 
   return {
     filters,
+    propertyFilters,
     setFilter,
     removeFilter,
+    setPropertyFilter,
+    removePropertyFilter,
     clearFilters,
     activeFilterCount,
     filterParams,

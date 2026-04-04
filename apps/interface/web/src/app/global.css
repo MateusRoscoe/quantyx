@@ -178,6 +178,9 @@
     *:focus-visible {
         @apply ring-1 ring-ring/30 ring-inset;
     }
+    button, [role="tab"], [role="button"], a, select, summary {
+        cursor: pointer;
+    }
     body {
         @apply bg-background text-foreground;
     }
