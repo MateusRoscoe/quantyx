@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
 import {
@@ -69,8 +69,13 @@ export default function SessionsPage() {
     projectId: string;
   }>();
   const router = useRouter();
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+  const toggleDirection = useCallback(
+    () => setDirection((d) => (d === 'asc' ? 'desc' : 'asc')),
+    [],
+  );
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useAnalyticsSessions(projectId);
+    useAnalyticsSessions(projectId, { limit: 25, direction });
 
   const sessions = useMemo(
     () => data?.pages.flatMap((p) => p.sessions) ?? [],
@@ -81,17 +86,21 @@ export default function SessionsPage() {
     <div className="space-y-6">
       <PageHeader title="Sessions" showFilterBar={false} />
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base font-medium">
             Recent Sessions
           </CardTitle>
+          <Button variant="outline" size="sm" onClick={toggleDirection}>
+            {direction === 'desc' ? 'Newest first' : 'Oldest first'}
+          </Button>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
             data={sessions}
             isLoading={isLoading}
-            pageSize={20}
+            disablePagination
+            disableSorting
             onRowClick={(row) =>
               router.push(
                 `/app/${orgId}/${projectId}/sessions/${row.sessionId}`,

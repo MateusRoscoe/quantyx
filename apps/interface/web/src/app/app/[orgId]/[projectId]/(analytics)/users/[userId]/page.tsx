@@ -14,6 +14,7 @@ import {
   TruncateWithTooltip,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Calendar, Clock, Zap } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -75,8 +76,13 @@ export default function UserDetailPage() {
   const sessionColumns = useSessionColumns();
   const { data: usersData, isLoading: usersLoading } =
     useAnalyticsUsers(projectId);
-  const { data: sessionsData, isLoading: sessionsLoading } =
-    useAnalyticsSessions(projectId, { userId });
+  const {
+    data: sessionsData,
+    isLoading: sessionsLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useAnalyticsSessions(projectId, { userId, limit: 25 });
 
   const user = usersData?.users?.find((u) => u.userId === userId);
   const userSessions = useMemo(
@@ -151,8 +157,21 @@ export default function UserDetailPage() {
             columns={sessionColumns}
             data={userSessions}
             isLoading={sessionsLoading}
-            pageSize={10}
+            disablePagination
+            disableSorting
           />
+          {hasNextPage && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

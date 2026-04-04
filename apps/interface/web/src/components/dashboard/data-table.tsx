@@ -28,6 +28,8 @@ interface DataTableProps<TData> {
   isLoading?: boolean;
   pageSize?: number;
   onRowClick?: (row: TData) => void;
+  disablePagination?: boolean;
+  disableSorting?: boolean;
 }
 
 export function DataTable<TData>({
@@ -36,18 +38,28 @@ export function DataTable<TData>({
   isLoading,
   pageSize = 10,
   onRowClick,
+  disablePagination,
+  disableSorting,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
+    ...(disableSorting
+      ? { enableSorting: false }
+      : {
+          state: { sorting },
+          onSortingChange: setSorting,
+          getSortedRowModel: getSortedRowModel(),
+        }),
+    ...(disablePagination
+      ? {}
+      : {
+          getPaginationRowModel: getPaginationRowModel(),
+          initialState: { pagination: { pageSize } },
+        }),
   });
 
   if (isLoading) {
