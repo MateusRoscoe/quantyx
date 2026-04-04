@@ -34,7 +34,7 @@ async function pollClickHouse(
       query_params: { projectId },
       format: 'JSONEachRow',
     });
-    const rows = await result.json<Record<string, unknown>[]>();
+    const rows = await result.json<Record<string, unknown>>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (rows.length >= expectedCount) return rows as any;
     await new Promise((r) => setTimeout(r, intervalMs));
@@ -198,7 +198,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
         query_params: { projectId, userId },
         format: 'JSONEachRow',
       });
-      userRows = await result.json<Record<string, unknown>[]>();
+      userRows = await result.json<Record<string, unknown>>();
       if (userRows.length > 0) break;
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -240,7 +240,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
       query_params: { projectId },
       format: 'JSONEachRow',
     });
-    const rows = await result.json<{ cnt: string }[]>();
+    const rows = await result.json<{ cnt: string }>();
     expect(Number(rows[0].cnt)).toBe(0);
   });
 
@@ -289,7 +289,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
         query_params: { projectId },
         format: 'JSONEachRow',
       });
-      metricRows = await result.json<Record<string, unknown>[]>();
+      metricRows = await result.json<Record<string, unknown>>();
       if (metricRows.length >= 3) break;
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -354,7 +354,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
         query_params: { projectId },
         format: 'JSONEachRow',
       });
-      propRows = await result.json<Record<string, unknown>[]>();
+      propRows = await result.json<Record<string, unknown>>();
       if (propRows.length >= 3) break;
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -446,7 +446,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
         query_params: { projectId, sessionId },
         format: 'JSONEachRow',
       });
-      sessionRows = await result.json<Record<string, unknown>[]>();
+      sessionRows = await result.json<Record<string, unknown>>();
       if (sessionRows.length > 0) break;
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -493,7 +493,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
       query_params: { projectId },
       format: 'JSONEachRow',
     });
-    const rows = await result.json<{ cnt: string }[]>();
+    const rows = await result.json<{ cnt: string }>();
     expect(Number(rows[0].cnt)).toBe(0);
   });
 

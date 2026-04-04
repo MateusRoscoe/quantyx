@@ -62,3 +62,6 @@ test-results/
 playwright-report/
 blob-report/
 .e2e-state.json
+
+.claude/worktrees
+.claude/settings.local.json
