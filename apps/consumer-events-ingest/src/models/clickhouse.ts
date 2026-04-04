@@ -1,4 +1,7 @@
 import { clickhouse, ClickHouseEvent } from '@quantyx/clickhouse';
+import { getLogger } from '@quantyx/shared-backend';
+
+const logger = getLogger('clickhouse-insert');
 
 export async function insertEventsToClickHouse(
   events: ClickHouseEvent[],
@@ -11,10 +14,10 @@ export async function insertEventsToClickHouse(
     });
 
     if (!result.executed) {
-      console.warn('Insert was not executed (no data to insert)');
+      logger.warn('Insert was not executed (no data to insert)');
     }
   } catch (error) {
-    console.error('Failed to insert events to ClickHouse:', error);
+    logger.error(error, 'Failed to insert events to ClickHouse');
     throw error;
   }
 }
