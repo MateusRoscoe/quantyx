@@ -244,7 +244,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
     expect(Number(rows[0].cnt)).toBe(0);
   });
 
-  it('materialized view populates analytics.metrics_daily with dimension rows', async () => {
+  it('materialized view populates analytics.metrics_hourly with dimension rows', async () => {
     const projectId = randomUUID();
     const userId = `user-${randomUUID().slice(0, 8)}`;
 
@@ -271,7 +271,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
 
     await pollClickHouse(projectId, 2);
 
-    // Poll metrics_daily for the 'overall' dimension
+    // Poll metrics_hourly for the 'overall' dimension
     const deadline = Date.now() + 15_000;
     let metricRows: Record<string, unknown>[] = [];
     while (Date.now() < deadline) {
@@ -281,7 +281,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
             dimension_name,
             dimension_value,
             sumMerge(event_count) AS event_count
-          FROM analytics.metrics_daily
+          FROM analytics.metrics_hourly
           WHERE project_id = {projectId:String}
           GROUP BY dimension_name, dimension_value
           ORDER BY dimension_name, event_count DESC

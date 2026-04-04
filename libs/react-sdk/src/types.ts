@@ -32,7 +32,6 @@ export interface EventPayload {
   user_id: string;
   event_name: string;
   timestamp: string;
-  date: string;
   country?: string;
   state?: string;
   city?: string;

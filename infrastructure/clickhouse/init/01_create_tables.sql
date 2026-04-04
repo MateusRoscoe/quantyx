@@ -9,7 +9,6 @@ CREATE TABLE
         session_id String,
         event_name LowCardinality (String),
         `timestamp` DateTime,
-        `date` Date,
         -- Standard dimensions
         country LowCardinality (String),
         continent LowCardinality (String),
@@ -30,18 +29,15 @@ CREATE TABLE
         ip_address IPv6,
         user_agent String,
         INDEX idx_event_name event_name TYPE bloom_filter GRANULARITY 1,
-        INDEX idx_user_id user_id TYPE bloom_filter GRANULARITY 1
+        INDEX idx_user_id user_id TYPE bloom_filter GRANULARITY 1,
+        INDEX idx_session_id session_id TYPE bloom_filter GRANULARITY 1
     ) ENGINE = MergeTree ()
 PARTITION BY
-    toYYYYMM (`date`)
+    toYYYYMM (`timestamp`)
 ORDER BY
-    (
-        project_id,
-        `date`,
-        event_name,
-        user_id,
-        `timestamp`
-    ) TTL `date` + INTERVAL 90 DAY SETTINGS index_granularity = 8192;
+    (project_id, `timestamp`)
+TTL `timestamp` + INTERVAL 90 DAY
+SETTINGS index_granularity = 8192;
 
 -- Users table (aggregated user data)
 CREATE TABLE

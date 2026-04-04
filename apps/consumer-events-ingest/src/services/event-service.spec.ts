@@ -46,7 +46,6 @@ describe('EventService', () => {
         timestamp: Math.floor(
           new Date('2025-06-15T14:30:00.000Z').getTime() / 1000
         ),
-        date: '2025-06-15',
         country: 'US',
         continent: 'North America',
         region: 'North America',
@@ -119,18 +118,6 @@ describe('EventService', () => {
       expect(result.props_bool).toEqual({ a: 1, b: 0, c: 1, d: 0 });
     });
 
-    it('extracts correct date across month/year boundaries', () => {
-      const nye = makeEvent({ timestamp: '2024-12-31T23:59:59.000Z' });
-      const newYear = makeEvent({ timestamp: '2025-01-01T00:00:00.000Z' });
-
-      expect(EventService.transformToClickHouseFormat(nye).date).toBe(
-        '2024-12-31'
-      );
-      expect(EventService.transformToClickHouseFormat(newYear).date).toBe(
-        '2025-01-01'
-      );
-    });
-
     it('converts timestamp to Unix seconds (not milliseconds)', () => {
       const event = makeEvent({ timestamp: '2025-06-15T14:30:00.000Z' });
 
@@ -139,14 +126,6 @@ describe('EventService', () => {
 
       expect(result.timestamp).toBe(Math.floor(expectedMs / 1000));
       expect(result.timestamp).toBeLessThan(expectedMs); // seconds < milliseconds
-    });
-
-    it('pads single-digit month and day with leading zero', () => {
-      const event = makeEvent({ timestamp: '2024-03-05T10:00:00.000Z' });
-
-      const result = EventService.transformToClickHouseFormat(event);
-
-      expect(result.date).toBe('2024-03-05');
     });
 
     it('passes through core identifiers unchanged', () => {

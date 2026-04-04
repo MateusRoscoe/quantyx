@@ -42,7 +42,6 @@ export type ClickHouseEvent = {
   session_id: string;
   event_name: string;
   timestamp: number; // Unix timestamp in seconds
-  date: string; // YYYY-MM-DD format
   // Standard dimensions
   country: string;
   continent: string;

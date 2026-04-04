@@ -31,7 +31,6 @@ describe('Validators', () => {
     it('allows optional fields and custom props', () => {
       const payload = {
         ...basePayload,
-        date: '2024-05-01',
         country: 'USA',
         state: 'California',
         city: 'San Francisco',
@@ -89,18 +88,6 @@ describe('Validators', () => {
         expect(
           result.error.issues.some((i) => i.path.join('.') === 'timestamp')
         ).toBe(true);
-      }
-    });
-    it('validates yyyy-mm-dd date format when provided', () => {
-      const result = EventMessageInput.safeParse({
-        ...basePayload,
-        date: '05/01/2024',
-      });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues.some((i) => i.path[0] === 'date')).toBe(
-          true
-        );
       }
     });
     it('rejects invalid values in props', () => {

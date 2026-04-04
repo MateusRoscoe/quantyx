@@ -47,7 +47,6 @@ export class QuantyxClient {
       user_id: this.userId,
       event_name: eventName,
       timestamp: now.toISOString(),
-      date: now.toISOString().slice(0, 10),
       ...(this.config.autoDetect ? this.deviceContext : {}),
       ...properties,
     };

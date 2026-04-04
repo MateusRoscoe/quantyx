@@ -23,7 +23,6 @@ export const EventMessageInput = z.object({
   event_name: z.string().min(1).max(256),
 
   timestamp: z.iso.datetime({ precision: 3 }),
-  date: z.iso.date().optional(),
 
   // Standard dimensions
   country: CountryCode.optional(),
