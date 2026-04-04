@@ -362,42 +362,25 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         country: string;
       }>(
         `SELECT
-          s.session_id,
-          m.user_id,
-          s.started_at,
-          s.ended_at,
-          s.total_events,
-          s.page_views,
-          s.browser,
-          s.os,
-          s.device_type,
-          s.country
-        FROM (
-          SELECT
-            session_id,
-            minMerge(started_at) as started_at,
-            maxMerge(ended_at) as ended_at,
-            sumMerge(total_events) as total_events,
-            sumMerge(page_views) as page_views,
-            anyMerge(browser) as browser,
-            anyMerge(os) as os,
-            anyMerge(device_type) as device_type,
-            anyMerge(country) as country
-          FROM analytics.sessions
-          WHERE project_id = {projectId:String}
-            ${userSessionFilter}
-          GROUP BY session_id
-          HAVING started_at >= toDateTime({from:String})
-            AND started_at < toDateTime({to:String})
-            ${cursorClause}
-          ORDER BY started_at ${direction === 'desc' ? 'DESC' : 'ASC'}, session_id ${direction === 'desc' ? 'DESC' : 'ASC'}
-          LIMIT {fetchLimit:UInt32}
-        ) s
-        LEFT JOIN (
-          SELECT DISTINCT session_id, user_id
-          FROM analytics.session_user_map
-          WHERE project_id = {projectId:String}
-        ) m ON s.session_id = m.session_id`,
+          session_id,
+          maxMerge(user_id) as user_id,
+          minMerge(started_at) as started_at,
+          maxMerge(ended_at) as ended_at,
+          sumMerge(total_events) as total_events,
+          sumMerge(page_views) as page_views,
+          anyMerge(browser) as browser,
+          anyMerge(os) as os,
+          anyMerge(device_type) as device_type,
+          anyMerge(country) as country
+        FROM analytics.sessions
+        WHERE project_id = {projectId:String}
+          ${userSessionFilter}
+        GROUP BY session_id
+        HAVING started_at >= toDateTime({from:String})
+          AND started_at < toDateTime({to:String})
+          ${cursorClause}
+        ORDER BY started_at ${direction === 'desc' ? 'DESC' : 'ASC'}, session_id ${direction === 'desc' ? 'DESC' : 'ASC'}
+        LIMIT {fetchLimit:UInt32}`,
         {
           projectId,
           from,
@@ -472,38 +455,20 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         country: string;
       }>(
         `SELECT
-          s.session_id,
-          m.user_id,
-          s.started_at,
-          s.ended_at,
-          s.total_events,
-          s.page_views,
-          s.browser,
-          s.os,
-          s.device_type,
-          s.country
-        FROM (
-          SELECT
-            session_id,
-            minMerge(started_at) as started_at,
-            maxMerge(ended_at) as ended_at,
-            sumMerge(total_events) as total_events,
-            sumMerge(page_views) as page_views,
-            anyMerge(browser) as browser,
-            anyMerge(os) as os,
-            anyMerge(device_type) as device_type,
-            anyMerge(country) as country
-          FROM analytics.sessions
-          WHERE project_id = {projectId:String}
-            AND session_id = {sessionId:String}
-          GROUP BY session_id
-        ) s
-        LEFT JOIN (
-          SELECT DISTINCT session_id, user_id
-          FROM analytics.session_user_map
-          WHERE project_id = {projectId:String}
-            AND session_id = {sessionId:String}
-        ) m ON s.session_id = m.session_id`,
+          session_id,
+          maxMerge(user_id) as user_id,
+          minMerge(started_at) as started_at,
+          maxMerge(ended_at) as ended_at,
+          sumMerge(total_events) as total_events,
+          sumMerge(page_views) as page_views,
+          anyMerge(browser) as browser,
+          anyMerge(os) as os,
+          anyMerge(device_type) as device_type,
+          anyMerge(country) as country
+        FROM analytics.sessions
+        WHERE project_id = {projectId:String}
+          AND session_id = {sessionId:String}
+        GROUP BY session_id`,
         { projectId, sessionId },
       );
 

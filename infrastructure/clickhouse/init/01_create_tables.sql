@@ -99,6 +99,7 @@ CREATE TABLE
     IF NOT EXISTS analytics.sessions (
         project_id String,
         session_id String,
+        user_id AggregateFunction (max, String),
         started_at AggregateFunction (min, DateTime),
         ended_at AggregateFunction (max, DateTime),
         total_events AggregateFunction (sum, UInt64),
@@ -152,6 +153,7 @@ AS
 SELECT
     project_id,
     session_id,
+    maxState(user_id) AS user_id,
     minState(timestamp) AS started_at,
     maxState(timestamp) AS ended_at,
     sumState(toUInt64(1)) AS total_events,
