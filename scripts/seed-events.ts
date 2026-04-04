@@ -379,6 +379,11 @@ function randomPublicIPv4(): string {
   return `${first}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
 }
 
+// ── Time range ───────────────────────────────────────────────────────────────
+
+const endMs = Date.now();
+const startMs = endMs - DAYS_BACK * 24 * 60 * 60 * 1000;
+
 // ── Realistic daily traffic distribution ───────────────────────────────────
 
 interface DailyWeight {
@@ -484,9 +489,6 @@ interface Session {
   country: (typeof COUNTRIES)[number];
   eventCount: number;
 }
-
-const endMs = Date.now();
-const startMs = endMs - DAYS_BACK * 24 * 60 * 60 * 1000;
 
 function createSession(timestampMs: number): Session {
   const device = pickDeviceProfile();
