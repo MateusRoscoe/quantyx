@@ -40,7 +40,10 @@ export function DateRangePicker() {
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         commitAndClose();
       }
     }
@@ -67,10 +70,21 @@ export function DateRangePicker() {
 
   function handleCalendarSelect(range: DayPickerDateRange | undefined) {
     clickCount.current += 1;
+
+    if (clickCount.current === 1) {
+      // First click always starts a fresh range — figure out which date was clicked
+      // because rdp may have adjusted the existing range instead of resetting it
+      const prev = draftRef.current;
+      const fromChanged =
+        !prev?.from ||
+        !range?.from ||
+        range.from.getTime() !== prev.from.getTime();
+      const clickedDate = fromChanged ? range?.from : range?.to;
+      setDraft({ from: clickedDate, to: undefined });
+      return;
+    }
+
     setDraft(range);
-
-    if (clickCount.current === 1) return;
-
     if (range?.from && range?.to) {
       setRange({ from: range.from, to: range.to, period: 'custom' });
       setOpen(false);
@@ -91,7 +105,7 @@ export function DateRangePicker() {
               'cursor-pointer px-3 py-1.5 text-xs transition-colors hover:bg-accent',
               period === p.value
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'text-muted-foreground',
+                : 'text-muted-foreground'
             )}
           >
             {p.label}
@@ -104,7 +118,7 @@ export function DateRangePicker() {
             'flex cursor-pointer items-center gap-1.5 border-l px-3 py-1.5 text-xs transition-colors hover:bg-accent',
             period === 'custom'
               ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-              : 'text-muted-foreground',
+              : 'text-muted-foreground'
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
@@ -115,13 +129,13 @@ export function DateRangePicker() {
       </div>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-1 rounded-md border bg-popover shadow-md">
+        <div className="absolute top-full right-0 z-50 mt-1 rounded-md border bg-popover shadow-md">
           <Calendar
             mode="range"
-            showOutsideDays={false}
+            showOutsideDays={true}
             selected={draft}
             onSelect={handleCalendarSelect}
-            numberOfMonths={2}
+            numberOfMonths={1}
             defaultMonth={draft?.from ?? from}
           />
         </div>
