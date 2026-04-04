@@ -12,6 +12,7 @@ function createPrismaClient() {
   // Create connection pool
   const pool = new Pool({
     connectionString: environment.POSTGRES_URL,
+    max: environment.POSTGRES_POOL_MAX,
   });
 
   // Create adapter

@@ -1,9 +1,11 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
 import { DataTable, PageHeader, NumberCell, DateTimeCell, CountryCell } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { ColumnDef } from '@tanstack/react-table';
 
 interface SessionRow {
@@ -41,7 +43,13 @@ const columns: ColumnDef<SessionRow, unknown>[] = [
 export default function SessionsPage() {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
   const router = useRouter();
-  const { data, isLoading } = useAnalyticsSessions(projectId);
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useAnalyticsSessions(projectId);
+
+  const sessions = useMemo(
+    () => data?.pages.flatMap((p) => p.sessions) ?? [],
+    [data],
+  );
 
   return (
     <div className="space-y-6">
@@ -53,11 +61,23 @@ export default function SessionsPage() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={data?.sessions ?? []}
+            data={sessions}
             isLoading={isLoading}
             pageSize={20}
             onRowClick={(row) => router.push(`/app/${orgId}/${projectId}/sessions/${row.sessionId}`)}
           />
+          {hasNextPage && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

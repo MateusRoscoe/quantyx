@@ -90,13 +90,13 @@ export default async function (fastify: server) {
       },
     },
     handler: async (request, reply) => {
+      await fastify.verifyOrgMembership(request, request.params.id);
       const org = await prisma.organization.findFirst({
         where: { id: request.params.id, deletedAt: null },
       });
       if (!org) {
         return reply.notFound('Organization not found');
       }
-      await fastify.verifyOrgMembership(request, org.id);
       return toResponse(org);
     },
   });
@@ -116,18 +116,18 @@ export default async function (fastify: server) {
       },
     },
     handler: async (request, reply) => {
-      const existing = await prisma.organization.findFirst({
-        where: { id: request.params.id, deletedAt: null },
-      });
-      if (!existing) {
-        return reply.notFound('Organization not found');
-      }
-      await fastify.verifyOrgMembership(request, existing.id, {
+      await fastify.verifyOrgMembership(request, request.params.id, {
         minRole: 'admin',
       });
-      const org = await prisma.organization.update({
-        where: { id: request.params.id },
+      const { count } = await prisma.organization.updateMany({
+        where: { id: request.params.id, deletedAt: null },
         data: request.body,
+      });
+      if (count === 0) {
+        return reply.notFound('Organization not found');
+      }
+      const org = await prisma.organization.findUniqueOrThrow({
+        where: { id: request.params.id },
       });
       return toResponse(org);
     },
@@ -147,19 +147,16 @@ export default async function (fastify: server) {
       },
     },
     handler: async (request, reply) => {
-      const existing = await prisma.organization.findFirst({
-        where: { id: request.params.id, deletedAt: null },
-      });
-      if (!existing) {
-        return reply.notFound('Organization not found');
-      }
-      await fastify.verifyOrgMembership(request, existing.id, {
+      await fastify.verifyOrgMembership(request, request.params.id, {
         minRole: 'admin',
       });
-      await prisma.organization.update({
-        where: { id: request.params.id },
+      const { count } = await prisma.organization.updateMany({
+        where: { id: request.params.id, deletedAt: null },
         data: { deletedAt: new Date() },
       });
+      if (count === 0) {
+        return reply.notFound('Organization not found');
+      }
       return reply.status(204).send(null);
     },
   });

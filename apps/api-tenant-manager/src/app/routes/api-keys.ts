@@ -157,6 +157,7 @@ export default async function (fastify: server) {
     handler: async (request, reply) => {
       const existing = await prisma.apiKey.findFirst({
         where: { id: request.params.id, deletedAt: null },
+        select: { organizationId: true },
       });
       if (!existing) {
         return reply.notFound('API key not found');
@@ -164,10 +165,13 @@ export default async function (fastify: server) {
       await fastify.verifyOrgMembership(request, existing.organizationId, {
         minRole: 'admin',
       });
-      await prisma.apiKey.update({
-        where: { id: request.params.id },
+      const { count } = await prisma.apiKey.updateMany({
+        where: { id: request.params.id, deletedAt: null },
         data: { deletedAt: new Date() },
       });
+      if (count === 0) {
+        return reply.notFound('API key not found');
+      }
       return reply.status(204).send(null);
     },
   });

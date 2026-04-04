@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
@@ -63,7 +64,13 @@ export default function UserDetailPage() {
   const { data: sessionsData, isLoading: sessionsLoading } = useAnalyticsSessions(projectId);
 
   const user = usersData?.users?.find((u) => u.userId === userId);
-  const userSessions = sessionsData?.sessions?.filter((s) => s.userId === userId) ?? [];
+  const userSessions = useMemo(
+    () =>
+      sessionsData?.pages
+        .flatMap((p) => p.sessions)
+        .filter((s) => s.userId === userId) ?? [],
+    [sessionsData, userId],
+  );
 
   return (
     <div className="space-y-6">

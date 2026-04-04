@@ -121,6 +121,7 @@ export default async function (fastify: server) {
     handler: async (request, reply) => {
       const existing = await prisma.project.findFirst({
         where: { id: request.params.id, deletedAt: null },
+        select: { organizationId: true },
       });
       if (!existing) {
         return reply.notFound('Project not found');
@@ -128,9 +129,15 @@ export default async function (fastify: server) {
       await fastify.verifyOrgMembership(request, existing.organizationId, {
         minRole: 'admin',
       });
-      const project = await prisma.project.update({
-        where: { id: request.params.id },
+      const { count } = await prisma.project.updateMany({
+        where: { id: request.params.id, deletedAt: null },
         data: request.body,
+      });
+      if (count === 0) {
+        return reply.notFound('Project not found');
+      }
+      const project = await prisma.project.findUniqueOrThrow({
+        where: { id: request.params.id },
       });
       return toResponse(project);
     },
@@ -152,6 +159,7 @@ export default async function (fastify: server) {
     handler: async (request, reply) => {
       const existing = await prisma.project.findFirst({
         where: { id: request.params.id, deletedAt: null },
+        select: { organizationId: true },
       });
       if (!existing) {
         return reply.notFound('Project not found');
@@ -159,10 +167,13 @@ export default async function (fastify: server) {
       await fastify.verifyOrgMembership(request, existing.organizationId, {
         minRole: 'admin',
       });
-      await prisma.project.update({
-        where: { id: request.params.id },
+      const { count } = await prisma.project.updateMany({
+        where: { id: request.params.id, deletedAt: null },
         data: { deletedAt: new Date() },
       });
+      if (count === 0) {
+        return reply.notFound('Project not found');
+      }
       return reply.status(204).send(null);
     },
   });

@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/lib/analytics-api';
 import { useDateRange } from './use-date-range';
 
@@ -17,31 +17,44 @@ interface Session {
 
 interface SessionsData {
   sessions: Session[];
+  hasMore: boolean;
 }
 
 export function useAnalyticsSessions(
   projectId: string,
-  opts?: { limit?: number; offset?: number },
+  opts?: { limit?: number; direction?: 'asc' | 'desc' },
 ) {
   const { fromStr, toStr } = useDateRange();
+  const direction = opts?.direction ?? 'desc';
+  const limit = opts?.limit ?? 50;
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: [
       'analytics',
       'sessions',
       projectId,
       fromStr,
       toStr,
-      opts?.limit,
-      opts?.offset,
+      direction,
+      limit,
     ],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       analyticsApi.get<SessionsData>(`/projects/${projectId}/sessions`, {
         from: fromStr,
         to: toStr,
-        ...(opts?.limit !== undefined && { limit: String(opts.limit) }),
-        ...(opts?.offset !== undefined && { offset: String(opts.offset) }),
+        limit: String(limit),
+        direction,
+        ...(pageParam && {
+          cursor_ts: pageParam.cursorTs,
+          cursor_id: pageParam.cursorId,
+        }),
       }),
+    initialPageParam: null as { cursorTs: string; cursorId: string } | null,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.hasMore || lastPage.sessions.length === 0) return undefined;
+      const last = lastPage.sessions[lastPage.sessions.length - 1];
+      return { cursorTs: last.startedAt, cursorId: last.sessionId };
+    },
     enabled: !!projectId,
   });
 }
