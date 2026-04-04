@@ -63,13 +63,13 @@ export async function setup() {
   redisContainer = redis;
 
   const brokers = `${kafkaContainer.getHost()}:${kafkaContainer.getMappedPort(
-    9093
+    9093,
   )}`;
   await waitForKafkaReady([brokers]);
 
   const connectionUri = pgContainer.getConnectionUri();
   const redisUrl = `redis://${redisContainer.getHost()}:${redisContainer.getMappedPort(
-    6379
+    6379,
   )}`;
 
   process.env.KAFKA_BROKERS = brokers;
@@ -83,7 +83,7 @@ export async function setup() {
   // Apply Prisma migrations
   const postgresLibPath = path.resolve(
     import.meta.dirname,
-    '../../libs/postgres'
+    '../../libs/postgres',
   );
   execSync('pnpm exec prisma migrate deploy', {
     env: { ...process.env },

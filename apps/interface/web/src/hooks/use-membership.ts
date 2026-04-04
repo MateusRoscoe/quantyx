@@ -10,15 +10,25 @@ export function useMembership(orgId: string) {
 
   return useMemo(() => {
     if (membersLoading || !members || !session?.user?.id) {
-      return { role: null, isOwner: false, isAdmin: false, isMember: false, isLoading: true };
+      return {
+        role: null,
+        isOwner: false,
+        isAdmin: false,
+        isMember: false,
+        isLoading: true,
+      };
     }
 
-    const currentMember = members.find(
-      (m) => m.userId === session.user.id,
-    );
+    const currentMember = members.find((m) => m.userId === session.user.id);
 
     if (!currentMember) {
-      return { role: null, isOwner: false, isAdmin: false, isMember: false, isLoading: false };
+      return {
+        role: null,
+        isOwner: false,
+        isAdmin: false,
+        isMember: false,
+        isLoading: false,
+      };
     }
 
     const role = currentMember.role;

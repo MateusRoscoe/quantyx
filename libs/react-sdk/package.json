@@ -19,7 +19,10 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "nx": {
     "name": "react-sdk"
   },

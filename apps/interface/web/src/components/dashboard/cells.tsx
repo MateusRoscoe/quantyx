@@ -12,9 +12,12 @@ import {
  */
 function countryToFlag(code: string): string | null {
   // Handle alpha-3 by taking first 2 chars (rough but covers most cases)
-  const c = code.length === 3 ? code.slice(0, 2).toUpperCase() : code.toUpperCase();
+  const c =
+    code.length === 3 ? code.slice(0, 2).toUpperCase() : code.toUpperCase();
   if (c.length !== 2 || !/^[A-Z]{2}$/.test(c)) return null;
-  return String.fromCodePoint(...[...c].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65));
+  return String.fromCodePoint(
+    ...[...c].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65),
+  );
 }
 
 export function MonoCell<T>({ getValue }: CellContext<T, unknown>) {
@@ -33,7 +36,9 @@ export function DateCell<T>({ getValue }: CellContext<T, unknown>) {
   const { timezone } = useTimezone();
   return (
     <span className="text-sm">
-      {new Date(getValue() as string).toLocaleDateString(undefined, { timeZone: timezone })}
+      {new Date(getValue() as string).toLocaleDateString(undefined, {
+        timeZone: timezone,
+      })}
     </span>
   );
 }
@@ -77,7 +82,11 @@ export function CountryCell<T>({ getValue }: CellContext<T, unknown>) {
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="cursor-default text-base">
-          {flag ?? <span className="font-mono text-xs text-muted-foreground">{code}</span>}
+          {flag ?? (
+            <span className="font-mono text-xs text-muted-foreground">
+              {code}
+            </span>
+          )}
         </span>
       </TooltipTrigger>
       <TooltipContent>

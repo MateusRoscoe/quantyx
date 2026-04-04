@@ -19,11 +19,14 @@ export class AppCtrl {
       autoCommit: false,
       eachBatch: async ({ batch, heartbeat }) => {
         logger.info(
-          `Starting batch processing from topic ${batch.topic} with ${batch.messages.length} messages`
+          `Starting batch processing from topic ${batch.topic} with ${batch.messages.length} messages`,
         );
-        const heartbeatInterval = setInterval(async () => {
-          await heartbeat();
-        }, Math.floor(environment.KAFKA_SESSION_TIMEOUT_MS / 3)); // 3 heartbeats per session timeout to be safe
+        const heartbeatInterval = setInterval(
+          async () => {
+            await heartbeat();
+          },
+          Math.floor(environment.KAFKA_SESSION_TIMEOUT_MS / 3),
+        ); // 3 heartbeats per session timeout to be safe
         try {
           const events = batch.messages.map((message) => {
             const event = JSON.parse(message.value?.toString() || '{}');
@@ -43,11 +46,11 @@ export class AppCtrl {
         } catch (error) {
           logger.error(
             error,
-            `Error processing batch from topic ${batch.topic}`
+            `Error processing batch from topic ${batch.topic}`,
           );
         } finally {
           logger.info(
-            `Processed batch from topic ${batch.topic} with ${batch.messages.length} messages`
+            `Processed batch from topic ${batch.topic} with ${batch.messages.length} messages`,
           );
           if (heartbeatInterval) {
             clearInterval(heartbeatInterval);

@@ -15,14 +15,16 @@ export function detectDevice(): DeviceContext {
 
   if (typeof navigator === 'undefined') return ctx;
 
-  const uaData = (navigator as Navigator & { userAgentData?: NavigatorUAData }).userAgentData;
+  const uaData = (navigator as Navigator & { userAgentData?: NavigatorUAData })
+    .userAgentData;
 
   if (uaData?.brands?.length) {
     // Client Hints API (Chromium-based browsers)
     const significant = uaData.brands.find(
       (b) => !b.brand.includes('Not') && b.brand !== 'Chromium',
     );
-    const brand = significant ?? uaData.brands.find((b) => b.brand === 'Chromium');
+    const brand =
+      significant ?? uaData.brands.find((b) => b.brand === 'Chromium');
     if (brand) {
       ctx.browser = brand.brand;
       ctx.browser_version = brand.version;
@@ -71,8 +73,11 @@ export function detectDevice(): DeviceContext {
   }
 
   // Device type
-  ctx.device_type = /Mobi|Android.*Mobile|iPhone|iPod/.test(ua) ? 'mobile' :
-    /iPad|Android(?!.*Mobile)|Tablet/.test(ua) ? 'tablet' : 'desktop';
+  ctx.device_type = /Mobi|Android.*Mobile|iPhone|iPod/.test(ua)
+    ? 'mobile'
+    : /iPad|Android(?!.*Mobile)|Tablet/.test(ua)
+      ? 'tablet'
+      : 'desktop';
 
   return ctx;
 }

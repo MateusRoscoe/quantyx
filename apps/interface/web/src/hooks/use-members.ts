@@ -18,8 +18,7 @@ interface Member {
 export function useMembers(orgId: string) {
   return useQuery({
     queryKey: ['members', orgId],
-    queryFn: () =>
-      api.get<Member[]>(`/organizations/${orgId}/members`),
+    queryFn: () => api.get<Member[]>(`/organizations/${orgId}/members`),
     enabled: !!orgId,
   });
 }

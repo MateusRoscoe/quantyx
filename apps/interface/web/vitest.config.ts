@@ -14,7 +14,10 @@ export default defineConfig({
     watch: false,
     include: ['src/**/*.spec.ts', 'src/**/*.spec.tsx'],
     setupFiles: ['./src/test/setup.ts'],
-    coverage: { reportsDirectory: 'test-output/vitest/coverage', provider: 'v8' },
+    coverage: {
+      reportsDirectory: 'test-output/vitest/coverage',
+      provider: 'v8',
+    },
     css: false,
   },
 });

@@ -70,7 +70,7 @@ function ResetPasswordForm() {
       router.push('/login');
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to reset password'
+        err instanceof Error ? err.message : 'Failed to reset password',
       );
     } finally {
       setLoading(false);

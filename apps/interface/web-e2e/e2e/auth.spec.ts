@@ -11,9 +11,7 @@ test.describe('Auth', () => {
 
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByLabel('Password')).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: 'Sign in' }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
     await expect(page.getByText('Forgot password?')).toBeVisible();
     await expect(page.getByText("Don't have an account?")).toBeVisible();
   });
@@ -24,9 +22,7 @@ test.describe('Auth', () => {
     await expect(page).toHaveURL('/register');
   });
 
-  test('register new user redirects to verify-email page', async ({
-    page,
-  }) => {
+  test('register new user redirects to verify-email page', async ({ page }) => {
     await page.goto('/register');
 
     const email = `e2e-register-${Date.now()}@test.quantyx.io`;
@@ -62,9 +58,10 @@ test.describe('Auth', () => {
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     // Sonner toast should appear with error
-    await expect(
-      page.locator('[data-sonner-toast]').first(),
-    ).toContainText(/invalid|credentials|error/i, { timeout: 5_000 });
+    await expect(page.locator('[data-sonner-toast]').first()).toContainText(
+      /invalid|credentials|error/i,
+      { timeout: 5_000 },
+    );
   });
 
   test('sign out returns to login', async ({ page, createVerifiedUser }) => {

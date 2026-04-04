@@ -50,12 +50,13 @@ export default function AccountPage() {
   }
 
   const user = session?.user;
-  const initials = user?.name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) ?? '?';
+  const initials =
+    user?.name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) ?? '?';
 
   return (
     <div className="mx-auto max-w-screen-xl space-y-6">

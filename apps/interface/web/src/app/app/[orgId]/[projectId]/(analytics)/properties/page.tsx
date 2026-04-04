@@ -2,7 +2,13 @@
 
 import { useParams } from 'next/navigation';
 import { useAnalyticsProperties } from '@/hooks/use-analytics-properties';
-import { DataTable, PageHeader, MonoCell, NumberCell, DateCell } from '@/components/dashboard';
+import {
+  DataTable,
+  PageHeader,
+  MonoCell,
+  NumberCell,
+  DateCell,
+} from '@/components/dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -22,7 +28,11 @@ const columns: ColumnDef<PropertyRow, unknown>[] = [
   {
     accessorKey: 'type',
     header: 'Type',
-    cell: (info) => <Badge variant="secondary" className="text-xs">{info.getValue() as string}</Badge>,
+    cell: (info) => (
+      <Badge variant="secondary" className="text-xs">
+        {info.getValue() as string}
+      </Badge>
+    ),
   },
   { accessorKey: 'eventCount', header: 'Events', cell: NumberCell },
   { accessorKey: 'uniqueValues', header: 'Cardinality', cell: NumberCell },
@@ -48,10 +58,17 @@ export default function PropertiesPage() {
       <PageHeader title="Custom Properties" />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">All Tracked Properties</CardTitle>
+          <CardTitle className="text-base font-medium">
+            All Tracked Properties
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={data?.properties ?? []} isLoading={isLoading} pageSize={20} />
+          <DataTable
+            columns={columns}
+            data={data?.properties ?? []}
+            isLoading={isLoading}
+            pageSize={20}
+          />
         </CardContent>
       </Card>
     </div>

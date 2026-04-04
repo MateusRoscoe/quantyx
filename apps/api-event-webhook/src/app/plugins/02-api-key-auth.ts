@@ -22,10 +22,7 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
   fastify.addHook(
     'onRequest',
     async (request: FastifyRequest, reply: FastifyReply) => {
-      if (
-        SKIP_PATHS.has(request.url) ||
-        request.url.startsWith('/docs/')
-      ) {
+      if (SKIP_PATHS.has(request.url) || request.url.startsWith('/docs/')) {
         return;
       }
 
@@ -70,7 +67,9 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
         // Cache the negative lookup to prevent repeated DB hits
         redis
           .set(cacheKey, 'NF', 'EX', NEGATIVE_CACHE_TTL_SECONDS)
-          .catch(() => { /* best-effort */ });
+          .catch(() => {
+            /* best-effort */
+          });
         return reply.unauthorized('Invalid API key');
       }
 
@@ -100,7 +99,9 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
           where: { id: record.id },
           data: { lastUsedAt: new Date() },
         })
-        .catch(() => { /* fire-and-forget */ });
+        .catch(() => {
+          /* fire-and-forget */
+        });
     },
   );
 });

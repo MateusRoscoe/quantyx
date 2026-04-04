@@ -26,9 +26,7 @@ export default function OrgSettingsLayout({
         Back to projects
       </Link>
 
-      <h1 className="font-display text-2xl font-bold">
-        Organization Settings
-      </h1>
+      <h1 className="font-display text-2xl font-bold">Organization Settings</h1>
 
       <Tabs value={currentTab}>
         <TabsList>

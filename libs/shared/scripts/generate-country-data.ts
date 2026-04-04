@@ -10,7 +10,7 @@ interface Country {
 
 async function main() {
   const res = await fetch(
-    'https://restcountries.com/v3.1/all?fields=cca3,region,subregion,continents'
+    'https://restcountries.com/v3.1/all?fields=cca3,region,subregion,continents',
   );
   if (!res.ok) {
     throw new Error(`Failed to fetch: ${res.status} ${res.statusText}`);
@@ -43,7 +43,7 @@ ${regions.map((r) => `  '${r}',`).join('\n')}
   const outPath = join(__dirname, '..', 'src', 'lib', 'country-data.ts');
   writeFileSync(outPath, output, 'utf-8');
   console.log(
-    `Wrote ${iso3Codes.length} codes, ${continents.length} continents, ${regions.length} regions → ${outPath}`
+    `Wrote ${iso3Codes.length} codes, ${continents.length} continents, ${regions.length} regions → ${outPath}`,
   );
 }
 

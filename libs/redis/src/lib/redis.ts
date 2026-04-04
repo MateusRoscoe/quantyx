@@ -6,9 +6,7 @@ export const redis = new Redis(environment.REDIS_URL, {
   maxRetriesPerRequest: 3,
 });
 
-type ConnPingResult =
-  | { success: true }
-  | { success: false; error: Error };
+type ConnPingResult = { success: true } | { success: false; error: Error };
 
 export async function redisHealthCheck(): Promise<ConnPingResult> {
   try {
@@ -16,7 +14,10 @@ export async function redisHealthCheck(): Promise<ConnPingResult> {
     if (result === 'PONG') {
       return { success: true };
     }
-    return { success: false, error: new Error(`Unexpected ping response: ${result}`) };
+    return {
+      success: false,
+      error: new Error(`Unexpected ping response: ${result}`),
+    };
   } catch (error) {
     console.error('Redis health check failed:', error);
     return {

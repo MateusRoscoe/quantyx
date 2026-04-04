@@ -7,7 +7,10 @@ const listeners = new Set<() => void>();
 
 function getSnapshot(): string {
   if (typeof window === 'undefined') return 'UTC';
-  return localStorage.getItem(STORAGE_KEY) ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return (
+    localStorage.getItem(STORAGE_KEY) ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
 }
 
 function getServerSnapshot(): string {
@@ -33,7 +36,11 @@ function notify() {
 }
 
 export function useTimezone() {
-  const timezone = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const timezone = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   const setTimezone = useCallback((tz: string) => {
     localStorage.setItem(STORAGE_KEY, tz);
@@ -46,9 +53,13 @@ export function useTimezone() {
   }, []);
 
   // Short abbreviation for display (e.g., "EDT", "BRT")
-  const abbreviation = new Intl.DateTimeFormat(undefined, { timeZone: timezone, timeZoneName: 'short' })
-    .formatToParts(new Date())
-    .find((p) => p.type === 'timeZoneName')?.value ?? timezone;
+  const abbreviation =
+    new Intl.DateTimeFormat(undefined, {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    })
+      .formatToParts(new Date())
+      .find((p) => p.type === 'timeZoneName')?.value ?? timezone;
 
   return { timezone, abbreviation, setTimezone, resetTimezone };
 }

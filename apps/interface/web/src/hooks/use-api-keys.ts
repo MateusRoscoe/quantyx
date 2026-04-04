@@ -20,8 +20,7 @@ interface ApiKeyCreated extends ApiKey {
 export function useApiKeys(projectId: string) {
   return useQuery({
     queryKey: ['api-keys', projectId],
-    queryFn: () =>
-      api.get<ApiKey[]>(`/projects/${projectId}/api-keys`),
+    queryFn: () => api.get<ApiKey[]>(`/projects/${projectId}/api-keys`),
     enabled: !!projectId,
   });
 }

@@ -1,7 +1,7 @@
 import { clickhouse, ClickHouseEvent } from '@quantyx/clickhouse';
 
 export async function insertEventsToClickHouse(
-  events: ClickHouseEvent[]
+  events: ClickHouseEvent[],
 ): Promise<void> {
   try {
     const result = await clickhouse.insert({

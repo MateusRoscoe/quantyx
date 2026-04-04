@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { prisma } from '@quantyx/postgres';
-import {
-  OrganizationBody,
-  OrganizationResponse,
-} from '@quantyx/shared';
+import { OrganizationBody, OrganizationResponse } from '@quantyx/shared';
 import { ErrorResponseSchema } from '../../helpers/error-schema';
 import type { server } from '../../main';
 

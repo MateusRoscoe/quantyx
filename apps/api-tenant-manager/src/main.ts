@@ -31,7 +31,8 @@ server.register(fastifySwagger, {
   openapi: {
     info: {
       title: 'Quantyx Tenant Manager API',
-      description: 'API for managing tenants, organizations, and projects in the Quantyx platform.',
+      description:
+        'API for managing tenants, organizations, and projects in the Quantyx platform.',
       version: 'latest',
     },
   },

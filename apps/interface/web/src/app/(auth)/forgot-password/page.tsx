@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
       setSent(true);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to send reset email'
+        err instanceof Error ? err.message : 'Failed to send reset email',
       );
     } finally {
       setLoading(false);
@@ -61,7 +61,9 @@ export default function ForgotPasswordPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-2xl">Check your email</CardTitle>
+          <CardTitle className="font-display text-2xl">
+            Check your email
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">

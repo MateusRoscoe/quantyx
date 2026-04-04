@@ -27,7 +27,7 @@ export class EventService {
       props_num: event.props_num || {},
       props_bool: event.props_bool
         ? Object.fromEntries(
-            Object.entries(event.props_bool).map(([k, v]) => [k, v ? 1 : 0])
+            Object.entries(event.props_bool).map(([k, v]) => [k, v ? 1 : 0]),
           )
         : {},
       ip_address: event.ip_address || '::',

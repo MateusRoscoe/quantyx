@@ -50,7 +50,12 @@ export function ProjectSwitcher({ orgId, projectId }: ProjectSwitcherProps) {
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" align="start" className="w-56" sideOffset={8}>
+      <DropdownMenuContent
+        side="right"
+        align="start"
+        className="w-56"
+        sideOffset={8}
+      >
         {orgId ? (
           <>
             <DropdownMenuLabel className="font-normal">
@@ -64,11 +69,15 @@ export function ProjectSwitcher({ orgId, projectId }: ProjectSwitcherProps) {
 
             {membership.isAdmin && (
               <>
-                <DropdownMenuItem onClick={() => router.push(`/app/${orgId}/settings`)}>
+                <DropdownMenuItem
+                  onClick={() => router.push(`/app/${orgId}/settings`)}
+                >
                   <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
                   Organization Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push(`/app/${orgId}/settings/members`)}>
+                <DropdownMenuItem
+                  onClick={() => router.push(`/app/${orgId}/settings/members`)}
+                >
                   <Users className="mr-2 h-4 w-4 text-muted-foreground" />
                   Members
                 </DropdownMenuItem>
@@ -122,7 +131,9 @@ export function ProjectSwitcher({ orgId, projectId }: ProjectSwitcherProps) {
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/app/organizations')}>
+                <DropdownMenuItem
+                  onClick={() => router.push('/app/organizations')}
+                >
                   <Plus className="mr-2 h-4 w-4 text-muted-foreground" />
                   New organization
                 </DropdownMenuItem>

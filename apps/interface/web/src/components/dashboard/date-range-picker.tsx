@@ -49,7 +49,6 @@ export function DateRangePicker() {
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   function handlePreset(value: PeriodPreset) {
@@ -105,7 +104,7 @@ export function DateRangePicker() {
               'cursor-pointer px-3 py-1.5 text-xs transition-colors hover:bg-accent',
               period === p.value
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'text-muted-foreground'
+                : 'text-muted-foreground',
             )}
           >
             {p.label}
@@ -118,7 +117,7 @@ export function DateRangePicker() {
             'flex cursor-pointer items-center gap-1.5 border-l px-3 py-1.5 text-xs transition-colors hover:bg-accent',
             period === 'custom'
               ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-              : 'text-muted-foreground'
+              : 'text-muted-foreground',
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />

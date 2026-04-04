@@ -1,5 +1,9 @@
 import './global.css';
-import { Instrument_Sans, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import {
+  Instrument_Sans,
+  IBM_Plex_Sans,
+  IBM_Plex_Mono,
+} from 'next/font/google';
 import { Providers } from '@/components/providers';
 
 const instrumentSans = Instrument_Sans({

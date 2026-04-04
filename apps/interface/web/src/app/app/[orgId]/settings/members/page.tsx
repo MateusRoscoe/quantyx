@@ -162,9 +162,7 @@ export default function MembersPage() {
                 <TableCell>{member.user.email}</TableCell>
                 <TableCell>
                   <Badge
-                    variant={
-                      member.role === 'owner' ? 'default' : 'secondary'
-                    }
+                    variant={member.role === 'owner' ? 'default' : 'secondary'}
                   >
                     {member.role}
                   </Badge>
@@ -186,8 +184,7 @@ export default function MembersPage() {
                             )
                           }
                         >
-                          Make{' '}
-                          {member.role === 'admin' ? 'member' : 'admin'}
+                          Make {member.role === 'admin' ? 'member' : 'admin'}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"

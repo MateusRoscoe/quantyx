@@ -5,7 +5,12 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
-import { DataTable, DateTimeCell, NumberCell, CountryCell } from '@/components/dashboard';
+import {
+  DataTable,
+  DateTimeCell,
+  NumberCell,
+  CountryCell,
+} from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Calendar, Clock, Zap } from 'lucide-react';
@@ -22,7 +27,10 @@ interface SessionRow {
 }
 
 function useSessionColumns() {
-  const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
+  const { orgId, projectId } = useParams<{
+    orgId: string;
+    projectId: string;
+  }>();
 
   const columns: ColumnDef<SessionRow, unknown>[] = [
     {
@@ -60,8 +68,10 @@ export default function UserDetailPage() {
   }>();
 
   const sessionColumns = useSessionColumns();
-  const { data: usersData, isLoading: usersLoading } = useAnalyticsUsers(projectId);
-  const { data: sessionsData, isLoading: sessionsLoading } = useAnalyticsSessions(projectId);
+  const { data: usersData, isLoading: usersLoading } =
+    useAnalyticsUsers(projectId);
+  const { data: sessionsData, isLoading: sessionsLoading } =
+    useAnalyticsSessions(projectId);
 
   const user = usersData?.users?.find((u) => u.userId === userId);
   const userSessions = useMemo(
@@ -82,9 +92,7 @@ export default function UserDetailPage() {
         Back to users
       </Link>
 
-      <h1 className="font-display text-2xl font-bold font-mono">
-        {userId}
-      </h1>
+      <h1 className="font-display text-2xl font-bold font-mono">{userId}</h1>
 
       {/* User stats */}
       {usersLoading ? (
@@ -125,7 +133,9 @@ export default function UserDetailPage() {
         </div>
       ) : (
         <Card className="gap-0 p-4">
-          <p className="text-sm text-muted-foreground">User not found in the current date range.</p>
+          <p className="text-sm text-muted-foreground">
+            User not found in the current date range.
+          </p>
         </Card>
       )}
 

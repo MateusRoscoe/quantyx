@@ -128,7 +128,13 @@ export default function DashboardLayout({
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/app/organizations' || /^\/app\/[^/]+$/.test(pathname)}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={
+                        pathname === '/app/organizations' ||
+                        /^\/app\/[^/]+$/.test(pathname)
+                      }
+                    >
                       <Link href="/app/organizations">
                         <Building2 className="h-4 w-4" />
                         <span>Organizations</span>
@@ -201,9 +207,7 @@ export default function DashboardLayout({
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                onClick={() =>
-                  setTheme(theme === 'dark' ? 'light' : 'dark')
-                }
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               >
                 <Moon className="h-4 w-4 dark:hidden" />
                 <Sun className="hidden h-4 w-4 dark:block" />

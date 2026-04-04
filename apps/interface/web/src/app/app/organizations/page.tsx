@@ -2,16 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useOrganizations, useCreateOrganization } from '@/hooks/use-organizations';
+import {
+  useOrganizations,
+  useCreateOrganization,
+} from '@/hooks/use-organizations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +37,9 @@ export default function OrganizationsPage() {
       setOpen(false);
       toast.success('Organization created');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create organization');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to create organization',
+      );
     }
   }
 

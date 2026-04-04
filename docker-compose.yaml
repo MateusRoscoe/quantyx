@@ -3,8 +3,8 @@ services:
     image: clickhouse/clickhouse-server:25.11-alpine
     container_name: quantyx-clickhouse
     ports:
-      - "8123:8123"  # HTTP interface
-      - "9000:9000"  # Native interface
+      - '8123:8123' # HTTP interface
+      - '9000:9000' # Native interface
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - ./infrastructure/clickhouse/init:/docker-entrypoint-initdb.d
@@ -15,7 +15,7 @@ services:
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ['CMD', 'clickhouse-client', '--query', 'SELECT 1']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,7 +24,7 @@ services:
     image: postgres:18-trixie
     container_name: quantyx-postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql
     environment:
@@ -32,7 +32,7 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d quantyx"]
+      test: ['CMD-SHELL', 'pg_isready -U admin -d quantyx']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,8 +41,8 @@ services:
     image: apache/kafka:4.1.1
     container_name: quantyx-kafka
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - '9092:9092'
+      - '29092:29092'
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -70,11 +70,11 @@ services:
     image: redis:8-alpine
     container_name: quantyx-redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,9 +83,9 @@ services:
     image: kafbat/kafka-ui:latest
     container_name: quantyx-kafbat
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
-      DYNAMIC_CONFIG_ENABLED: "true"
+      DYNAMIC_CONFIG_ENABLED: 'true'
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     depends_on:
@@ -95,12 +95,12 @@ services:
     image: grafana/grafana-oss:latest
     container_name: quantyx-grafana
     ports:
-      - "3003:3000"
+      - '3003:3000'
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
     environment:
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
@@ -111,8 +111,8 @@ services:
     image: mailhog/mailhog
     container_name: quantyx-mailhog
     ports:
-      - "1025:1025"   # SMTP
-      - "8025:8025"   # Web UI
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
 
 volumes:
   clickhouse-data:

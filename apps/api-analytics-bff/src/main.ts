@@ -31,7 +31,8 @@ server.register(fastifySwagger, {
   openapi: {
     info: {
       title: 'Quantyx Analytics BFF',
-      description: 'Backend-for-frontend serving analytics data from ClickHouse.',
+      description:
+        'Backend-for-frontend serving analytics data from ClickHouse.',
       version: 'latest',
     },
   },

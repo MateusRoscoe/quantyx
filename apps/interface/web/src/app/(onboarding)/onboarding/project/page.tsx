@@ -39,9 +39,7 @@ function ProjectForm() {
     try {
       const project = await createProject.mutateAsync({ name });
       track('onboarding_project_created');
-      router.push(
-        `/onboarding/setup?orgId=${orgId}&projectId=${project.id}`,
-      );
+      router.push(`/onboarding/setup?orgId=${orgId}&projectId=${project.id}`);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : 'Failed to create project',
@@ -91,13 +89,7 @@ function ProjectForm() {
   );
 }
 
-function StepIndicator({
-  current,
-  total,
-}: {
-  current: number;
-  total: number;
-}) {
+function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
     <div className="flex items-center gap-1.5">
       {Array.from({ length: total }).map((_, i) => (

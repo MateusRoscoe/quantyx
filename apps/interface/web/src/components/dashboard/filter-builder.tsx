@@ -138,10 +138,7 @@ export function FilterBuilder() {
               <CommandEmpty>No results.</CommandEmpty>
               <CommandGroup heading="Standard">
                 {STANDARD_DIMENSIONS.map(({ key, label }) => (
-                  <CommandItem
-                    key={key}
-                    onSelect={() => selectDimension(key)}
-                  >
+                  <CommandItem key={key} onSelect={() => selectDimension(key)}>
                     {label}
                   </CommandItem>
                 ))}
@@ -152,18 +149,15 @@ export function FilterBuilder() {
                   <CommandGroup heading="Custom Properties">
                     {propsData.properties.map((prop) => {
                       const Icon =
-                        propTypeIcon[
-                          prop.type as keyof typeof propTypeIcon
-                        ] ?? Type;
+                        propTypeIcon[prop.type as keyof typeof propTypeIcon] ??
+                        Type;
                       const mappedType =
                         propTypeMap[prop.type as keyof typeof propTypeMap];
                       if (!mappedType) return null;
                       return (
                         <CommandItem
                           key={`${prop.type}-${prop.name}`}
-                          onSelect={() =>
-                            selectProperty(prop.name, mappedType)
-                          }
+                          onSelect={() => selectProperty(prop.name, mappedType)}
                         >
                           <Icon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                           {prop.name}
@@ -267,7 +261,9 @@ export function FilterBuilder() {
                 <Input
                   autoFocus
                   placeholder={
-                    step.propType === 'num' ? 'Enter number...' : 'Type a value...'
+                    step.propType === 'num'
+                      ? 'Enter number...'
+                      : 'Type a value...'
                   }
                   type={step.propType === 'num' ? 'number' : 'text'}
                   value={inputValue}

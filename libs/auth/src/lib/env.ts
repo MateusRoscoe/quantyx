@@ -12,7 +12,9 @@ const envSchema = z.object({
     .string()
     .url()
     .default('http://localhost:3000')
-    .describe('URL of the frontend app; used as a trusted origin for Better Auth'),
+    .describe(
+      'URL of the frontend app; used as a trusted origin for Better Auth',
+    ),
   BETTER_AUTH_SECRET: z.string().min(1),
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().default(587),

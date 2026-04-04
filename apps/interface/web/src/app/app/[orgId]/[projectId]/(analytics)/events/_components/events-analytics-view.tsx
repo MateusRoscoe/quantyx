@@ -53,9 +53,16 @@ export function EventsAnalyticsView({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-6">
-      <ChartCard title="Events over time" isLoading={isLoading} isEmpty={chartData.length === 0}>
+      <ChartCard
+        title="Events over time"
+        isLoading={isLoading}
+        isEmpty={chartData.length === 0}
+      >
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <AreaChart
+            data={chartData}
+            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+          >
             <CartesianGrid {...gridStyle} vertical={false} />
             <XAxis dataKey="hour" {...axisStyle} />
             <YAxis {...axisStyle} />
@@ -81,7 +88,12 @@ export function EventsAnalyticsView({ projectId }: { projectId: string }) {
           <CardTitle className="text-base font-medium">All Events</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={data?.breakdown ?? []} isLoading={isLoading} pageSize={20} />
+          <DataTable
+            columns={columns}
+            data={data?.breakdown ?? []}
+            isLoading={isLoading}
+            pageSize={20}
+          />
         </CardContent>
       </Card>
     </div>

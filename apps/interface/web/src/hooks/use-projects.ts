@@ -12,8 +12,7 @@ interface Project {
 export function useProjects(orgId: string) {
   return useQuery({
     queryKey: ['projects', orgId],
-    queryFn: () =>
-      api.get<Project[]>(`/organizations/${orgId}/projects`),
+    queryFn: () => api.get<Project[]>(`/organizations/${orgId}/projects`),
     enabled: !!orgId,
   });
 }

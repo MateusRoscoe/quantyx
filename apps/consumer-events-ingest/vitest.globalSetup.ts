@@ -26,11 +26,11 @@ async function waitForKafkaReady(brokers: string[], maxAttempts = 15) {
       await admin.disconnect();
       return;
     } catch {
-      await admin.disconnect().catch(() => { /* ignore */ });
+      await admin.disconnect().catch(() => {
+        /* ignore */
+      });
       if (attempt === maxAttempts) {
-        throw new Error(
-          `Kafka broker not ready after ${maxAttempts} attempts`
-        );
+        throw new Error(`Kafka broker not ready after ${maxAttempts} attempts`);
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
@@ -64,8 +64,11 @@ export async function setup() {
   const chUrl = `http://${chHost}:${chPort}`;
 
   const initSql = fs.readFileSync(
-    path.resolve(import.meta.dirname, '../../infrastructure/clickhouse/init/01_create_tables.sql'),
-    'utf-8'
+    path.resolve(
+      import.meta.dirname,
+      '../../infrastructure/clickhouse/init/01_create_tables.sql',
+    ),
+    'utf-8',
   );
 
   // ClickHouse HTTP interface doesn't support multiple statements in one request.
@@ -99,8 +102,5 @@ export async function setup() {
 }
 
 export async function teardown() {
-  await Promise.all([
-    kafkaContainer?.stop(),
-    clickhouseContainer?.stop(),
-  ]);
+  await Promise.all([kafkaContainer?.stop(), clickhouseContainer?.stop()]);
 }

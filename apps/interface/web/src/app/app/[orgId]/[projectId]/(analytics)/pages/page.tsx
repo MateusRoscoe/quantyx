@@ -1,7 +1,15 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { useAnalyticsPages } from '@/hooks/use-analytics-pages';
 import {
   ChartCard,
@@ -33,14 +41,33 @@ export default function PagesPage() {
     <div className="space-y-6">
       <PageHeader title="Pages" />
 
-      <ChartCard title="Top 10 Pages" isLoading={isLoading} isEmpty={top10.length === 0}>
+      <ChartCard
+        title="Top 10 Pages"
+        isLoading={isLoading}
+        isEmpty={top10.length === 0}
+      >
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={top10} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 120 }}>
+          <BarChart
+            data={top10}
+            layout="vertical"
+            margin={{ top: 0, right: 8, bottom: 0, left: 120 }}
+          >
             <CartesianGrid {...gridStyle} horizontal={false} />
             <XAxis type="number" {...axisStyle} />
-            <YAxis type="category" dataKey="path" {...axisStyle} tick={{ fontSize: 11 }} width={120} />
+            <YAxis
+              type="category"
+              dataKey="path"
+              {...axisStyle}
+              tick={{ fontSize: 11 }}
+              width={120}
+            />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="views" fill="var(--color-chart-1)" radius={[0, 4, 4, 0]} animationDuration={750} />
+            <Bar
+              dataKey="views"
+              fill="var(--color-chart-1)"
+              radius={[0, 4, 4, 0]}
+              animationDuration={750}
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -50,7 +77,12 @@ export default function PagesPage() {
           <CardTitle className="text-base font-medium">All Pages</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={data?.pages ?? []} isLoading={isLoading} pageSize={20} />
+          <DataTable
+            columns={columns}
+            data={data?.pages ?? []}
+            isLoading={isLoading}
+            pageSize={20}
+          />
         </CardContent>
       </Card>
     </div>

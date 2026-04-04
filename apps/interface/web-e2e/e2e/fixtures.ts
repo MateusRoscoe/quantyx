@@ -37,10 +37,9 @@ async function verifyEmailInDb(email: string): Promise<string> {
     );
     if (rows.length === 0) throw new Error(`User not found: ${email}`);
     const userId = rows[0].id;
-    await pool.query(
-      'UPDATE "user" SET "emailVerified" = true WHERE id = $1',
-      [userId],
-    );
+    await pool.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [
+      userId,
+    ]);
     return userId;
   } finally {
     await pool.end();
@@ -51,10 +50,9 @@ async function deleteUserData(userId: string): Promise<void> {
   const pool = getPool();
   try {
     // Delete in dependency order
-    await pool.query(
-      'DELETE FROM "organization_members" WHERE "userId" = $1',
-      [userId],
-    );
+    await pool.query('DELETE FROM "organization_members" WHERE "userId" = $1', [
+      userId,
+    ]);
     await pool.query('DELETE FROM "session" WHERE "userId" = $1', [userId]);
     await pool.query('DELETE FROM "account" WHERE "userId" = $1', [userId]);
     await pool.query('DELETE FROM "user" WHERE id = $1', [userId]);
@@ -71,7 +69,9 @@ export const test = base.extend<Fixtures>({
   createVerifiedUser: async ({ page }, use) => {
     const createdUserIds: string[] = [];
 
-    const factory = async (overrides: Partial<TestUser> = {}): Promise<TestUser> => {
+    const factory = async (
+      overrides: Partial<TestUser> = {},
+    ): Promise<TestUser> => {
       const user: TestUser = {
         name: overrides.name ?? 'E2E Test User',
         email: overrides.email ?? `e2e-${Date.now()}@test.quantyx.io`,

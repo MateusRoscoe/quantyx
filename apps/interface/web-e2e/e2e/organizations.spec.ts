@@ -19,9 +19,7 @@ test.describe('Organizations', () => {
     });
 
     test('organizations page shows empty state', async ({ page }) => {
-      await expect(
-        page.getByText('No organizations yet'),
-      ).toBeVisible();
+      await expect(page.getByText('No organizations yet')).toBeVisible();
     });
 
     test('create organization', async ({ page }) => {
@@ -56,7 +54,9 @@ test.describe('Organizations', () => {
       await expect(
         page.getByRole('heading', { name: 'Detail Test Org' }),
       ).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: 'Projects' }),
+      ).toBeVisible();
     });
 
     test('update organization name in settings', async ({ page }) => {
@@ -108,9 +108,7 @@ test.describe('Organizations', () => {
       await dialog.getByRole('textbox').fill('Org To Delete');
 
       // Confirm deletion — click the red destructive button inside the dialog
-      await dialog
-        .getByRole('button', { name: 'Delete organization' })
-        .click();
+      await dialog.getByRole('button', { name: 'Delete organization' }).click();
 
       // Should redirect to organizations list
       await expect(page).toHaveURL('/organizations', { timeout: 10_000 });
@@ -119,12 +117,8 @@ test.describe('Organizations', () => {
 
     test('empty state when no organizations exist', async ({ page }) => {
       // Fresh user — no orgs
-      await expect(
-        page.getByText('No organizations yet'),
-      ).toBeVisible();
-      await expect(
-        page.getByText('Create one to get started'),
-      ).toBeVisible();
+      await expect(page.getByText('No organizations yet')).toBeVisible();
+      await expect(page.getByText('Create one to get started')).toBeVisible();
     });
   });
 });

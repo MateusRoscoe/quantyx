@@ -29,9 +29,7 @@ function createClickHouseClient() {
   });
 }
 
-async function ensureMigrationsTable(
-  client: ReturnType<typeof createClient>,
-) {
+async function ensureMigrationsTable(client: ReturnType<typeof createClient>) {
   await client.command({
     query: `
       CREATE TABLE IF NOT EXISTS _migrations (
@@ -120,10 +118,7 @@ async function main() {
             `\n✗ Failed on statement ${i + 1}/${statements.length} in ${file}:\n`,
           );
           console.error(stmt.slice(0, 200) + (stmt.length > 200 ? '...' : ''));
-          console.error(
-            '\n',
-            err instanceof Error ? err.message : String(err),
-          );
+          console.error('\n', err instanceof Error ? err.message : String(err));
           process.exit(1);
         }
       }

@@ -31,7 +31,10 @@ function getTodayInTz(tz: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function getPresetRange(period: PeriodPreset, tz: string): { from: Date; to: Date } {
+function getPresetRange(
+  period: PeriodPreset,
+  tz: string,
+): { from: Date; to: Date } {
   const today = getTodayInTz(tz);
   switch (period) {
     case '1d':

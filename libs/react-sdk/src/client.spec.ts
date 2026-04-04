@@ -42,10 +42,16 @@ describe('QuantyxClient', () => {
     const [url, opts] = fetchSpy.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://ingest.test.io/ingest-bulk');
     expect(opts.method).toBe('POST');
-    expect((opts.headers as Record<string, string>)['X-API-Key']).toBe('qx_test-api-key-12345');
-    expect((opts.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+    expect((opts.headers as Record<string, string>)['X-API-Key']).toBe(
+      'qx_test-api-key-12345',
+    );
+    expect((opts.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/json',
+    );
 
-    const body = JSON.parse(opts.body as string) as Array<Record<string, unknown>>;
+    const body = JSON.parse(opts.body as string) as Array<
+      Record<string, unknown>
+    >;
     expect(body).toHaveLength(1);
     expect(body[0]).toMatchObject({
       event_name: 'click',

@@ -17,7 +17,10 @@ export function useQuantyx(): QuantyxClient {
 }
 
 /** Returns a stable `track` function. */
-export function useTrack(): (eventName: string, properties?: EventProperties) => void {
+export function useTrack(): (
+  eventName: string,
+  properties?: EventProperties,
+) => void {
   const client = useQuantyxClient();
   return useCallback(
     (eventName: string, properties?: EventProperties) => {

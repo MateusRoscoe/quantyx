@@ -8,7 +8,8 @@ export default defineConfig({
       name: 'resolve-ts-from-js',
       enforce: 'pre',
       resolveId(id, importer) {
-        if (!importer || !id.startsWith('.') || !id.endsWith('.js')) return null;
+        if (!importer || !id.startsWith('.') || !id.endsWith('.js'))
+          return null;
         const tsPath = resolve(dirname(importer), id.replace(/\.js$/, '.ts'));
         if (existsSync(tsPath)) return tsPath;
         return null;
@@ -24,7 +25,10 @@ export default defineConfig({
     globalSetup: ['./vitest.globalSetup.ts'],
     pool: 'forks',
     testTimeout: 30_000,
-    coverage: { reportsDirectory: 'test-output/vitest/coverage', provider: 'v8' },
+    coverage: {
+      reportsDirectory: 'test-output/vitest/coverage',
+      provider: 'v8',
+    },
     server: {
       deps: {
         inline: true,

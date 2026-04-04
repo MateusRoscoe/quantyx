@@ -82,7 +82,14 @@ export function useSessionDetail(
   const limit = opts?.limit ?? 50;
 
   return useInfiniteQuery({
-    queryKey: ['analytics', 'session-detail', projectId, sessionId, direction, limit],
+    queryKey: [
+      'analytics',
+      'session-detail',
+      projectId,
+      sessionId,
+      direction,
+      limit,
+    ],
     queryFn: ({ pageParam }) =>
       analyticsApi.get<SessionDetailData>(
         `/projects/${projectId}/sessions/${sessionId}`,

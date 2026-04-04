@@ -1,4 +1,9 @@
-import type { QuantyxConfig, EventProperties, EventPayload, DeviceContext } from './types.js';
+import type {
+  QuantyxConfig,
+  EventProperties,
+  EventPayload,
+  DeviceContext,
+} from './types.js';
 import { generateUUIDv7 } from './utils/uuid.js';
 import { getSessionId, resetSessionId } from './utils/session.js';
 import { detectDevice } from './utils/detect.js';
@@ -24,7 +29,9 @@ export class QuantyxClient {
     };
 
     this.sessionId = getSessionId();
-    this.deviceContext = this.config.autoDetect ? detectDevice() : { platform: 'web' as const };
+    this.deviceContext = this.config.autoDetect
+      ? detectDevice()
+      : { platform: 'web' as const };
 
     this.start();
   }
@@ -92,12 +99,18 @@ export class QuantyxClient {
     if (this.running) return;
     this.running = true;
 
-    this.timer = setInterval(() => void this.flush(), this.config.flushInterval);
+    this.timer = setInterval(
+      () => void this.flush(),
+      this.config.flushInterval,
+    );
     this.addListeners();
   }
 
   private handleVisibilityChange = (): void => {
-    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    if (
+      typeof document !== 'undefined' &&
+      document.visibilityState === 'hidden'
+    ) {
       this.sendBeacon();
     }
   };
@@ -108,7 +121,10 @@ export class QuantyxClient {
 
   private addListeners(): void {
     if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', this.handleVisibilityChange);
+      document.addEventListener(
+        'visibilitychange',
+        this.handleVisibilityChange,
+      );
     }
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', this.handlePageHide);
@@ -117,7 +133,10 @@ export class QuantyxClient {
 
   private removeListeners(): void {
     if (typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+      document.removeEventListener(
+        'visibilitychange',
+        this.handleVisibilityChange,
+      );
     }
     if (typeof window !== 'undefined') {
       window.removeEventListener('pagehide', this.handlePageHide);
@@ -132,15 +151,24 @@ export class QuantyxClient {
     const url = `${this.config.endpoint}/ingest-bulk`;
     const body = JSON.stringify(batch);
 
-    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.sendBeacon === 'function'
+    ) {
       const blob = new Blob([body], { type: 'application/json' });
-      const sent = navigator.sendBeacon(`${url}?apiKey=${this.config.apiKey}`, blob);
+      const sent = navigator.sendBeacon(
+        `${url}?apiKey=${this.config.apiKey}`,
+        blob,
+      );
       if (!sent) {
         // sendBeacon failed, try fetch with keepalive as fallback
         try {
           void fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-API-Key': this.config.apiKey },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': this.config.apiKey,
+            },
             body,
             keepalive: true,
           });
@@ -152,7 +180,10 @@ export class QuantyxClient {
       try {
         void fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-API-Key': this.config.apiKey },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': this.config.apiKey,
+          },
           body,
           keepalive: true,
         });

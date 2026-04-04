@@ -4,7 +4,10 @@
   "private": true,
   "nx": {
     "name": "web-e2e",
-    "implicitDependencies": ["web", "api-tenant-manager"],
+    "implicitDependencies": [
+      "web",
+      "api-tenant-manager"
+    ],
     "targets": {
       "e2e": {
         "dependsOn": [],

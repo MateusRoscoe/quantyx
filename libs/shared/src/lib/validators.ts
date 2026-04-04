@@ -47,9 +47,7 @@ export const EventMessageInput = z.object({
 
 export const MAX_USER_AGENT_LENGTH = 1024;
 
-export const Continent = z
-  .enum(CONTINENTS)
-  .describe('Continent name');
+export const Continent = z.enum(CONTINENTS).describe('Continent name');
 
 export type Continent = z.infer<typeof Continent>;
 

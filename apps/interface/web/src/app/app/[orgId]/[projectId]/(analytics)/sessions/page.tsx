@@ -3,7 +3,13 @@
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
-import { DataTable, PageHeader, NumberCell, DateTimeCell, CountryCell } from '@/components/dashboard';
+import {
+  DataTable,
+  PageHeader,
+  NumberCell,
+  DateTimeCell,
+  CountryCell,
+} from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -23,14 +29,22 @@ const columns: ColumnDef<SessionRow, unknown>[] = [
   {
     accessorKey: 'sessionId',
     header: 'Session',
-    cell: (info) => <span className="font-mono text-xs">{(info.getValue() as string).slice(0, 12)}...</span>,
+    cell: (info) => (
+      <span className="font-mono text-xs">
+        {(info.getValue() as string).slice(0, 12)}...
+      </span>
+    ),
   },
   {
     accessorKey: 'userId',
     header: 'User',
     cell: (info) => {
       const v = info.getValue() as string;
-      return <span className="text-sm">{v ? `${v.slice(0, 12)}...` : '(anonymous)'}</span>;
+      return (
+        <span className="text-sm">
+          {v ? `${v.slice(0, 12)}...` : '(anonymous)'}
+        </span>
+      );
     },
   },
   { accessorKey: 'startedAt', header: 'Started', cell: DateTimeCell },
@@ -41,7 +55,10 @@ const columns: ColumnDef<SessionRow, unknown>[] = [
 ];
 
 export default function SessionsPage() {
-  const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
+  const { orgId, projectId } = useParams<{
+    orgId: string;
+    projectId: string;
+  }>();
   const router = useRouter();
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useAnalyticsSessions(projectId);
@@ -56,7 +73,9 @@ export default function SessionsPage() {
       <PageHeader title="Sessions" />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Recent Sessions</CardTitle>
+          <CardTitle className="text-base font-medium">
+            Recent Sessions
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -64,7 +83,11 @@ export default function SessionsPage() {
             data={sessions}
             isLoading={isLoading}
             pageSize={20}
-            onRowClick={(row) => router.push(`/app/${orgId}/${projectId}/sessions/${row.sessionId}`)}
+            onRowClick={(row) =>
+              router.push(
+                `/app/${orgId}/${projectId}/sessions/${row.sessionId}`,
+              )
+            }
           />
           {hasNextPage && (
             <div className="mt-4 flex justify-center">

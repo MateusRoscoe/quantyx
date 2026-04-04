@@ -38,4 +38,8 @@ function customRenderHook<Result, Props>(
 }
 
 export * from '@testing-library/react';
-export { customRender as render, customRenderHook as renderHook, createTestQueryClient };
+export {
+  customRender as render,
+  customRenderHook as renderHook,
+  createTestQueryClient,
+};

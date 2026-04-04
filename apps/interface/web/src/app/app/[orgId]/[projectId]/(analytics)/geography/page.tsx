@@ -26,7 +26,12 @@ export default function GeographyPage() {
           <CardTitle className="text-base font-medium">Countries</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={data?.countries ?? []} isLoading={isLoading} pageSize={20} />
+          <DataTable
+            columns={columns}
+            data={data?.countries ?? []}
+            isLoading={isLoading}
+            pageSize={20}
+          />
         </CardContent>
       </Card>
     </div>

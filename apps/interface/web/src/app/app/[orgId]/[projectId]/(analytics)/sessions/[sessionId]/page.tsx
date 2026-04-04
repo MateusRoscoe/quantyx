@@ -50,13 +50,8 @@ export default function SessionDetailPage() {
 
   const [direction, setDirection] = useState<'asc' | 'desc'>('asc');
 
-  const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useSessionDetail(projectId, sessionId, { direction });
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useSessionDetail(projectId, sessionId, { direction });
 
   const session = data?.pages[0]?.session ?? null;
   const events = data?.pages.flatMap((p) => p.events) ?? [];
@@ -113,19 +108,47 @@ export default function SessionDetailPage() {
                 {session.userId}
               </Link>
             ) : (
-              <p className="mt-1 text-sm font-medium text-muted-foreground">(anonymous)</p>
+              <p className="mt-1 text-sm font-medium text-muted-foreground">
+                (anonymous)
+              </p>
             )}
           </Card>
 
           {/* Stats */}
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
             {[
-              { icon: Calendar, label: 'Started at', value: formatDateTime(session.startedAt) },
-              { icon: Clock, label: 'Duration', value: formatDuration(session.startedAt, session.endedAt) },
-              { icon: Zap, label: 'Events', value: session.totalEvents.toLocaleString() },
-              { icon: FileText, label: 'Pages', value: session.pageViews.toLocaleString() },
-              { icon: Monitor, label: 'Browser / OS', value: [session.browser, session.os].filter(Boolean).join(' / ') || '—' },
-              { icon: GlobeIcon, label: 'Country', value: session.country || '—' },
+              {
+                icon: Calendar,
+                label: 'Started at',
+                value: formatDateTime(session.startedAt),
+              },
+              {
+                icon: Clock,
+                label: 'Duration',
+                value: formatDuration(session.startedAt, session.endedAt),
+              },
+              {
+                icon: Zap,
+                label: 'Events',
+                value: session.totalEvents.toLocaleString(),
+              },
+              {
+                icon: FileText,
+                label: 'Pages',
+                value: session.pageViews.toLocaleString(),
+              },
+              {
+                icon: Monitor,
+                label: 'Browser / OS',
+                value:
+                  [session.browser, session.os].filter(Boolean).join(' / ') ||
+                  '—',
+              },
+              {
+                icon: GlobeIcon,
+                label: 'Country',
+                value: session.country || '—',
+              },
             ].map(({ icon: Icon, label, value }) => (
               <Card key={label} className="gap-0 p-4">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -175,7 +198,10 @@ export default function SessionDetailPage() {
               <div className="absolute top-3 bottom-3 left-[15px] w-px bg-border" />
 
               {events.map((event, i) => (
-                <div key={event.event_id} className="relative flex gap-4 py-2.5">
+                <div
+                  key={event.event_id}
+                  className="relative flex gap-4 py-2.5"
+                >
                   <div
                     className="relative z-10 mt-1 flex h-[9px] w-[9px] shrink-0 rounded-full border-2 border-primary bg-background"
                     style={{ marginLeft: '11px' }}
@@ -198,7 +224,12 @@ export default function SessionDetailPage() {
                     )}
                   </div>
                   <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground/50">
-                    #{direction === 'asc' ? i + 1 : session ? session.totalEvents - i : i + 1}
+                    #
+                    {direction === 'asc'
+                      ? i + 1
+                      : session
+                        ? session.totalEvents - i
+                        : i + 1}
                   </span>
                 </div>
               ))}

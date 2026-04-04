@@ -63,9 +63,7 @@ export function StatCard({
             )}
           </div>
         </div>
-        {Icon && (
-          <Icon className="h-8 w-8 shrink-0 text-muted-foreground/25" />
-        )}
+        {Icon && <Icon className="h-8 w-8 shrink-0 text-muted-foreground/25" />}
       </div>
       {sparklineData && sparklineData.length > 1 && (
         <div className="mt-2">

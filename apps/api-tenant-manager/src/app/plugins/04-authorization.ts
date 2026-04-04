@@ -44,9 +44,7 @@ export default fp(async function authorization(fastify: FastifyInstance) {
       const actual = ROLE_LEVEL[membership.role] ?? 0;
 
       if (actual < required) {
-        throw fastify.httpErrors.forbidden(
-          `Requires at least ${minRole} role`,
-        );
+        throw fastify.httpErrors.forbidden(`Requires at least ${minRole} role`);
       }
 
       return membership;

@@ -62,10 +62,7 @@ export async function createAuthenticatedUser(
   };
 }
 
-export async function createOrgWithOwner(
-  userId: string,
-  name = 'Test Org',
-) {
+export async function createOrgWithOwner(userId: string, name = 'Test Org') {
   return prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({ data: { name } });
     await tx.organizationMember.create({

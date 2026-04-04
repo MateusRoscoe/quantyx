@@ -27,7 +27,7 @@ export function Providers({ children }: { children: ReactNode }) {
             retry: false,
           },
         },
-      })
+      }),
   );
 
   const content = quantyxConfig ? (

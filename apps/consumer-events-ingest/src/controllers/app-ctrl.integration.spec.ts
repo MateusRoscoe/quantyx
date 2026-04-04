@@ -25,7 +25,7 @@ async function pollClickHouse(
   projectId: string,
   expectedCount: number,
   timeoutMs = 15_000,
-  intervalMs = 500
+  intervalMs = 500,
 ): Promise<Record<string, unknown>[]> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -40,7 +40,7 @@ async function pollClickHouse(
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error(
-    `Timed out waiting for ${expectedCount} row(s) with project_id=${projectId}`
+    `Timed out waiting for ${expectedCount} row(s) with project_id=${projectId}`,
   );
 }
 
@@ -107,7 +107,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
   it('batch of events all land in ClickHouse', async () => {
     const projectId = randomUUID();
     const events = Array.from({ length: 5 }, () =>
-      makeEventMessage({ project_id: projectId })
+      makeEventMessage({ project_id: projectId }),
     );
 
     await producer.send({
@@ -306,13 +306,13 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
 
     // Browser=Chrome should be 2
     const browser = metricRows.find(
-      (r) => r.dimension_name === 'browser' && r.dimension_value === 'Chrome'
+      (r) => r.dimension_name === 'browser' && r.dimension_value === 'Chrome',
     );
     expect(Number(browser?.event_count)).toBe(2);
 
     // Path=/about should be 1 (only page_view has path)
     const pathRow = metricRows.find(
-      (r) => r.dimension_name === 'path' && r.dimension_value === '/about'
+      (r) => r.dimension_name === 'path' && r.dimension_value === '/about',
     );
     expect(Number(pathRow?.event_count)).toBe(1);
   });

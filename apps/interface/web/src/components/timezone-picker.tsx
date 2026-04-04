@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import { Globe } from 'lucide-react';
 import { useTimezone } from '@/hooks/use-timezone';
-import {
-  SidebarMenuButton,
-} from '@/components/ui/sidebar';
+import { SidebarMenuButton } from '@/components/ui/sidebar';
 import {
   Popover,
   PopoverContent,
@@ -56,20 +54,22 @@ const COMMON_TIMEZONES = [
 // Get all IANA timezone names supported by the browser
 function getAllTimezones(): string[] {
   try {
-    return (Intl as unknown as { supportedValuesOf: (key: string) => string[] })
-      .supportedValuesOf('timeZone');
+    return (
+      Intl as unknown as { supportedValuesOf: (key: string) => string[] }
+    ).supportedValuesOf('timeZone');
   } catch {
     return COMMON_TIMEZONES;
   }
 }
 
 function formatTzLabel(tz: string): string {
-  const offset = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    timeZoneName: 'shortOffset',
-  })
-    .formatToParts(new Date())
-    .find((p) => p.type === 'timeZoneName')?.value ?? '';
+  const offset =
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
+    })
+      .formatToParts(new Date())
+      .find((p) => p.type === 'timeZoneName')?.value ?? '';
 
   return `${tz.replace(/_/g, ' ')} (${offset})`;
 }
@@ -89,7 +89,12 @@ export function TimezonePicker() {
           <span>{abbreviation}</span>
         </SidebarMenuButton>
       </PopoverTrigger>
-      <PopoverContent side="right" align="end" className="w-72 p-0" sideOffset={8}>
+      <PopoverContent
+        side="right"
+        align="end"
+        className="w-72 p-0"
+        sideOffset={8}
+      >
         <Command>
           <CommandInput placeholder="Search timezone..." />
           <CommandList>
@@ -103,7 +108,9 @@ export function TimezonePicker() {
                 }}
               >
                 {formatTzLabel(browserTz)}
-                {timezone === browserTz && <span className="ml-auto text-xs text-primary">Active</span>}
+                {timezone === browserTz && (
+                  <span className="ml-auto text-xs text-primary">Active</span>
+                )}
               </CommandItem>
             </CommandGroup>
             <CommandGroup heading="Common">
@@ -117,13 +124,17 @@ export function TimezonePicker() {
                   }}
                 >
                   {formatTzLabel(tz)}
-                  {timezone === tz && <span className="ml-auto text-xs text-primary">Active</span>}
+                  {timezone === tz && (
+                    <span className="ml-auto text-xs text-primary">Active</span>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>
             <CommandGroup heading="All timezones">
               {allTz
-                .filter((tz) => !COMMON_TIMEZONES.includes(tz) && tz !== browserTz)
+                .filter(
+                  (tz) => !COMMON_TIMEZONES.includes(tz) && tz !== browserTz,
+                )
                 .map((tz) => (
                   <CommandItem
                     key={tz}
@@ -134,7 +145,11 @@ export function TimezonePicker() {
                     }}
                   >
                     {formatTzLabel(tz)}
-                    {timezone === tz && <span className="ml-auto text-xs text-primary">Active</span>}
+                    {timezone === tz && (
+                      <span className="ml-auto text-xs text-primary">
+                        Active
+                      </span>
+                    )}
                   </CommandItem>
                 ))}
             </CommandGroup>

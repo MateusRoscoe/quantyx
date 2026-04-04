@@ -65,8 +65,7 @@ export function useFilters() {
   }, [searchParams]);
 
   const activeFilterCount = useMemo(
-    () =>
-      Object.keys(filters).length + propertyFilters.length,
+    () => Object.keys(filters).length + propertyFilters.length,
     [filters, propertyFilters],
   );
 

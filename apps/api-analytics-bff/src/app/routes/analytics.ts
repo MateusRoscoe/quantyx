@@ -248,7 +248,9 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         getDimension('os'),
       ]);
 
-      const mapRows = (rows: { value: string; count: string; unique_users: string }[]) =>
+      const mapRows = (
+        rows: { value: string; count: string; unique_users: string }[],
+      ) =>
         rows.map((r) => ({
           value: r.value,
           count: Number(r.count),
@@ -621,14 +623,16 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/events/feed', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: querySchema.extend({
-        user_id: z.string().optional(),
-        session_id: z.string().optional(),
-        limit: z.coerce.number().min(1).max(200).default(50),
-        direction: z.enum(['asc', 'desc']).default('desc'),
-        cursor_ts: z.string().optional(),
-        cursor_id: z.string().optional(),
-      }).passthrough(), // Allow prop_str.*, prop_num.*, prop_bool.* params
+      querystring: querySchema
+        .extend({
+          user_id: z.string().optional(),
+          session_id: z.string().optional(),
+          limit: z.coerce.number().min(1).max(200).default(50),
+          direction: z.enum(['asc', 'desc']).default('desc'),
+          cursor_ts: z.string().optional(),
+          cursor_id: z.string().optional(),
+        })
+        .passthrough(), // Allow prop_str.*, prop_num.*, prop_bool.* params
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
@@ -742,7 +746,11 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
 
       await fastify.verifyProjectAccess(request, projectId);
 
-      const colMap = { str: 'props_str', num: 'props_num', bool: 'props_bool' } as const;
+      const colMap = {
+        str: 'props_str',
+        num: 'props_num',
+        bool: 'props_bool',
+      } as const;
       const col = colMap[type];
 
       const searchClause = search

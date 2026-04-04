@@ -41,7 +41,6 @@ function SetupContent() {
       .catch(() => {
         toast.error('Failed to create API key');
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   function handleCopy() {
@@ -101,9 +100,7 @@ quantyx.track('page_view', {
         <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <Rocket className="h-6 w-6 text-primary" />
         </div>
-        <CardTitle className="font-display text-2xl">
-          Set up your SDK
-        </CardTitle>
+        <CardTitle className="font-display text-2xl">Set up your SDK</CardTitle>
         <CardDescription>
           Install the Quantyx SDK in your application to start tracking events.
         </CardDescription>
@@ -176,13 +173,7 @@ quantyx.track('page_view', {
   );
 }
 
-function StepIndicator({
-  current,
-  total,
-}: {
-  current: number;
-  total: number;
-}) {
+function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
     <div className="flex items-center gap-1.5">
       {Array.from({ length: total }).map((_, i) => (

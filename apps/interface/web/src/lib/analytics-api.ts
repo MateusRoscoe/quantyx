@@ -11,7 +11,10 @@ class AnalyticsApiError extends Error {
   }
 }
 
-async function request<T>(path: string, params?: Record<string, string>): Promise<T> {
+async function request<T>(
+  path: string,
+  params?: Record<string, string>,
+): Promise<T> {
   const url = new URL(`${BASE_URL}${path}`);
   if (params) {
     for (const [key, value] of Object.entries(params)) {

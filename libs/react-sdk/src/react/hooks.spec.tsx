@@ -43,7 +43,9 @@ describe('useTrack', () => {
     const mockInstance = vi.mocked(QuantyxClient).mock.results[0]?.value as {
       track: ReturnType<typeof vi.fn>;
     };
-    expect(mockInstance.track).toHaveBeenCalledWith('page_view', { props_str: { path: '/' } });
+    expect(mockInstance.track).toHaveBeenCalledWith('page_view', {
+      props_str: { path: '/' },
+    });
   });
 });
 

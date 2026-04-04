@@ -60,7 +60,7 @@ describe('Validators', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(
-          result.error.issues.some((i) => i.path.includes('event_id'))
+          result.error.issues.some((i) => i.path.includes('event_id')),
         ).toBe(true);
       }
     });
@@ -74,7 +74,7 @@ describe('Validators', () => {
       if (!result.success) {
         const paths = result.error.issues.map((i) => i.path.join('.'));
         expect(paths).toEqual(
-          expect.arrayContaining(['event_id', 'session_id'])
+          expect.arrayContaining(['event_id', 'session_id']),
         );
       }
     });
@@ -86,7 +86,7 @@ describe('Validators', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(
-          result.error.issues.some((i) => i.path.join('.') === 'timestamp')
+          result.error.issues.some((i) => i.path.join('.') === 'timestamp'),
         ).toBe(true);
       }
     });
@@ -105,7 +105,7 @@ describe('Validators', () => {
             'props_str.aaaa',
             'props_num.count',
             'props_bool.subscribed',
-          ])
+          ]),
         );
       }
     });
@@ -145,7 +145,7 @@ describe('Validators', () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.issues.some((i) => i.path[0] === 'country')).toBe(
-            true
+            true,
           );
         }
       }
@@ -172,7 +172,7 @@ describe('Validators', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues.some((i) => i.path[0] === 'state')).toBe(
-          true
+          true,
         );
       }
     });
@@ -186,7 +186,7 @@ describe('Validators', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(
-          result.error.issues.some((i) => i.path[0] === 'ip_address')
+          result.error.issues.some((i) => i.path[0] === 'ip_address'),
         ).toBe(true);
       }
     });
@@ -255,7 +255,7 @@ describe('Validators', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues.some((i) => i.path[0] === 'continent')).toBe(
-          true
+          true,
         );
       }
     });
@@ -308,7 +308,7 @@ describe('Validators', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues.some((i) => i.path[0] === 'region')).toBe(
-          true
+          true,
         );
       }
     });
@@ -363,18 +363,18 @@ describe('Validators', () => {
 
   describe('UpdateMemberRoleBody', () => {
     it('accepts admin and member roles', () => {
-      expect(
-        UpdateMemberRoleBody.safeParse({ role: 'admin' }).success,
-      ).toBe(true);
-      expect(
-        UpdateMemberRoleBody.safeParse({ role: 'member' }).success,
-      ).toBe(true);
+      expect(UpdateMemberRoleBody.safeParse({ role: 'admin' }).success).toBe(
+        true,
+      );
+      expect(UpdateMemberRoleBody.safeParse({ role: 'member' }).success).toBe(
+        true,
+      );
     });
 
     it('rejects owner role', () => {
-      expect(
-        UpdateMemberRoleBody.safeParse({ role: 'owner' }).success,
-      ).toBe(false);
+      expect(UpdateMemberRoleBody.safeParse({ role: 'owner' }).success).toBe(
+        false,
+      );
     });
   });
 

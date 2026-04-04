@@ -2,7 +2,13 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
-import { DataTable, PageHeader, MonoCell, NumberCell, DateCell } from '@/components/dashboard';
+import {
+  DataTable,
+  PageHeader,
+  MonoCell,
+  NumberCell,
+  DateCell,
+} from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
 
@@ -21,7 +27,10 @@ const columns: ColumnDef<UserRow, unknown>[] = [
 ];
 
 export default function UsersPage() {
-  const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
+  const { orgId, projectId } = useParams<{
+    orgId: string;
+    projectId: string;
+  }>();
   const router = useRouter();
   const { data, isLoading } = useAnalyticsUsers(projectId);
 
@@ -38,7 +47,9 @@ export default function UsersPage() {
             data={data?.users ?? []}
             isLoading={isLoading}
             pageSize={20}
-            onRowClick={(row) => router.push(`/app/${orgId}/${projectId}/users/${row.userId}`)}
+            onRowClick={(row) =>
+              router.push(`/app/${orgId}/${projectId}/users/${row.userId}`)
+            }
           />
         </CardContent>
       </Card>

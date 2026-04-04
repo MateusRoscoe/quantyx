@@ -49,20 +49,17 @@ export function useEventsFeed(
       filters,
     ],
     queryFn: ({ pageParam }) =>
-      analyticsApi.get<EventFeedData>(
-        `/projects/${projectId}/events/feed`,
-        {
-          from: fromStr,
-          to: toStr,
-          limit: String(limit),
-          direction,
-          ...filters,
-          ...(pageParam && {
-            cursor_ts: pageParam.cursorTs,
-            cursor_id: pageParam.cursorId,
-          }),
-        },
-      ),
+      analyticsApi.get<EventFeedData>(`/projects/${projectId}/events/feed`, {
+        from: fromStr,
+        to: toStr,
+        limit: String(limit),
+        direction,
+        ...filters,
+        ...(pageParam && {
+          cursor_ts: pageParam.cursorTs,
+          cursor_id: pageParam.cursorId,
+        }),
+      }),
     initialPageParam: null as { cursorTs: string; cursorId: string } | null,
     getNextPageParam: (lastPage) => {
       if (!lastPage.hasMore || lastPage.events.length === 0) return undefined;

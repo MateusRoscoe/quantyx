@@ -103,8 +103,8 @@ curl -X POST ${endpoint}/ingest-bulk \\
         <Card className="border-warning">
           <CardContent className="pt-6">
             <p className="text-sm text-warning">
-              No API keys found. Create one in the{' '}
-              <strong>API Keys</strong> tab before integrating the SDK.
+              No API keys found. Create one in the <strong>API Keys</strong> tab
+              before integrating the SDK.
             </p>
           </CardContent>
         </Card>
@@ -113,9 +113,7 @@ curl -X POST ${endpoint}/ingest-bulk \\
       <Card>
         <CardHeader>
           <CardTitle>1. Install the SDK</CardTitle>
-          <CardDescription>
-            Add the Quantyx SDK to your project
-          </CardDescription>
+          <CardDescription>Add the Quantyx SDK to your project</CardDescription>
         </CardHeader>
         <CardContent>
           <pre className="overflow-x-auto rounded-lg bg-muted p-4 font-mono text-sm">
@@ -127,9 +125,7 @@ curl -X POST ${endpoint}/ingest-bulk \\
       <Card>
         <CardHeader>
           <CardTitle>2. Initialize tracking</CardTitle>
-          <CardDescription>
-            Choose your integration method
-          </CardDescription>
+          <CardDescription>Choose your integration method</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="react">

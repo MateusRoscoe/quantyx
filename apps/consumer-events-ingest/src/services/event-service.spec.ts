@@ -44,7 +44,7 @@ describe('EventService', () => {
         session_id: '550e8400-e29b-41d4-a716-446655440001',
         event_name: 'page_view',
         timestamp: Math.floor(
-          new Date('2025-06-15T14:30:00.000Z').getTime() / 1000
+          new Date('2025-06-15T14:30:00.000Z').getTime() / 1000,
         ),
         country: 'US',
         continent: 'North America',

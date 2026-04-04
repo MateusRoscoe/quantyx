@@ -33,7 +33,11 @@ export function parsePropertyFilters(
     if (!value) continue;
     const match = key.match(/^prop_(str|num|bool)\.(.+)$/);
     if (match) {
-      filters.push({ type: match[1] as 'str' | 'num' | 'bool', name: match[2], value });
+      filters.push({
+        type: match[1] as 'str' | 'num' | 'bool',
+        name: match[2],
+        value,
+      });
     }
   }
   return filters;

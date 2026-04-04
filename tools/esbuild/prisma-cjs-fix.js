@@ -11,19 +11,16 @@ const { readFileSync } = require('fs');
 const prismaClientCjsFixPlugin = {
   name: 'prisma-client-cjs-fix',
   setup(build) {
-    build.onLoad(
-      { filter: /generated[\\/]client\.ts$/ },
-      async (args) => {
-        const contents = readFileSync(args.path, 'utf8');
-        return {
-          contents: contents.replace(
-            "globalThis['__dirname'] = path.dirname(fileURLToPath(import.meta.url))",
-            "if (typeof __dirname === 'undefined') { globalThis['__dirname'] = path.dirname(fileURLToPath(import.meta.url)); }",
-          ),
-          loader: 'ts',
-        };
-      },
-    );
+    build.onLoad({ filter: /generated[\\/]client\.ts$/ }, async (args) => {
+      const contents = readFileSync(args.path, 'utf8');
+      return {
+        contents: contents.replace(
+          "globalThis['__dirname'] = path.dirname(fileURLToPath(import.meta.url))",
+          "if (typeof __dirname === 'undefined') { globalThis['__dirname'] = path.dirname(fileURLToPath(import.meta.url)); }",
+        ),
+        loader: 'ts',
+      };
+    });
   },
 };
 

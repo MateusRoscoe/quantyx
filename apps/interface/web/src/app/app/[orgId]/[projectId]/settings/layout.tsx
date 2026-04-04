@@ -17,13 +17,14 @@ export default function ProjectSettingsLayout({
   const pathname = usePathname();
   const base = `/app/${orgId}/${projectId}/settings`;
 
-  const currentTab = pathname === base
-    ? 'general'
-    : pathname.endsWith('/api-keys')
-      ? 'api-keys'
-      : pathname.endsWith('/setup')
-        ? 'setup'
-        : 'general';
+  const currentTab =
+    pathname === base
+      ? 'general'
+      : pathname.endsWith('/api-keys')
+        ? 'api-keys'
+        : pathname.endsWith('/setup')
+          ? 'setup'
+          : 'general';
 
   return (
     <div className="mx-auto max-w-screen-xl space-y-6">

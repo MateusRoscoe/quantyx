@@ -29,7 +29,7 @@ export async function disconnectProducer() {
     logger.warn(
       `Still have ${
         eventsBuffer.length
-      } unsent events in buffer. Retrying flush... (${i + 1}/10)`
+      } unsent events in buffer. Retrying flush... (${i + 1}/10)`,
     );
     await sleep(1000);
     await flushBuffer();
@@ -37,7 +37,7 @@ export async function disconnectProducer() {
 
   if (eventsBuffer.length > 0) {
     logger.error(
-      `Failed to flush all events before shutdown. Dropping ${eventsBuffer.length} events.`
+      `Failed to flush all events before shutdown. Dropping ${eventsBuffer.length} events.`,
     );
   }
 
