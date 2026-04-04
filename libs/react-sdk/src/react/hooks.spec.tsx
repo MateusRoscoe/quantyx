@@ -6,12 +6,12 @@ import { QuantyxClient } from '../client.js';
 import type { QuantyxConfig } from '../types.js';
 
 vi.mock('../client.js', () => {
-  const QuantyxClient = vi.fn().mockImplementation(() => ({
-    track: vi.fn(),
-    identify: vi.fn(),
-    flush: vi.fn().mockResolvedValue(undefined),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  }));
+  const QuantyxClient = vi.fn().mockImplementation(function () {
+    this.track = vi.fn();
+    this.identify = vi.fn();
+    this.flush = vi.fn().mockResolvedValue(undefined);
+    this.shutdown = vi.fn().mockResolvedValue(undefined);
+  });
   return { QuantyxClient };
 });
 

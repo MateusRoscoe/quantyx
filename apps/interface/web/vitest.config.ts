@@ -19,5 +19,6 @@ export default defineConfig({
       provider: 'v8',
     },
     css: false,
+    passWithNoTests: true,
   },
 });
