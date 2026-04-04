@@ -379,11 +379,89 @@ function randomPublicIPv4(): string {
   return `${first}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
 }
 
-function weightedTimestamp(startMs: number, endMs: number): number {
-  // More events towards "now" — simulates growing traffic
-  const r = Math.random();
-  const biased = 1 - (1 - r) * (1 - r); // quadratic bias towards 1 (recent)
-  return Math.floor(startMs + biased * (endMs - startMs));
+// ── Realistic daily traffic distribution ───────────────────────────────────
+
+interface DailyWeight {
+  dayOffset: number;
+  weight: number;
+  dateMs: number; // midnight UTC of this day
+}
+
+function buildDailyWeights(): DailyWeight[] {
+  const weights: DailyWeight[] = [];
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const startOfFirstDay = startMs - (startMs % msPerDay);
+
+  // Pick ~12% of days as random spikes (marketing pushes, viral posts, etc.)
+  const numSpikes = Math.max(2, Math.floor(DAYS_BACK * 0.12));
+  const spikeDays = new Set<number>();
+  for (let i = 0; i < numSpikes; i++) {
+    spikeDays.add(Math.floor(Math.random() * DAYS_BACK));
+  }
+
+  for (let d = 0; d < DAYS_BACK; d++) {
+    const dateMs = startOfFirstDay + d * msPerDay;
+    const date = new Date(dateMs);
+    const dayOfWeek = date.getUTCDay(); // 0=Sun, 6=Sat
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Linear ramp: 1.0 at day 0 → 2.0 at last day
+    let weight = 1.0 + (d / DAYS_BACK) * 1.0;
+
+    // Weekend dip: 40-55% of weekday traffic
+    if (isWeekend) weight *= 0.4 + Math.random() * 0.15;
+
+    // Random spike days: 1.5x–3.5x boost
+    if (spikeDays.has(d)) weight *= 1.5 + Math.random() * 2.0;
+
+    // Daily jitter ±20%
+    weight *= 0.8 + Math.random() * 0.4;
+
+    weights.push({ dayOffset: d, weight, dateMs });
+  }
+
+  return weights;
+}
+
+const dailyWeights = buildDailyWeights();
+const dailyCdf: number[] = [];
+let dailyCdfTotal = 0;
+for (const w of dailyWeights) {
+  dailyCdfTotal += w.weight;
+  dailyCdf.push(dailyCdfTotal);
+}
+
+function pickDay(): DailyWeight {
+  const r = Math.random() * dailyCdfTotal;
+  let lo = 0,
+    hi = dailyCdf.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (dailyCdf[mid] < r) lo = mid + 1;
+    else hi = mid;
+  }
+  return dailyWeights[lo];
+}
+
+/** Office-hours skewed hour: 80% bell curve centered at 13:00 (σ=3), 20% uniform */
+function generateHourOfDay(): number {
+  if (Math.random() < 0.2) {
+    return Math.random() * 24; // night owls, other timezones, bots
+  }
+  // Box-Muller normal distribution
+  const u1 = Math.random();
+  const u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  let hour = 13 + z * 3;
+  while (hour < 0) hour += 24;
+  while (hour >= 24) hour -= 24;
+  return hour;
+}
+
+function realisticTimestamp(): number {
+  const day = pickDay();
+  const hourMs = generateHourOfDay() * 60 * 60 * 1000;
+  return Math.floor(day.dateMs + hourMs);
 }
 
 // ── User / session simulation ───────────────────────────────────────────────
@@ -522,12 +600,12 @@ function generateEvent(session: Session): Record<string, unknown> {
 
 function generateBatch(size: number): Record<string, unknown>[] {
   const batch: Record<string, unknown>[] = [];
-  let session = createSession(weightedTimestamp(startMs, endMs));
+  let session = createSession(realisticTimestamp());
   const eventsPerSession = 3 + Math.floor(Math.random() * 15); // 3-17 events per session
 
   for (let i = 0; i < size; i++) {
     if (session.eventCount >= eventsPerSession) {
-      session = createSession(weightedTimestamp(startMs, endMs));
+      session = createSession(realisticTimestamp());
     }
     batch.push(generateEvent(session));
   }
