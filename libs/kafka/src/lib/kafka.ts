@@ -1,4 +1,4 @@
-import { KafkaJS } from '@confluentinc/kafka-javascript';
+import { KafkaJS, RdKafka } from '@confluentinc/kafka-javascript';
 
 import { environment } from './env';
 
@@ -23,6 +23,15 @@ const kafka = new KafkaJS.Kafka();
 
 export function createProducer(config?: Record<string, unknown>) {
   return kafka.producer({ ...baseConfig, ...config });
+}
+
+export function createNativeProducer(
+  config?: Record<string, unknown>,
+): RdKafka.Producer {
+  return new RdKafka.Producer({
+    ...(baseConfig as RdKafka.ProducerGlobalConfig),
+    ...config,
+  });
 }
 
 export function createConsumer(config: Record<string, unknown>) {
