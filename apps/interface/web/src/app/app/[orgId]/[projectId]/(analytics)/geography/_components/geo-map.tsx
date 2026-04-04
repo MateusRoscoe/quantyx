@@ -6,7 +6,6 @@ import {
   Geographies,
   Geography,
   Marker,
-  ZoomableGroup,
 } from 'react-simple-maps';
 import {
   Tooltip,
@@ -17,7 +16,7 @@ import {
 import { countryToFlag, countryName } from '@/lib/country';
 
 const WORLD_TOPO_URL =
-  'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+  'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json';
 
 // ISO 3166-1 alpha-3 to numeric mapping used by topojson
 // prettier-ignore
@@ -100,86 +99,84 @@ function GeoMapInner({ countries, cities, metric }: GeoMapProps) {
         <TooltipTrigger asChild>
           <div>
             <ComposableMap
-              projectionConfig={{ rotate: [-10, 0, 0], scale: 147 }}
+              projection="geoNaturalEarth1"
+              projectionConfig={{ scale: 155 }}
               width={800}
-              height={400}
+              height={420}
               style={{ width: '100%', height: 'auto' }}
             >
-              <ZoomableGroup>
-                <Geographies geography={WORLD_TOPO_URL}>
-                  {({ geographies }) =>
-                    geographies.map((geo, i) => {
-                      const id = geo.id;
-                      const data = countryMap.get(id);
-                      // Try to find the alpha-3 code for this numeric ID
-                      const alpha3 = Object.entries(ALPHA3_TO_NUMERIC).find(
-                        ([, v]) => v === id,
-                      )?.[0];
-                      const name = alpha3
-                        ? countryName(alpha3)
-                        : geo.properties.name;
-                      const flag = alpha3 ? countryToFlag(alpha3) : '';
+              <Geographies geography={WORLD_TOPO_URL}>
+                {({ geographies }) =>
+                  geographies.map((geo, i) => {
+                    const id = geo.id;
+                    const data = countryMap.get(id);
+                    const alpha3 = Object.entries(ALPHA3_TO_NUMERIC).find(
+                      ([, v]) => v === id,
+                    )?.[0];
+                    const name = alpha3
+                      ? countryName(alpha3)
+                      : geo.properties.name;
+                    const flag = alpha3 ? countryToFlag(alpha3) : '';
 
-                      return (
-                        <Geography
-                          key={geo.rpiid ?? geo.id ?? i}
-                          geography={geo}
-                          fill={getColor(id)}
-                          stroke="var(--color-border)"
-                          strokeWidth={0.5}
-                          style={{ outline: 'none', cursor: 'pointer' }}
-                          onMouseEnter={(e) => {
-                            (e.target as SVGPathElement).style.fill =
-                              'var(--color-chart-1)';
-                            const val = data
-                              ? metric === 'events'
-                                ? `${data.count.toLocaleString()} events`
-                                : `${data.uniqueUsers.toLocaleString()} users`
-                              : 'No data';
-                            setTooltipContent(
-                              `${flag ?? ''} ${name ?? 'Unknown'} — ${val}`,
-                            );
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.target as SVGPathElement).style.fill =
-                              getColor(id);
-                            setTooltipContent('');
-                          }}
-                        />
-                      );
-                    })
-                  }
-                </Geographies>
-                {cities
-                  .filter((c) => c.latitude !== 0 && c.longitude !== 0)
-                  .map((city) => {
-                    const radius = Math.max(
-                      2,
-                      Math.min(12, (city.count / maxCityValue) * 12),
-                    );
                     return (
-                      <Marker
-                        key={`${city.value}-${city.latitude}-${city.longitude}`}
-                        coordinates={[city.longitude, city.latitude]}
-                      >
-                        <circle
-                          r={radius}
-                          fill="var(--color-chart-2)"
-                          fillOpacity={0.6}
-                          stroke="var(--color-chart-2)"
-                          strokeWidth={1}
-                          strokeOpacity={0.8}
-                          onMouseEnter={() =>
-                            setTooltipContent(
-                              `${city.value} — ${city.count.toLocaleString()} events`,
-                            )
-                          }
-                          onMouseLeave={() => setTooltipContent('')}
-                        />
-                      </Marker>
+                      <Geography
+                        key={geo.rpiid ?? geo.id ?? i}
+                        geography={geo}
+                        fill={getColor(id)}
+                        stroke="var(--color-border)"
+                        strokeWidth={0.4}
+                        style={{ outline: 'none', cursor: 'pointer' }}
+                        onMouseEnter={(e) => {
+                          (e.target as SVGPathElement).style.fill =
+                            'var(--color-chart-1)';
+                          const val = data
+                            ? metric === 'events'
+                              ? `${data.count.toLocaleString()} events`
+                              : `${data.uniqueUsers.toLocaleString()} users`
+                            : 'No data';
+                          setTooltipContent(
+                            `${flag ?? ''} ${name ?? 'Unknown'} — ${val}`,
+                          );
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.target as SVGPathElement).style.fill =
+                            getColor(id);
+                          setTooltipContent('');
+                        }}
+                      />
                     );
-                  })}
-              </ZoomableGroup>
+                  })
+                }
+              </Geographies>
+              {cities
+                .filter((c) => c.latitude !== 0 && c.longitude !== 0)
+                .map((city) => {
+                  const radius = Math.max(
+                    2,
+                    Math.min(12, (city.count / maxCityValue) * 12),
+                  );
+                  return (
+                    <Marker
+                      key={`${city.value}-${city.latitude}-${city.longitude}`}
+                      coordinates={[city.longitude, city.latitude]}
+                    >
+                      <circle
+                        r={radius}
+                        fill="var(--color-chart-2)"
+                        fillOpacity={0.6}
+                        stroke="var(--color-chart-2)"
+                        strokeWidth={1}
+                        strokeOpacity={0.8}
+                        onMouseEnter={() =>
+                          setTooltipContent(
+                            `${city.value} — ${city.count.toLocaleString()} events`,
+                          )
+                        }
+                        onMouseLeave={() => setTooltipContent('')}
+                      />
+                    </Marker>
+                  );
+                })}
             </ComposableMap>
           </div>
         </TooltipTrigger>
