@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
-import { DataTable, PageHeader, NumberCell, DateTimeCell } from '@/components/dashboard';
+import { DataTable, PageHeader, NumberCell, DateTimeCell, CountryCell } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColumnDef } from '@tanstack/react-table';
 
@@ -35,7 +35,7 @@ const columns: ColumnDef<SessionRow, unknown>[] = [
   { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell },
   { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell },
   { accessorKey: 'browser', header: 'Browser' },
-  { accessorKey: 'country', header: 'Country' },
+  { accessorKey: 'country', header: 'Country', cell: CountryCell },
 ];
 
 export default function SessionsPage() {

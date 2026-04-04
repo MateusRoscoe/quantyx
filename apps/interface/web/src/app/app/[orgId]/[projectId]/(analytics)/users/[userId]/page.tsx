@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
-import { DataTable, DateCell, NumberCell } from '@/components/dashboard';
+import { DataTable, DateTimeCell, NumberCell, CountryCell } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Calendar, Clock, Zap } from 'lucide-react';
@@ -13,28 +13,43 @@ import type { ColumnDef } from '@tanstack/react-table';
 interface SessionRow {
   sessionId: string;
   startedAt: string;
+  endedAt: string;
   totalEvents: number;
   pageViews: number;
   browser: string;
   country: string;
 }
 
-const sessionColumns: ColumnDef<SessionRow, unknown>[] = [
-  {
-    accessorKey: 'sessionId',
-    header: 'Session',
-    cell: (info) => (
-      <span className="font-mono text-xs">
-        {(info.getValue() as string).slice(0, 12)}...
-      </span>
-    ),
-  },
-  { accessorKey: 'startedAt', header: 'Started', cell: DateCell },
-  { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell },
-  { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell },
-  { accessorKey: 'browser', header: 'Browser' },
-  { accessorKey: 'country', header: 'Country' },
-];
+function useSessionColumns() {
+  const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
+
+  const columns: ColumnDef<SessionRow, unknown>[] = [
+    {
+      accessorKey: 'sessionId',
+      header: 'Session',
+      cell: (info) => {
+        const id = info.getValue() as string;
+        return (
+          <Link
+            href={`/app/${orgId}/${projectId}/sessions/${id}`}
+            className="font-mono text-xs font-medium text-foreground underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {id}
+          </Link>
+        );
+      },
+    },
+    { accessorKey: 'startedAt', header: 'Started', cell: DateTimeCell },
+    { accessorKey: 'endedAt', header: 'Last Event', cell: DateTimeCell },
+    { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell },
+    { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell },
+    { accessorKey: 'browser', header: 'Browser' },
+    { accessorKey: 'country', header: 'Country', cell: CountryCell },
+  ];
+
+  return columns;
+}
 
 export default function UserDetailPage() {
   const { orgId, projectId, userId } = useParams<{
@@ -43,6 +58,7 @@ export default function UserDetailPage() {
     userId: string;
   }>();
 
+  const sessionColumns = useSessionColumns();
   const { data: usersData, isLoading: usersLoading } = useAnalyticsUsers(projectId);
   const { data: sessionsData, isLoading: sessionsLoading } = useAnalyticsSessions(projectId);
 
@@ -78,7 +94,7 @@ export default function UserDetailPage() {
               First seen
             </div>
             <p className="mt-1 text-sm font-medium">
-              {new Date(user.firstSeen).toLocaleDateString()}
+              {new Date(user.firstSeen).toLocaleString()}
             </p>
           </Card>
           <Card className="gap-0 p-4">
@@ -87,7 +103,7 @@ export default function UserDetailPage() {
               Last seen
             </div>
             <p className="mt-1 text-sm font-medium">
-              {new Date(user.lastSeen).toLocaleDateString()}
+              {new Date(user.lastSeen).toLocaleString()}
             </p>
           </Card>
           <Card className="gap-0 p-4">

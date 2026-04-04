@@ -350,7 +350,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       }>(
         `SELECT
           session_id,
-          anyMerge(user_id) as user_id,
+          anyLastMerge(user_id) as user_id,
           minMerge(started_at) as started_at,
           maxMerge(ended_at) as ended_at,
           sumMerge(total_events) as total_events,

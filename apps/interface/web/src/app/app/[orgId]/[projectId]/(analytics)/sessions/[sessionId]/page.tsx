@@ -2,10 +2,29 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useSessionDetail } from '@/hooks/use-analytics-sessions';
+import { useSessionDetail, useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft } from 'lucide-react';
+import {
+  ArrowLeft,
+  Clock,
+  Zap,
+  FileText,
+  Globe as GlobeIcon,
+  Monitor,
+  User,
+} from 'lucide-react';
+
+function formatDuration(startedAt: string, endedAt: string): string {
+  const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime();
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
 
 export default function SessionDetailPage() {
   const { orgId, projectId, sessionId } = useParams<{
@@ -14,7 +33,10 @@ export default function SessionDetailPage() {
     sessionId: string;
   }>();
 
+  const { data: sessionsData } = useAnalyticsSessions(projectId);
   const { data, isLoading } = useSessionDetail(projectId, sessionId);
+
+  const session = sessionsData?.sessions?.find((s) => s.sessionId === sessionId);
   const events = data?.events ?? [];
 
   return (
@@ -27,10 +49,60 @@ export default function SessionDetailPage() {
         Back to sessions
       </Link>
 
-      <h1 className="font-display text-2xl font-bold">
-        Session <span className="font-mono">{sessionId.slice(0, 12)}...</span>
-      </h1>
+      <h1 className="font-mono text-2xl font-bold">{sessionId}</h1>
 
+      {/* Session metadata */}
+      {session ? (
+        <div className="space-y-4">
+          {/* User — full width, clickable */}
+          <Card className="gap-0 p-4">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <User className="h-3.5 w-3.5" />
+              User
+            </div>
+            {session.userId ? (
+              <Link
+                href={`/app/${orgId}/${projectId}/users/${session.userId}`}
+                className="mt-1 block font-mono text-sm font-medium text-foreground underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+              >
+                {session.userId}
+              </Link>
+            ) : (
+              <p className="mt-1 text-sm font-medium text-muted-foreground">(anonymous)</p>
+            )}
+          </Card>
+
+          {/* Other stats */}
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+            {[
+              { icon: Clock, label: 'Duration', value: formatDuration(session.startedAt, session.endedAt) },
+              { icon: Zap, label: 'Events', value: session.totalEvents.toLocaleString() },
+              { icon: FileText, label: 'Pages', value: session.pageViews.toLocaleString() },
+              { icon: Monitor, label: 'Browser / OS', value: [session.browser, session.os].filter(Boolean).join(' / ') || '—' },
+              { icon: GlobeIcon, label: 'Country', value: session.country || '—' },
+            ].map(({ icon: Icon, label, value }) => (
+              <Card key={label} className="gap-0 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </div>
+                <p className="mt-1 font-mono text-sm font-medium">{value}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Skeleton className="h-16" />
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Event timeline */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">
@@ -50,15 +122,14 @@ export default function SessionDetailPage() {
             </p>
           ) : (
             <div className="relative space-y-0">
-              {/* Timeline line */}
               <div className="absolute top-3 bottom-3 left-[15px] w-px bg-border" />
 
               {events.map((event, i) => (
                 <div key={event.event_id} className="relative flex gap-4 py-2.5">
-                  {/* Dot */}
-                  <div className="relative z-10 mt-1 flex h-[9px] w-[9px] shrink-0 items-center justify-center rounded-full border-2 border-primary bg-background" style={{ marginLeft: '11px' }} />
-
-                  {/* Content */}
+                  <div
+                    className="relative z-10 mt-1 flex h-[9px] w-[9px] shrink-0 rounded-full border-2 border-primary bg-background"
+                    style={{ marginLeft: '11px' }}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-sm font-medium">
@@ -76,8 +147,6 @@ export default function SessionDetailPage() {
                       </pre>
                     )}
                   </div>
-
-                  {/* Index */}
                   <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground/50">
                     #{i + 1}
                   </span>
