@@ -1,39 +1,47 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/lib/analytics-api';
 import { useDateRange } from './use-date-range';
 
+interface User {
+  userId: string;
+  firstSeen: string;
+  lastSeen: string;
+  totalEvents: number;
+}
+
 interface UsersData {
-  users: {
-    userId: string;
-    firstSeen: string;
-    lastSeen: string;
-    totalEvents: number;
-  }[];
+  users: User[];
+  hasMore: boolean;
 }
 
 export function useAnalyticsUsers(
   projectId: string,
-  opts?: { limit?: number; offset?: number },
+  opts?: { limit?: number },
 ) {
   const { fromStr, toStr } = useDateRange();
+  const limit = opts?.limit ?? 50;
 
-  return useQuery({
-    queryKey: [
-      'analytics',
-      'users',
-      projectId,
-      fromStr,
-      toStr,
-      opts?.limit,
-      opts?.offset,
-    ],
-    queryFn: () =>
+  return useInfiniteQuery({
+    queryKey: ['analytics', 'users', projectId, fromStr, toStr, limit],
+    queryFn: ({ pageParam }) =>
       analyticsApi.get<UsersData>(`/projects/${projectId}/users`, {
         from: fromStr,
         to: toStr,
-        ...(opts?.limit !== undefined && { limit: String(opts.limit) }),
-        ...(opts?.offset !== undefined && { offset: String(opts.offset) }),
+        limit: String(limit),
+        ...(pageParam && {
+          cursor_events: String(pageParam.cursorEvents),
+          cursor_id: pageParam.cursorId,
+        }),
       }),
+    initialPageParam: null as {
+      cursorEvents: number;
+      cursorId: string;
+    } | null,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.hasMore || lastPage.users.length === 0) return undefined;
+      const last = lastPage.users[lastPage.users.length - 1];
+      return { cursorEvents: last.totalEvents, cursorId: last.userId };
+    },
     enabled: !!projectId,
   });
 }

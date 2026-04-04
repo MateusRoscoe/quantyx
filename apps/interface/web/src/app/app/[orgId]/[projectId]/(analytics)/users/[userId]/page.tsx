@@ -84,7 +84,13 @@ export default function UserDetailPage() {
     isFetchingNextPage,
   } = useAnalyticsSessions(projectId, { userId, limit: 25 });
 
-  const user = usersData?.users?.find((u) => u.userId === userId);
+  const user = useMemo(
+    () =>
+      usersData?.pages
+        .flatMap((p) => p.users)
+        .find((u) => u.userId === userId),
+    [usersData, userId],
+  );
   const userSessions = useMemo(
     () => sessionsData?.pages.flatMap((p) => p.sessions) ?? [],
     [sessionsData],

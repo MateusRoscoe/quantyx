@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
 import {
@@ -10,6 +11,7 @@ import {
   DateCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { ColumnDef } from '@tanstack/react-table';
 
 interface UserRow {
@@ -32,7 +34,13 @@ export default function UsersPage() {
     projectId: string;
   }>();
   const router = useRouter();
-  const { data, isLoading } = useAnalyticsUsers(projectId);
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useAnalyticsUsers(projectId, { limit: 25 });
+
+  const users = useMemo(
+    () => data?.pages.flatMap((p) => p.users) ?? [],
+    [data],
+  );
 
   return (
     <div className="space-y-6">
@@ -44,13 +52,26 @@ export default function UsersPage() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={data?.users ?? []}
+            data={users}
             isLoading={isLoading}
-            pageSize={20}
+            disablePagination
+            disableSorting
             onRowClick={(row) =>
               router.push(`/app/${orgId}/${projectId}/users/${row.userId}`)
             }
           />
+          {hasNextPage && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

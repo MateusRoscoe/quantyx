@@ -144,7 +144,7 @@ export function DataTable<TData>({
         </TableBody>
       </Table>
 
-      {table.getPageCount() > 1 && (
+      {!disablePagination && table.getPageCount() > 1 && (
         <div className="flex items-center justify-between border-t px-2 py-3">
           <p className="text-xs text-muted-foreground">
             Showing{' '}
