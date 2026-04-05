@@ -1,6 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { connectProducer, getProducerStatus } from '../models/kafka';
-import { environment } from '../helpers/env.js';
+import { connectProducer } from '../models/kafka';
 import { redisHealthCheck } from '@quantyx/redis';
 import { prisma } from '@quantyx/postgres';
 
@@ -12,21 +11,22 @@ export default async function (fastify: FastifyInstance) {
   });
 
   // Readiness — can it accept traffic?
-  // K8s readinessProbe: stop routing requests if this fails.
-  // Reports not-ready when too many sends are awaiting delivery.
+  // K8s readinessProbe: backpressure is handled at produce-time via Queue full error.
   fastify.get('/healthz/ready', async function (_request, reply) {
-    const { inFlightCount } = getProducerStatus();
+    reply.status(200).send({ status: 'ok' });
+  });
 
-    if (inFlightCount > environment.KAFKA_BACKPRESSURE_THRESHOLD) {
-      reply.status(503).send({
-        status: 'not ready',
-        reason: 'producer backpressure',
-        inFlightCount,
-      });
-      return;
-    }
-
-    reply.status(200).send({ status: 'ok', inFlightCount });
+  // Memory diagnostics
+  fastify.get('/healthz/memory', async function (_request, reply) {
+    const mem = process.memoryUsage();
+    reply.status(200).send({
+      rss_mb: Math.round(mem.rss / 1048576),
+      heap_total_mb: Math.round(mem.heapTotal / 1048576),
+      heap_used_mb: Math.round(mem.heapUsed / 1048576),
+      external_mb: Math.round(mem.external / 1048576),
+      array_buffers_mb: Math.round(mem.arrayBuffers / 1048576),
+      native_mb: Math.round((mem.rss - mem.heapTotal - mem.external) / 1048576),
+    });
   });
 
   // Startup — have all dependencies connected?

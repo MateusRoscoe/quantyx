@@ -5,7 +5,7 @@ import { prisma } from '@quantyx/postgres';
 import { redis } from '@quantyx/redis';
 import { environment } from '../helpers/env.js';
 
-const SKIP_PATHS = new Set(['/healthz/live', '/healthz/ready', '/healthz/startup', '/docs', '/docs/']);
+const SKIP_PATHS = new Set(['/healthz/live', '/healthz/ready', '/healthz/startup', '/healthz/memory', '/docs', '/docs/']);
 
 interface CachedKeyData {
   projectId: string;

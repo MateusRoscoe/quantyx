@@ -13,13 +13,11 @@ const envSchema = z.object({
   KAFKA_LINGER_MS: z.coerce.number().min(0).default(100),
   KAFKA_BATCH_SIZE: z.coerce.number().min(1).default(1048576),
   KAFKA_BACKPRESSURE_THRESHOLD: z.coerce.number().min(1).default(50000),
+  KAFKA_QUEUE_BUFFERING_MAX_KB: z.coerce.number().min(1).default(262144),
 
   POSTGRES_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   API_KEY_CACHE_TTL_SECONDS: z.coerce.number().min(1).default(300),
-
-  GC_MESSAGE_THRESHOLD: z.coerce.number().min(0).default(10000),
-  GC_INTERVAL_MS: z.coerce.number().min(0).default(5000),
 
   // When true, the API accepts ip_address and user_agent from the request body
   // instead of inferring them from the HTTP request. For testing/seeding only.
