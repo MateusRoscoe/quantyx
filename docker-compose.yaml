@@ -9,6 +9,7 @@ services:
       - clickhouse-data:/var/lib/clickhouse
       - ./infrastructure/clickhouse/init:/docker-entrypoint-initdb.d
       - ./infrastructure/clickhouse/config/disable-system-logs.xml:/etc/clickhouse-server/config.d/disable-system-logs.xml
+      - ./infrastructure/clickhouse/config/memory.xml:/etc/clickhouse-server/config.d/memory.xml
     environment:
       CLICKHOUSE_DB: analytics
       CLICKHOUSE_USER: admin

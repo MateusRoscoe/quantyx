@@ -1,0 +1,20 @@
+<clickhouse>
+    <!--
+        Memory limits for development.
+        Prevents ClickHouse from consuming all available RAM during bulk ingestion.
+    -->
+
+    <!-- Hard server-wide memory cap (4 GB) -->
+    <max_server_memory_usage>4294967296</max_server_memory_usage>
+
+    <profiles>
+        <default>
+            <!-- Per-query memory limit (1 GB) -->
+            <max_memory_usage>1073741824</max_memory_usage>
+
+            <!-- Spill GROUP BY / ORDER BY to disk instead of OOM -->
+            <max_bytes_before_external_group_by>536870912</max_bytes_before_external_group_by>
+            <max_bytes_before_external_sort>536870912</max_bytes_before_external_sort>
+        </default>
+    </profiles>
+</clickhouse>

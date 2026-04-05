@@ -25,7 +25,7 @@ const { values } = parseArgs({
     endpoint: { type: 'string', default: 'http://localhost:3002' },
     total: { type: 'string', default: '1000000000' },
     'batch-size': { type: 'string', default: '1000' },
-    concurrency: { type: 'string', default: '100' },
+    concurrency: { type: 'string', default: '200' },
     'days-back': { type: 'string', default: '90' },
   },
   strict: true,
