@@ -2,6 +2,7 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:25.11-alpine
     container_name: quantyx-clickhouse
+    restart: unless-stopped
     ports:
       - '8123:8123' # HTTP interface
       - '9000:9000' # Native interface
@@ -24,6 +25,7 @@ services:
   postgres:
     image: postgres:18-trixie
     container_name: quantyx-postgres
+    restart: unless-stopped
     ports:
       - '5432:5432'
     volumes:
@@ -41,6 +43,7 @@ services:
   kafka:
     image: apache/kafka:4.1.1
     container_name: quantyx-kafka
+    restart: unless-stopped
     ports:
       - '9092:9092'
       - '29092:29092'
@@ -77,6 +80,7 @@ services:
   redis:
     image: redis:8-alpine
     container_name: quantyx-redis
+    restart: unless-stopped
     ports:
       - '6379:6379'
     volumes:
@@ -90,6 +94,7 @@ services:
   kafbat:
     image: kafbat/kafka-ui:latest
     container_name: quantyx-kafbat
+    restart: unless-stopped
     ports:
       - '8080:8080'
     environment:
@@ -102,6 +107,7 @@ services:
   grafana:
     image: grafana/grafana-oss:latest
     container_name: quantyx-grafana
+    restart: unless-stopped
     ports:
       - '3003:3000'
     volumes:
@@ -118,6 +124,7 @@ services:
   mailhog:
     image: mailhog/mailhog
     container_name: quantyx-mailhog
+    restart: unless-stopped
     ports:
       - '1025:1025' # SMTP
       - '8025:8025' # Web UI
