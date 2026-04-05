@@ -19,6 +19,7 @@ const envSchema = z.object({
   KAFKA_FETCH_MIN_BYTES: z.coerce.number().min(1).default(262144),
   KAFKA_FETCH_WAIT_MAX_MS: z.coerce.number().min(1).default(5000),
   KAFKA_MAX_BATCH_SIZE: z.coerce.number().min(-1).default(25000),
+  KAFKA_PARTITIONS_CONSUMED_CONCURRENTLY: z.coerce.number().min(1).default(4),
 
   // Optional: path to a custom .mmdb file (e.g., MaxMind GeoLite2-City.mmdb)
   // When unset, uses the bundled DB-IP Lite database

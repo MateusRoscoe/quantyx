@@ -19,6 +19,8 @@ export class AppCtrl {
     });
 
     consumer.run({
+      partitionsConsumedConcurrently:
+        environment.KAFKA_PARTITIONS_CONSUMED_CONCURRENTLY,
       eachBatch: async ({ batch }) => {
         logger.info(
           `Starting batch processing from topic ${batch.topic} with ${batch.messages.length} messages`,
