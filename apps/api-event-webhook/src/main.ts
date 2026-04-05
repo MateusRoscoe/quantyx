@@ -22,7 +22,7 @@ const port = environment.PORT;
 
 // Instantiate Fastify with some config
 const server = Fastify({
-  logger: baseLogger,
+  loggerInstance: baseLogger,
   disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
 
