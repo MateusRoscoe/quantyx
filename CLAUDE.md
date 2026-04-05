@@ -55,7 +55,7 @@ npx nx sync
 
 ## Project Names
 
-Apps: `api-event-webhook`, `consumer-events-ingest`, `api-tenant-manager`, `interface-web`, `interface-web-e2e`
+Apps: `api-event-webhook`, `consumer-events-ingest`, `api-tenant-manager`, `scheduler-analytics`, `interface-web`, `interface-web-e2e`
 Libs: `shared`, `shared-backend`, `kafka`, `clickhouse`, `postgres`, `redis`, `auth`, `react-sdk`
 
 ## Architecture
@@ -76,6 +76,7 @@ HTTP Request + X-API-Key → api-event-webhook (Fastify)
 
 - **api-event-webhook**: Fastify app using `@fastify/autoload` to load plugins from `plugins/` and routes from `routes/`. Entry: `src/main.ts`, app setup: `src/app/app.ts`. Endpoints: `/ingest`, `/ingest-bulk`. Authenticates via `X-API-Key` header (Redis-cached, PostgreSQL-backed). Enriches events with `project_id`, `ip_address`, and `user_agent` before forwarding to Kafka. Plugin ordering: `01-sensible.ts`, `02-api-key-auth.ts`.
 - **consumer-events-ingest**: Kafka consumer that processes events and writes to ClickHouse. Controller pattern: `src/controllers/app-ctrl.ts` orchestrates `src/services/event-service.ts`.
+- **scheduler-analytics**: Standalone scheduled task runner for ClickHouse maintenance. Supports `daemon` mode (24/7 with `setInterval`) and `oneshot` mode (run once and exit, for K8s CronJob). Currently handles property metadata backfill via watermark-based queries.
 - **api-tenant-manager**: Tenant/org management API. CRUD for organizations, projects, and API keys.
 - **interface/web**: Next.js 16 dashboard frontend (port 3000).
 - **interface/web-e2e**: Playwright E2E tests for the web dashboard.
@@ -93,7 +94,7 @@ HTTP Request + X-API-Key → api-event-webhook (Fastify)
 
 ### Infrastructure
 
-- **ClickHouse**: `analytics` database. Init SQL in `infrastructure/clickhouse/init/`. Tables: `events` (MergeTree, 90-day TTL), `users` (AggregatingMergeTree), `sessions` (AggregatingMergeTree), `metrics_hourly` (AggregatingMergeTree), `property_metadata` (AggregatingMergeTree). 12 materialized views handle pre-aggregation from the `events` table into the aggregate tables. Migrations in `infrastructure/clickhouse/migrations/`.
+- **ClickHouse**: `analytics` database. Init SQL in `infrastructure/clickhouse/init/`. Tables: `events` (MergeTree), `users` (AggregatingMergeTree), `sessions` (AggregatingMergeTree), `metrics_hourly` (AggregatingMergeTree), `property_metadata` (AggregatingMergeTree), `property_metadata_watermark` (ReplacingMergeTree), `city_coordinates` (AggregatingMergeTree), `session_user_map` (ReplacingMergeTree). 7 materialized views handle pre-aggregation from the `events` table into the aggregate tables. `property_metadata` is populated by the `scheduler-analytics` app via scheduled backfill queries (not MVs). Migrations in `infrastructure/clickhouse/migrations/`.
 - **PostgreSQL**: `quantyx` database. Prisma schema in `libs/postgres/prisma/schema.prisma`.
 - **Redis**: API key cache with configurable TTL. Port 6379.
 - **Kafka**: Single-node KRaft mode on port 29092 (host access). Kafbat UI on port 8080.

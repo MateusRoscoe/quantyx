@@ -112,6 +112,18 @@ services:
       POSTGRES_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/quantyx
       REDIS_URL: redis://redis:6379
 
+  scheduler-analytics:
+    image: apps-scheduler-analytics:latest
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      SCHEDULER_MODE: daemon
+      LOG_LEVEL: info
+
   interface-web:
     image: apps-interface-web:latest
     restart: unless-stopped

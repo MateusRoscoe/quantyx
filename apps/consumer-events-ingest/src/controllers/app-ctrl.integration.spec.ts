@@ -317,7 +317,7 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
     expect(Number(pathRow?.event_count)).toBe(1);
   });
 
-  it('materialized view populates analytics.property_metadata for custom props', async () => {
+  it('backfill query populates analytics.property_metadata for custom props', async () => {
     const projectId = randomUUID();
 
     const event = makeEventMessage({
@@ -335,29 +335,76 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
 
     await pollClickHouse(projectId, 1);
 
-    // Poll property_metadata
-    const deadline = Date.now() + 15_000;
-    let propRows: Record<string, unknown>[] = [];
-    while (Date.now() < deadline) {
-      const result = await ch.query({
-        query: `
-          SELECT
-            property_name,
-            property_type,
-            sumMerge(event_count) AS event_count,
-            anyMerge(example_value) AS example_value
-          FROM analytics.property_metadata
-          WHERE project_id = {projectId:String}
-          GROUP BY property_name, property_type
-          ORDER BY property_name
-        `,
-        query_params: { projectId },
-        format: 'JSONEachRow',
-      });
-      propRows = await result.json<Record<string, unknown>>();
-      if (propRows.length >= 3) break;
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    // Property metadata is no longer populated by MVs — run the same
+    // INSERT...SELECT queries that scheduler-analytics uses.
+    await ch.command({
+      query: `
+        INSERT INTO analytics.property_metadata
+        SELECT
+            project_id, key AS property_name, 'string' AS property_type,
+            minState(timestamp) AS first_seen, maxState(timestamp) AS last_seen,
+            sumState(toUInt64(1)) AS event_count,
+            uniqState(toString(props_str[key])) AS unique_values,
+            anyState(toString(props_str[key])) AS example_value,
+            maxState(timestamp) AS updated_at
+        FROM analytics.events
+        WHERE project_id = {projectId:String}
+        ARRAY JOIN mapKeys(props_str) AS key
+        GROUP BY project_id, key
+      `,
+      query_params: { projectId },
+    });
+    await ch.command({
+      query: `
+        INSERT INTO analytics.property_metadata
+        SELECT
+            project_id, key AS property_name, 'number' AS property_type,
+            minState(timestamp) AS first_seen, maxState(timestamp) AS last_seen,
+            sumState(toUInt64(1)) AS event_count,
+            uniqState(toString(props_num[key])) AS unique_values,
+            anyState(toString(props_num[key])) AS example_value,
+            maxState(timestamp) AS updated_at
+        FROM analytics.events
+        WHERE project_id = {projectId:String}
+        ARRAY JOIN mapKeys(props_num) AS key
+        GROUP BY project_id, key
+      `,
+      query_params: { projectId },
+    });
+    await ch.command({
+      query: `
+        INSERT INTO analytics.property_metadata
+        SELECT
+            project_id, key AS property_name, 'boolean' AS property_type,
+            minState(timestamp) AS first_seen, maxState(timestamp) AS last_seen,
+            sumState(toUInt64(1)) AS event_count,
+            uniqState(if(props_bool[key] = 1, 'true', 'false')) AS unique_values,
+            anyState(if(props_bool[key] = 1, 'true', 'false')) AS example_value,
+            maxState(timestamp) AS updated_at
+        FROM analytics.events
+        WHERE project_id = {projectId:String}
+        ARRAY JOIN mapKeys(props_bool) AS key
+        GROUP BY project_id, key
+      `,
+      query_params: { projectId },
+    });
+
+    const result = await ch.query({
+      query: `
+        SELECT
+          property_name,
+          property_type,
+          sumMerge(event_count) AS event_count,
+          anyMerge(example_value) AS example_value
+        FROM analytics.property_metadata
+        WHERE project_id = {projectId:String}
+        GROUP BY property_name, property_type
+        ORDER BY property_name
+      `,
+      query_params: { projectId },
+      format: 'JSONEachRow',
+    });
+    const propRows = await result.json<Record<string, unknown>>();
 
     expect(propRows).toHaveLength(3);
 

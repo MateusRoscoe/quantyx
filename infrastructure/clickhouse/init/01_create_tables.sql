@@ -96,6 +96,15 @@ CREATE TABLE
 ORDER BY
     (project_id, property_name, property_type);
 
+-- Property metadata watermark (tracks last processed hour for scheduled backfill)
+CREATE TABLE
+    IF NOT EXISTS analytics.property_metadata_watermark (
+        job_name String,
+        last_processed_hour DateTime
+    ) ENGINE = ReplacingMergeTree ()
+ORDER BY
+    (job_name);
+
 -- Sessions table (aggregated per-session data)
 CREATE TABLE
     IF NOT EXISTS analytics.sessions (
@@ -210,155 +219,36 @@ SELECT
 FROM analytics.events
 GROUP BY project_id, hour;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_event_name
+-- MV: Consolidated metrics for all standard dimensions (replaces 10 individual dimension MVs)
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_all
 TO analytics.metrics_hourly
 AS
 SELECT
     project_id,
     toStartOfHour(timestamp) AS hour,
     'event' AS metric_type,
-    'event_name' AS dimension_name,
-    event_name AS dimension_value,
+    dim.1 AS dimension_name,
+    dim.2 AS dimension_value,
     sumState(toUInt64(1)) AS event_count,
     uniqState(user_id) AS unique_users
 FROM analytics.events
-WHERE event_name != ''
-GROUP BY project_id, hour, event_name;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_browser
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'browser' AS dimension_name,
-    browser AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE browser != ''
-GROUP BY project_id, hour, browser;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_os
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'os' AS dimension_name,
-    os AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE os != ''
-GROUP BY project_id, hour, os;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_device_type
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'device_type' AS dimension_name,
-    device_type AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE device_type != ''
-GROUP BY project_id, hour, device_type;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_platform
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'platform' AS dimension_name,
-    platform AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE platform != ''
-GROUP BY project_id, hour, platform;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_country
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'country' AS dimension_name,
-    country AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE country != ''
-GROUP BY project_id, hour, country;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_continent
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'continent' AS dimension_name,
-    continent AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE continent != ''
-GROUP BY project_id, hour, continent;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_region
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'region' AS dimension_name,
-    region AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE region != ''
-GROUP BY project_id, hour, region;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_city
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'city' AS dimension_name,
-    city AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE city != ''
-GROUP BY project_id, hour, city;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_state
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'state' AS dimension_name,
-    state AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE state != ''
-GROUP BY project_id, hour, state;
+ARRAY JOIN
+    arrayFilter(
+        x -> x.2 != '',
+        [
+            ('event_name', event_name),
+            ('browser', browser),
+            ('os', os),
+            ('device_type', device_type),
+            ('platform', platform),
+            ('country', country),
+            ('continent', continent),
+            ('region', region),
+            ('city', city),
+            ('state', state)
+        ]
+    ) AS dim
+GROUP BY project_id, hour, dim.1, dim.2;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_city_coordinates
 TO analytics.city_coordinates
@@ -389,55 +279,5 @@ FROM analytics.events
 WHERE event_name = 'page_view' AND path != ''
 GROUP BY project_id, hour, path;
 
--- MV 3: Property metadata — one MV per property type
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_property_metadata_str
-TO analytics.property_metadata
-AS
-SELECT
-    project_id,
-    key AS property_name,
-    'string' AS property_type,
-    minState(timestamp) AS first_seen,
-    maxState(timestamp) AS last_seen,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(toString(props_str[key])) AS unique_values,
-    anyState(toString(props_str[key])) AS example_value,
-    maxState(timestamp) AS updated_at
-FROM analytics.events
-ARRAY JOIN mapKeys(props_str) AS key
-GROUP BY project_id, key;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_property_metadata_num
-TO analytics.property_metadata
-AS
-SELECT
-    project_id,
-    key AS property_name,
-    'number' AS property_type,
-    minState(timestamp) AS first_seen,
-    maxState(timestamp) AS last_seen,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(toString(props_num[key])) AS unique_values,
-    anyState(toString(props_num[key])) AS example_value,
-    maxState(timestamp) AS updated_at
-FROM analytics.events
-ARRAY JOIN mapKeys(props_num) AS key
-GROUP BY project_id, key;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_property_metadata_bool
-TO analytics.property_metadata
-AS
-SELECT
-    project_id,
-    key AS property_name,
-    'boolean' AS property_type,
-    minState(timestamp) AS first_seen,
-    maxState(timestamp) AS last_seen,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(if(props_bool[key] = 1, 'true', 'false')) AS unique_values,
-    anyState(if(props_bool[key] = 1, 'true', 'false')) AS example_value,
-    maxState(timestamp) AS updated_at
-FROM analytics.events
-ARRAY JOIN mapKeys(props_bool) AS key
-GROUP BY project_id, key;
+-- Property metadata is populated by the scheduler-analytics app (watermark-based backfill),
+-- not by materialized views. See FIXES.md for rationale.
