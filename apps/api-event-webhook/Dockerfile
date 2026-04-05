@@ -29,4 +29,4 @@ WORKDIR /app
 
 COPY --from=build /app .
 
-CMD [ "node", "main.js" ]
+CMD [ "node", "--expose-gc", "main.js" ]

@@ -15,6 +15,24 @@ const producer = createNativeProducer({
 });
 
 let inFlightCount = 0;
+let messagesSinceGc = 0;
+let lastGcTime = Date.now();
+
+function maybeForceGc() {
+  if (typeof globalThis.gc !== 'function') return;
+  const { GC_MESSAGE_THRESHOLD, GC_INTERVAL_MS } = environment;
+  if (GC_MESSAGE_THRESHOLD === 0 && GC_INTERVAL_MS === 0) return;
+
+  const elapsed = Date.now() - lastGcTime;
+  if (
+    (GC_MESSAGE_THRESHOLD > 0 && messagesSinceGc >= GC_MESSAGE_THRESHOLD) ||
+    (GC_INTERVAL_MS > 0 && elapsed >= GC_INTERVAL_MS)
+  ) {
+    globalThis.gc();
+    messagesSinceGc = 0;
+    lastGcTime = Date.now();
+  }
+}
 
 producer.on('delivery-report', (_err, _report) => {
   inFlightCount--;
@@ -65,6 +83,8 @@ export function sendMessages(messages: Buffer[]) {
       throw err;
     }
   }
+  messagesSinceGc += messages.length;
+  maybeForceGc();
 }
 
 export class BackpressureError extends Error {

@@ -18,6 +18,9 @@ const envSchema = z.object({
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   API_KEY_CACHE_TTL_SECONDS: z.coerce.number().min(1).default(300),
 
+  GC_MESSAGE_THRESHOLD: z.coerce.number().min(0).default(10000),
+  GC_INTERVAL_MS: z.coerce.number().min(0).default(5000),
+
   // When true, the API accepts ip_address and user_agent from the request body
   // instead of inferring them from the HTTP request. For testing/seeding only.
   ALLOW_CLIENT_IP_AND_UA: z

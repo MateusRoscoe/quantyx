@@ -1,20 +1,33 @@
 <clickhouse>
     <!--
         Memory limits for development.
-        Prevents ClickHouse from consuming all available RAM during bulk ingestion.
+        Tuned for burst ingestion with 12+ materialized views.
     -->
 
-    <!-- Hard server-wide memory cap (4 GB) -->
-    <max_server_memory_usage>4294967296</max_server_memory_usage>
+    <!-- Hard server-wide memory cap (8 GB) -->
+    <max_server_memory_usage>8589934592</max_server_memory_usage>
+
+    <!-- Background merge threads — keeps up with part creation from MVs during bursts -->
+    <background_pool_size>8</background_pool_size>
+    <background_merges_mutations_concurrency_ratio>4</background_merges_mutations_concurrency_ratio>
 
     <profiles>
         <default>
-            <!-- Per-query memory limit (1 GB) -->
-            <max_memory_usage>1073741824</max_memory_usage>
+            <!-- Per-query memory limit (2 GB) — MV aggregations (uniqState, sumState) need headroom -->
+            <max_memory_usage>2147483648</max_memory_usage>
 
             <!-- Spill GROUP BY / ORDER BY to disk instead of OOM -->
-            <max_bytes_before_external_group_by>536870912</max_bytes_before_external_group_by>
-            <max_bytes_before_external_sort>536870912</max_bytes_before_external_sort>
+            <max_bytes_before_external_group_by>1073741824</max_bytes_before_external_group_by>
+            <max_bytes_before_external_sort>1073741824</max_bytes_before_external_sort>
         </default>
     </profiles>
+
+    <merge_tree>
+        <!-- Tolerate more parts before throttling/rejecting inserts during bursts -->
+        <parts_to_delay_insert>300</parts_to_delay_insert>
+        <parts_to_throw_insert>600</parts_to_throw_insert>
+
+        <!-- Max part size for background merges (256 MB) — encourages faster small-part cleanup -->
+        <max_bytes_to_merge_at_min_space_in_pool>268435456</max_bytes_to_merge_at_min_space_in_pool>
+    </merge_tree>
 </clickhouse>

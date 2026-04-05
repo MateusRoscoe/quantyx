@@ -62,7 +62,8 @@
       "dependsOn": ["build"],
       "options": {
         "buildTarget": "api-event-webhook:build",
-        "runBuildTargetDependencies": false
+        "runBuildTargetDependencies": false,
+        "runtimeArgs": ["--expose-gc"]
       },
       "configurations": {
         "development": {
