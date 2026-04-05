@@ -8,7 +8,7 @@
     <max_server_memory_usage>8589934592</max_server_memory_usage>
 
     <!-- Background merge threads — keeps up with part creation from MVs during bursts -->
-    <background_pool_size>8</background_pool_size>
+    <background_pool_size>16</background_pool_size>
     <background_merges_mutations_concurrency_ratio>4</background_merges_mutations_concurrency_ratio>
 
     <profiles>
