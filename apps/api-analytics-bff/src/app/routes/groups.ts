@@ -75,18 +75,23 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         group_id: string;
         first_seen: string;
         last_seen: string;
+        name: string;
       }>(
         `SELECT
-          group_type,
-          group_id,
-          min(first_seen) as first_seen,
-          max(last_seen) as last_seen
-        FROM analytics.groups
-        WHERE project_id = {projectId:String}
+          g.group_type,
+          g.group_id,
+          min(g.first_seen) as first_seen,
+          max(g.last_seen) as last_seen,
+          (SELECT name FROM analytics.group_names FINAL
+           WHERE project_id = {projectId:String}
+             AND group_type = g.group_type AND group_id = g.group_id
+           LIMIT 1) AS name
+        FROM analytics.groups AS g
+        WHERE g.project_id = {projectId:String}
           ${typeFilter}
           ${cursorFilter}
-        GROUP BY group_type, group_id
-        ORDER BY group_type, group_id
+        GROUP BY g.group_type, g.group_id
+        ORDER BY g.group_type, g.group_id
         LIMIT {limit:UInt32}`,
         params,
       );
@@ -103,6 +108,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         groups: rows.map((r) => ({
           groupType: r.group_type,
           groupId: r.group_id,
+          name: r.name || null,
           firstSeen: r.first_seen,
           lastSeen: r.last_seen,
         })),

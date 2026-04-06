@@ -192,7 +192,7 @@ CREATE TABLE
 PARTITION BY
     toYYYYMM (started_at)
 ORDER BY
-    (project_id, session_id);
+    (project_id, started_at, session_id);
 
 -- Session-user lookup (maps user_id → session_ids for fast user-scoped queries)
 CREATE TABLE
@@ -203,6 +203,29 @@ CREATE TABLE
     ) ENGINE = ReplacingMergeTree ()
 ORDER BY
     (project_id, user_id, session_id);
+
+-- User name lookup (latest name from $identify or $server_identify)
+CREATE TABLE
+    IF NOT EXISTS analytics.user_names (
+        project_id String,
+        user_id String,
+        name String,
+        updated_at DateTime
+    ) ENGINE = ReplacingMergeTree (updated_at)
+ORDER BY
+    (project_id, user_id);
+
+-- Group name lookup (latest name from $group_identify or $server_group_identify)
+CREATE TABLE
+    IF NOT EXISTS analytics.group_names (
+        project_id String,
+        group_type String,
+        group_id String,
+        name String,
+        updated_at DateTime
+    ) ENGINE = ReplacingMergeTree (updated_at)
+ORDER BY
+    (project_id, group_type, group_id);
 
 -- Geographic metrics (pre-aggregated for cross-dimension geo drill-down)
 CREATE TABLE
@@ -467,6 +490,36 @@ SELECT
 FROM analytics.events
 WHERE continent != '' AND event_name NOT LIKE '$%'
 GROUP BY project_id, hour, continent, country, region, state, city;
+
+-- MV: Populate user name lookup from identify events
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_user_names
+TO analytics.user_names
+AS
+SELECT
+    project_id,
+    user_id,
+    props_str['name'] AS name,
+    timestamp AS updated_at
+FROM analytics.events
+WHERE event_name IN ('$identify', '$server_identify')
+  AND user_id != ''
+  AND props_str['name'] != '';
+
+-- MV: Populate group name lookup from group identify events
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_group_names
+TO analytics.group_names
+AS
+SELECT
+    project_id,
+    props_str['$group_type'] AS group_type,
+    props_str['$group_id'] AS group_id,
+    props_str['name'] AS name,
+    timestamp AS updated_at
+FROM analytics.events
+WHERE event_name IN ('$group_identify', '$server_group_identify')
+  AND props_str['$group_type'] != ''
+  AND props_str['$group_id'] != ''
+  AND props_str['name'] != '';
 
 -- Property metadata is populated by the scheduler-analytics app (watermark-based backfill),
 -- not by materialized views. See FIXES.md for rationale.

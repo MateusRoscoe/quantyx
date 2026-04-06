@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAnalyticsUser } from '@/hooks/use-analytics-users';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
+import { useUserGroups } from '@/hooks/use-analytics-groups';
 import { useDateRange } from '@/hooks/use-date-range';
 import {
   DataTable,
@@ -16,6 +17,7 @@ import {
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowLeft,
@@ -125,8 +127,13 @@ export default function UserDetailPage() {
     };
   }, [userSessions]);
 
+  const { data: userGroupsData } = useUserGroups(projectId, userId);
+  const userGroups = userGroupsData?.groups ?? [];
+
   const properties = user?.properties ?? {};
   const hasProperties = Object.keys(properties).length > 0;
+  const serverProperties = user?.serverProperties ?? {};
+  const hasServerProperties = Object.keys(serverProperties).length > 0;
 
   const dateLabel = `${from.toLocaleDateString()} — ${to.toLocaleDateString()}`;
 
@@ -228,6 +235,75 @@ export default function UserDetailPage() {
                 </div>
               ))}
             </dl>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Server properties */}
+      {hasServerProperties && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">
+              Server Properties
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+              {Object.entries(serverProperties).map(([key, value]) => (
+                <div key={key}>
+                  <dt className="text-xs font-medium text-muted-foreground">
+                    {key}
+                  </dt>
+                  <dd className="mt-0.5 truncate font-mono text-sm">
+                    {String(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Group memberships */}
+      {userGroups.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">
+              Group Memberships
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs font-medium text-muted-foreground">
+                    <th className="pb-2 pr-4">Type</th>
+                    <th className="pb-2 pr-4">Group</th>
+                    <th className="pb-2">Assigned At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userGroups.map((g) => (
+                    <tr key={`${g.groupType}-${g.groupId}`} className="border-b last:border-b-0">
+                      <td className="py-2 pr-4">
+                        <Badge variant="secondary">{g.groupType}</Badge>
+                      </td>
+                      <td className="py-2 pr-4">
+                        <Link
+                          href={`/app/${orgId}/${projectId}/groups/${encodeURIComponent(g.groupType)}/${encodeURIComponent(g.groupId)}`}
+                          className="font-mono text-xs font-medium underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+                        >
+                          {g.groupId}
+                        </Link>
+                      </td>
+                      <td className="py-2 text-xs text-muted-foreground">
+                        {new Date(g.assignedAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}

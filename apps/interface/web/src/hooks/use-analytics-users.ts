@@ -4,6 +4,7 @@ import { useDateRange } from './use-date-range';
 
 interface UserListItem {
   userId: string;
+  name: string | null;
   lastSeen: string;
   eventsInPeriod: number;
 }
@@ -19,6 +20,7 @@ interface UserDetail {
   lastSeen: string;
   totalEvents: number;
   properties: Record<string, string | number | boolean>;
+  serverProperties: Record<string, string | number | boolean>;
 }
 
 export function useAnalyticsUsers(

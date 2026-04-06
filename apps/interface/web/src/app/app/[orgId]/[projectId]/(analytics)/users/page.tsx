@@ -16,11 +16,24 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 interface UserRow {
   userId: string;
+  name: string | null;
   lastSeen: string;
   eventsInPeriod: number;
 }
 
 const columns: ColumnDef<UserRow, unknown>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: (info) => {
+      const name = info.getValue() as string | null;
+      return name ? (
+        <span className="text-sm font-medium">{name}</span>
+      ) : (
+        <span className="text-xs text-muted-foreground">—</span>
+      );
+    },
+  },
   { accessorKey: 'userId', header: 'User ID', cell: MonoCell },
   { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateCell },
   { accessorKey: 'eventsInPeriod', header: 'Events in Period', cell: NumberCell },

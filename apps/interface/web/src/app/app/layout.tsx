@@ -39,6 +39,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTheme } from 'next-themes';
 import {
+  Building,
   Building2,
   LayoutDashboard,
   Zap,
@@ -60,6 +61,7 @@ const analyticsNavItems = [
   { label: 'Events', icon: Zap, segment: '/events' },
   { label: 'Pages', icon: FileText, segment: '/pages' },
   { label: 'Users', icon: Users, segment: '/users' },
+  { label: 'Groups', icon: Building, segment: '/groups' },
   { label: 'Sessions', icon: Activity, segment: '/sessions' },
   { label: 'Geography', icon: Globe, segment: '/geography' },
   { label: 'Devices', icon: Monitor, segment: '/devices' },

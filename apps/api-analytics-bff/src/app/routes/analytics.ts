@@ -774,11 +774,15 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
 
       const users = await queryClickHouse<{
         user_id: string;
+        name: string;
         last_seen: string;
         events_in_period: string;
       }>(
         `SELECT
           u.user_id,
+          (SELECT name FROM analytics.user_names FINAL
+           WHERE project_id = {projectId:String} AND user_id = u.user_id
+           LIMIT 1) AS name,
           max(u.last_seen) as last_seen,
           sum(u.total_events) as events_in_period
         FROM analytics.users AS u
@@ -805,6 +809,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       return {
         users: page.map((u) => ({
           userId: u.user_id,
+          name: u.name || null,
           lastSeen: u.last_seen,
           eventsInPeriod: Number(u.events_in_period),
         })),
