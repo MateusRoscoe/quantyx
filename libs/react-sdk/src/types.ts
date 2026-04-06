@@ -26,12 +26,22 @@ export interface EventProperties {
   props_bool?: Record<string, boolean>;
 }
 
+/**
+ * User traits passed to `identify()`. Uses last-write-wins semantics —
+ * each call replaces the entire property map. Always include all current
+ * traits, not just changed ones.
+ */
 export interface UserTraits {
   props_str?: Record<string, string>;
   props_num?: Record<string, number>;
   props_bool?: Record<string, boolean>;
 }
 
+/**
+ * Group traits passed to `group()`. Uses last-write-wins semantics —
+ * each call replaces the entire property map. Always include all current
+ * traits, not just changed ones.
+ */
 export interface GroupTraits {
   props_str?: Record<string, string>;
   props_num?: Record<string, number>;

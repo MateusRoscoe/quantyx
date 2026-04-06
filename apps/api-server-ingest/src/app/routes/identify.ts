@@ -21,7 +21,7 @@ export default async function identifyRoutes(fastify: FastifyInstance) {
 
       const event = {
         event_id: generateUUIDv7(),
-        session_id: generateUUIDv7(),
+        session_id: '',
         user_id: body.userId,
         event_name: SYSTEM_EVENTS.SERVER_IDENTIFY,
         timestamp: new Date().toISOString(),

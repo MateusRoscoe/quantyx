@@ -9,20 +9,6 @@ import {
 import { generateUUIDv7 } from '../helpers/uuid';
 import { sendMessage, BackpressureError } from '../models/kafka';
 
-function sendEvent(
-  reply: { serviceUnavailable: (msg: string) => void },
-  event: Record<string, unknown>,
-) {
-  try {
-    sendMessage(Buffer.from(JSON.stringify(event)));
-  } catch (err) {
-    if (err instanceof BackpressureError) {
-      return reply.serviceUnavailable(err.message);
-    }
-    throw err;
-  }
-}
-
 export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.post('/projects/:projectId/groups/identify', {
     schema: {
@@ -37,7 +23,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       const event = {
         event_id: generateUUIDv7(),
-        session_id: generateUUIDv7(),
+        session_id: '',
         user_id: '',
         event_name: SYSTEM_EVENTS.SERVER_GROUP_IDENTIFY,
         timestamp: new Date().toISOString(),
@@ -51,7 +37,15 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         props_bool: body.props_bool ?? {},
       };
 
-      sendEvent(reply, event);
+      try {
+        sendMessage(Buffer.from(JSON.stringify(event)));
+      } catch (err) {
+        if (err instanceof BackpressureError) {
+          return reply.serviceUnavailable(err.message);
+        }
+        throw err;
+      }
+
       return reply.status(202).send({ status: 'accepted' });
     },
   });
@@ -69,7 +63,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       const event = {
         event_id: generateUUIDv7(),
-        session_id: generateUUIDv7(),
+        session_id: '',
         user_id: body.userId,
         event_name: SYSTEM_EVENTS.GROUP_ASSIGN,
         timestamp: new Date().toISOString(),
@@ -82,7 +76,15 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         props_bool: {},
       };
 
-      sendEvent(reply, event);
+      try {
+        sendMessage(Buffer.from(JSON.stringify(event)));
+      } catch (err) {
+        if (err instanceof BackpressureError) {
+          return reply.serviceUnavailable(err.message);
+        }
+        throw err;
+      }
+
       return reply.status(202).send({ status: 'accepted' });
     },
   });

@@ -16,6 +16,19 @@ function mergeProps(row: {
   return result;
 }
 
+function encodeCursor(groupType: string, groupId: string): string {
+  return Buffer.from(JSON.stringify({ t: groupType, i: groupId })).toString(
+    'base64url',
+  );
+}
+
+const CursorSchema = z.object({ t: z.string(), i: z.string() });
+
+function decodeCursor(cursor: string): { t: string; i: string } {
+  const raw = Buffer.from(cursor, 'base64url').toString();
+  return CursorSchema.parse(JSON.parse(raw));
+}
+
 export default async function groupRoutes(fastify: FastifyInstance) {
   // ─── List groups ───
   fastify.get('/projects/:projectId/groups', {
@@ -27,7 +40,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         cursor: z.string().optional(),
       }),
     },
-    handler: async (request) => {
+    handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
       const { group_type, limit, cursor } = request.query as {
         group_type?: string;
@@ -40,9 +53,22 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       const typeFilter = group_type
         ? 'AND group_type = {groupType:String}'
         : '';
-      const cursorFilter = cursor
-        ? 'AND (group_type, group_id) > (splitByChar(\':\', {cursor:String})[1], splitByChar(\':\', {cursor:String})[2])'
-        : '';
+
+      let cursorFilter = '';
+      const params: Record<string, string | number> = { projectId, limit };
+      if (group_type) params.groupType = group_type;
+
+      if (cursor) {
+        try {
+          const decoded = decodeCursor(cursor);
+          cursorFilter =
+            'AND (group_type, group_id) > ({cursorType:String}, {cursorId:String})';
+          params.cursorType = decoded.t;
+          params.cursorId = decoded.i;
+        } catch {
+          return reply.badRequest('Invalid cursor');
+        }
+      }
 
       const rows = await queryClickHouse<{
         group_type: string;
@@ -62,17 +88,15 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         GROUP BY group_type, group_id
         ORDER BY group_type, group_id
         LIMIT {limit:UInt32}`,
-        {
-          projectId,
-          ...(group_type ? { groupType: group_type } : {}),
-          ...(cursor ? { cursor } : {}),
-          limit,
-        },
+        params,
       );
 
       const nextCursor =
         rows.length === limit
-          ? `${rows[rows.length - 1].group_type}:${rows[rows.length - 1].group_id}`
+          ? encodeCursor(
+              rows[rows.length - 1].group_type,
+              rows[rows.length - 1].group_id,
+            )
           : null;
 
       return {

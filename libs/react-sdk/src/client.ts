@@ -39,7 +39,11 @@ export class QuantyxClient {
   }
 
   /** Set the user ID for all subsequent events. Resets the session on user switch.
-   *  Optionally sends a $identify event with user traits. */
+   *  Optionally sends a `$identify` event with user traits.
+   *
+   *  **Important:** Traits use last-write-wins semantics — each call replaces
+   *  the entire property map, not individual keys. Always include all current
+   *  traits, not just changed ones. Omitted keys will be lost. */
   identify(userId: string, traits?: UserTraits): void {
     if (this.userId && userId !== this.userId) {
       this.sessionId = resetSessionId();
@@ -56,19 +60,30 @@ export class QuantyxClient {
   }
 
   /** Set group membership and optionally group traits.
-   *  Emits $group_identify (with traits) and $group_assign (if user is identified). */
+   *  Emits `$group_identify` only when traits are provided.
+   *  Emits `$group_assign` if user is identified (also creates group entry via MV).
+   *
+   *  **Note:** This is a no-op for anonymous users — call
+   *  `identify()` first for this to have any effect.
+   *
+   *  **Important:** Traits use last-write-wins semantics — each call replaces
+   *  the entire property map, not individual keys. Always include all current
+   *  traits, not just changed ones. Omitted keys will be lost. */
   group(groupType: string, groupId: string, traits?: GroupTraits): void {
-    const groupProps: Record<string, string> = {
-      $group_type: groupType,
-      $group_id: groupId,
-      ...traits?.props_str,
-    };
+    const hasTraits =
+      traits && (traits.props_str || traits.props_num || traits.props_bool);
 
-    this.track('$group_identify', {
-      props_str: groupProps,
-      props_num: traits?.props_num,
-      props_bool: traits?.props_bool,
-    });
+    if (hasTraits) {
+      this.track('$group_identify', {
+        props_str: {
+          $group_type: groupType,
+          $group_id: groupId,
+          ...traits.props_str,
+        },
+        props_num: traits.props_num,
+        props_bool: traits.props_bool,
+      });
+    }
 
     if (this.userId) {
       this.track('$group_assign', {

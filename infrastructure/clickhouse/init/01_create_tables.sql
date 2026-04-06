@@ -327,7 +327,7 @@ SELECT
     ) AS server_props_bool,
     max(timestamp) AS updated_at
 FROM analytics.events
-WHERE event_name IN ('$group_identify', '$server_group_identify')
+WHERE event_name IN ('$group_identify', '$server_group_identify', '$group_assign')
   AND props_str['$group_type'] != '' AND props_str['$group_id'] != ''
 GROUP BY project_id, group_type, group_id;
 
@@ -357,7 +357,7 @@ SELECT
     maxState(user_id) AS user_id,
     minState(timestamp) AS started_at,
     maxState(timestamp) AS ended_at,
-    sumState(toUInt64(1)) AS total_events,
+    sumState(toUInt64(if(event_name NOT LIKE '$%', 1, 0))) AS total_events,
     sumState(toUInt64(if(event_name = 'page_view', 1, 0))) AS page_views,
     anyState(browser) AS browser,
     anyState(os) AS os,
@@ -379,7 +379,7 @@ SELECT
     max(user_id) AS user_id,
     min(timestamp) AS started_at,
     max(timestamp) AS ended_at,
-    toUInt64(count()) AS total_events,
+    toUInt64(countIf(event_name NOT LIKE '$%')) AS total_events,
     toUInt64(countIf(event_name = 'page_view')) AS page_views,
     any(browser) AS browser,
     any(os) AS os,
@@ -432,6 +432,7 @@ SELECT
     sumState(toUInt64(1)) AS event_count,
     uniqState(user_id) AS unique_users
 FROM analytics.events
+WHERE event_name NOT LIKE '$%'
 ARRAY JOIN
     arrayFilter(
         x -> x.2 != '',
@@ -448,7 +449,6 @@ ARRAY JOIN
             ('state', state)
         ]
     ) AS dim
-WHERE event_name NOT LIKE '$%'
 GROUP BY project_id, hour, dim.1, dim.2;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_city_coordinates

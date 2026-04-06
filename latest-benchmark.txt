@@ -1,0 +1,9 @@
+Write throughput
+
+ ~41.3K messages/second
+
+  - Time span: 00:36:42 → 01:23:06 = 46m 24s (2,784s)
+  - Messages consumed: 119.3M - 4.3M = 115.0M
+  - Average: 115.0M / 2,784s ≈ 41,307 msg/s
+
+  Notable: throughput degraded over time — early on (~00:43–00:46) you were hitting ~50K+/s, but by the end (~01:15–01:23) it dropped to ~33-35K/s. Likely ClickHouse write pressure or GC pauses as data accumulated.

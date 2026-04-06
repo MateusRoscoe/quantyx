@@ -56,7 +56,6 @@ Outstanding work items for the Quantyx project, organized by category and priori
 - [ ] **Structured health checks** — Add a consistent health check per service that verifies connectivity to Kafka, ClickHouse, and Postgres.
 - [ ] **Alerting configuration** — Define alert rules for error rates, consumer lag, and service downtime.
 - [ ] **Consumer lag monitoring** — Track Kafka consumer group lag to detect ingestion pipeline slowdowns
-- [x] **Add Grafana dashboards** — Grafana added to docker-compose (port 3003, anonymous auth, ClickHouse datasource auto-provisioned). Pre-built "Quantyx Analytics" dashboard with panels for: overview stats, users, sessions, metrics daily (time series, pie charts, bar chart), and property metadata.
 
 ---
 

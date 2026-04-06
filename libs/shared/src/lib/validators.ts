@@ -251,17 +251,22 @@ export type UpdateMemberRoleBody = z.infer<typeof UpdateMemberRoleBody>;
 export type MemberResponse = z.infer<typeof MemberResponse>;
 
 // --- Server-side Identification ---
+// Properties use last-write-wins semantics — each call replaces the entire
+// property map per type (str/num/bool). Always include all current properties,
+// not just changed ones. Omitted keys will be lost.
 const PropertiesFields = {
   props_str: z.record(z.string().max(256), z.string().max(256)).optional(),
   props_num: z.record(z.string().max(256), z.number()).optional(),
   props_bool: z.record(z.string().max(256), z.boolean()).optional(),
 };
 
+/** Set user properties server-side. Replaces the full property map per type. */
 export const ServerIdentifyBody = z.object({
   userId: z.string().min(1).max(256),
   ...PropertiesFields,
 });
 
+/** Set group properties server-side. Replaces the full property map per type. */
 export const ServerGroupIdentifyBody = z.object({
   groupType: z.string().min(1).max(256),
   groupId: z.string().min(1).max(256),
