@@ -41,7 +41,12 @@ export default function LoginPage() {
       }
 
       if (data?.user?.id) {
-        identify(data.user.id);
+        identify(data.user.id, {
+          props_str: {
+            name: data.user.name,
+            email: data.user.email,
+          },
+        });
       }
       track('sign_in');
 

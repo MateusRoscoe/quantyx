@@ -3,7 +3,7 @@
 import { useCallback, useContext, useEffect, useMemo } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import { QuantyxContext } from '@quantyx/react-sdk/react';
-import type { EventProperties } from '@quantyx/react-sdk';
+import type { EventProperties, UserTraits, GroupTraits } from '@quantyx/react-sdk';
 
 /**
  * Returns a safe `track` function that no-ops when QuantyxProvider is absent.
@@ -24,11 +24,31 @@ export function useAnalyticsTrack(): (
 /**
  * Returns a safe `identify` function that no-ops when QuantyxProvider is absent.
  */
-export function useAnalyticsIdentify(): (userId: string) => void {
+export function useAnalyticsIdentify(): (
+  userId: string,
+  traits?: UserTraits,
+) => void {
   const client = useContext(QuantyxContext);
   return useCallback(
-    (userId: string) => {
-      client?.identify(userId);
+    (userId: string, traits?: UserTraits) => {
+      client?.identify(userId, traits);
+    },
+    [client],
+  );
+}
+
+/**
+ * Returns a safe `group` function that no-ops when QuantyxProvider is absent.
+ */
+export function useAnalyticsGroup(): (
+  groupType: string,
+  groupId: string,
+  traits?: GroupTraits,
+) => void {
+  const client = useContext(QuantyxContext);
+  return useCallback(
+    (groupType: string, groupId: string, traits?: GroupTraits) => {
+      client?.group(groupType, groupId, traits);
     },
     [client],
   );

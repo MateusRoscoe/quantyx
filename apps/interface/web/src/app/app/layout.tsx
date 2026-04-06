@@ -12,9 +12,11 @@ import { useSession, signOut } from '@/lib/auth-client';
 import {
   useAnalyticsIdentify,
   useAnalyticsTrack,
+  useAnalyticsGroup,
   useRoutePattern,
 } from '@/hooks/use-analytics';
 import { useMembership } from '@/hooks/use-membership';
+import { useOrganization } from '@/hooks/use-organizations';
 import { getLastVisitedProject } from '@/lib/last-project';
 import { ProjectSwitcher } from '@/components/project-switcher';
 import { TimezonePicker } from '@/components/timezone-picker';
@@ -94,6 +96,7 @@ function DashboardLayoutInner({
   const routePattern = useRoutePattern();
   const track = useAnalyticsTrack();
   const identify = useAnalyticsIdentify();
+  const group = useAnalyticsGroup();
   const { theme, setTheme } = useTheme();
 
   const searchParams = useSearchParams();
@@ -109,6 +112,7 @@ function DashboardLayoutInner({
   const projectBase = hasProject ? `/app/${orgId}/${projectId}` : '';
 
   const membership = useMembership(orgId ?? '');
+  const { data: org } = useOrganization(orgId ?? '');
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -116,12 +120,31 @@ function DashboardLayoutInner({
     }
   }, [isPending, session, router]);
 
+  // Identify user with traits (runs once per session / user data change)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    identify(session.user.id, {
+      props_str: {
+        name: session.user.name,
+        email: session.user.email,
+      },
+    });
+  }, [session?.user?.id, session?.user?.name, session?.user?.email, identify]);
+
+  // Associate user with organization group
+  useEffect(() => {
+    if (!session?.user?.id || !orgId || !org) return;
+    group('organization', orgId, {
+      props_str: { name: org.name },
+    });
+  }, [session?.user?.id, orgId, org, group]);
+
+  // Track page views on route change
   useEffect(() => {
     if (session?.user?.id) {
-      identify(session.user.id);
       track('page_view', { props_str: { path: routePattern } });
     }
-  }, [session?.user?.id, routePattern, identify, track]);
+  }, [session?.user?.id, routePattern, track]);
 
   if (isPending) {
     return (
