@@ -50,14 +50,16 @@ CREATE TABLE
     IF NOT EXISTS analytics.users (
         project_id String,
         user_id String,
-        first_seen AggregateFunction (min, DateTime),
-        last_seen AggregateFunction (max, DateTime),
-        total_events AggregateFunction (sum, UInt64),
+        first_seen SimpleAggregateFunction (min, DateTime),
+        last_seen SimpleAggregateFunction (max, DateTime),
+        total_events SimpleAggregateFunction (sum, UInt64),
         props_str AggregateFunction (anyLast, Map(String, String)),
         props_num AggregateFunction (anyLast, Map(String, Float64)),
         props_bool AggregateFunction (anyLast, Map(String, UInt8)),
-        updated_at AggregateFunction (max, DateTime)
+        updated_at SimpleAggregateFunction (max, DateTime)
     ) ENGINE = AggregatingMergeTree ()
+PARTITION BY
+    toYYYYMM (last_seen)
 ORDER BY
     (project_id, user_id);
 
@@ -196,19 +198,21 @@ ORDER BY
 -- ════════════════════════════════════════════════
 
 -- MV 1: Aggregate per-user stats from events
+-- Uses regular aggregates for SimpleAggregateFunction columns,
+-- State combinators for AggregateFunction columns (props).
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_users
 TO analytics.users
 AS
 SELECT
     project_id,
     user_id,
-    minState(timestamp) AS first_seen,
-    maxState(timestamp) AS last_seen,
-    sumState(toUInt64(1)) AS total_events,
+    min(timestamp) AS first_seen,
+    max(timestamp) AS last_seen,
+    toUInt64(count()) AS total_events,
     anyLastState(props_str) AS props_str,
     anyLastState(props_num) AS props_num,
     anyLastState(props_bool) AS props_bool,
-    maxState(timestamp) AS updated_at
+    max(timestamp) AS updated_at
 FROM analytics.events
 WHERE user_id != ''
 GROUP BY project_id, user_id;

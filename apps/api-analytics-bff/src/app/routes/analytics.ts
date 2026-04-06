@@ -747,50 +747,52 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/users', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(querySchema.extend({
+      querystring: withDateRangeLimit(dateRangeSchema.extend({
         limit: z.coerce.number().min(1).max(200).default(50),
-        cursor_events: z.coerce.number().optional(),
+        cursor_ts: z.string().optional(),
         cursor_id: z.string().optional(),
       })),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
-      const { limit, cursor_events, cursor_id } = request.query as {
+      const { from, to, limit, cursor_ts, cursor_id } = request.query as {
         from: string;
         to: string;
         limit: number;
-        cursor_events?: number;
+        cursor_ts?: string;
         cursor_id?: string;
       };
 
       await fastify.verifyProjectAccess(request, projectId);
 
-      const hasCursor = cursor_events !== undefined && cursor_id;
+      const hasCursor = cursor_ts && cursor_id;
       const cursorClause = hasCursor
-        ? `HAVING (total_events, user_id) < ({cursorEvents:UInt64}, {cursorId:String})`
+        ? `HAVING (last_seen, user_id) < (toDateTime({cursorTs:String}), {cursorId:String})`
         : '';
 
       const users = await queryClickHouse<{
         user_id: string;
-        first_seen: string;
         last_seen: string;
-        total_events: string;
+        events_in_period: string;
       }>(
         `SELECT
           user_id,
-          minMerge(first_seen) as first_seen,
-          maxMerge(last_seen) as last_seen,
-          sumMerge(total_events) as total_events
+          max(last_seen) as last_seen,
+          sum(total_events) as events_in_period
         FROM analytics.users
         WHERE project_id = {projectId:String}
           AND user_id != ''
+          AND last_seen >= toDateTime({from:String})
+          AND last_seen < toDateTime({to:String})
         GROUP BY user_id
         ${cursorClause}
-        ORDER BY total_events DESC, user_id DESC
+        ORDER BY last_seen DESC, user_id DESC
         LIMIT {fetchLimit:UInt32}`,
         {
           projectId,
-          ...(hasCursor && { cursorEvents: cursor_events, cursorId: cursor_id }),
+          from,
+          to,
+          ...(hasCursor && { cursorTs: cursor_ts, cursorId: cursor_id }),
           fetchLimit: limit + 1,
         },
       );
@@ -801,11 +803,59 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       return {
         users: page.map((u) => ({
           userId: u.user_id,
-          firstSeen: u.first_seen,
           lastSeen: u.last_seen,
-          totalEvents: Number(u.total_events),
+          eventsInPeriod: Number(u.events_in_period),
         })),
         hasMore,
+      };
+    },
+  });
+
+  // ─── User Detail ───
+
+  fastify.get('/projects/:projectId/users/:userId', {
+    schema: {
+      params: z.object({
+        projectId: z.string().uuid(),
+        userId: z.string(),
+      }),
+    },
+    handler: async (request, reply) => {
+      const { projectId, userId } = request.params as {
+        projectId: string;
+        userId: string;
+      };
+
+      await fastify.verifyProjectAccess(request, projectId);
+
+      const rows = await queryClickHouse<{
+        user_id: string;
+        first_seen: string;
+        last_seen: string;
+        total_events: string;
+      }>(
+        `SELECT
+          user_id,
+          min(first_seen) as first_seen,
+          max(last_seen) as last_seen,
+          sum(total_events) as total_events
+        FROM analytics.users
+        WHERE project_id = {projectId:String}
+          AND user_id = {userId:String}
+        GROUP BY user_id`,
+        { projectId, userId },
+      );
+
+      if (rows.length === 0) {
+        return reply.notFound('User not found');
+      }
+
+      const u = rows[0];
+      return {
+        userId: u.user_id,
+        firstSeen: u.first_seen,
+        lastSeen: u.last_seen,
+        totalEvents: Number(u.total_events),
       };
     },
   });

@@ -16,16 +16,14 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 interface UserRow {
   userId: string;
-  firstSeen: string;
   lastSeen: string;
-  totalEvents: number;
+  eventsInPeriod: number;
 }
 
 const columns: ColumnDef<UserRow, unknown>[] = [
   { accessorKey: 'userId', header: 'User ID', cell: MonoCell },
-  { accessorKey: 'firstSeen', header: 'First Seen', cell: DateCell },
   { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateCell },
-  { accessorKey: 'totalEvents', header: 'Total Events', cell: NumberCell },
+  { accessorKey: 'eventsInPeriod', header: 'Events in Period', cell: NumberCell },
 ];
 
 export default function UsersPage() {
@@ -47,7 +45,7 @@ export default function UsersPage() {
       <PageHeader title="Users" showFilterBar={false} />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">All Users</CardTitle>
+          <CardTitle className="text-base font-medium">Users</CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
+import { useAnalyticsUser } from '@/hooks/use-analytics-users';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
 import {
   DataTable,
@@ -74,8 +74,8 @@ export default function UserDetailPage() {
   }>();
 
   const sessionColumns = useSessionColumns();
-  const { data: usersData, isLoading: usersLoading } =
-    useAnalyticsUsers(projectId);
+  const { data: user, isLoading: userLoading } =
+    useAnalyticsUser(projectId, userId);
   const {
     data: sessionsData,
     isLoading: sessionsLoading,
@@ -84,13 +84,6 @@ export default function UserDetailPage() {
     isFetchingNextPage,
   } = useAnalyticsSessions(projectId, { userId, limit: 25 });
 
-  const user = useMemo(
-    () =>
-      usersData?.pages
-        .flatMap((p) => p.users)
-        .find((u) => u.userId === userId),
-    [usersData, userId],
-  );
   const userSessions = useMemo(
     () => sessionsData?.pages.flatMap((p) => p.sessions) ?? [],
     [sessionsData],
@@ -109,7 +102,7 @@ export default function UserDetailPage() {
       <h1 className="font-display text-2xl font-bold font-mono">{userId}</h1>
 
       {/* User stats */}
-      {usersLoading ? (
+      {userLoading ? (
         <div className="grid gap-4 md:grid-cols-3">
           <Skeleton className="h-20" />
           <Skeleton className="h-20" />
@@ -148,7 +141,7 @@ export default function UserDetailPage() {
       ) : (
         <Card className="gap-0 p-4">
           <p className="text-sm text-muted-foreground">
-            User not found in the current date range.
+            User not found.
           </p>
         </Card>
       )}
