@@ -341,16 +341,24 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
       query: `
         INSERT INTO analytics.property_metadata
         SELECT
-            project_id, key AS property_name, 'string' AS property_type,
-            minState(timestamp) AS first_seen, maxState(timestamp) AS last_seen,
-            sumState(toUInt64(1)) AS event_count,
-            uniqState(toString(props_str[key])) AS unique_values,
-            anyState(toString(props_str[key])) AS example_value,
-            maxState(timestamp) AS updated_at
-        FROM analytics.events
-        WHERE project_id = {projectId:String}
-        ARRAY JOIN mapKeys(props_str) AS key
-        GROUP BY project_id, key
+            project_id, property_name, 'string' AS property_type,
+            minState(first_seen) AS first_seen, maxState(last_seen) AS last_seen,
+            sumState(event_count) AS event_count,
+            uniqState(unique_values) AS unique_values,
+            anyState(example_value) AS example_value,
+            maxState(updated_at) AS updated_at
+        FROM (
+            SELECT project_id, key AS property_name,
+                timestamp AS first_seen, timestamp AS last_seen,
+                toUInt64(1) AS event_count,
+                toString(props_str[key]) AS unique_values,
+                toString(props_str[key]) AS example_value,
+                timestamp AS updated_at
+            FROM analytics.events
+            ARRAY JOIN mapKeys(props_str) AS key
+            WHERE project_id = {projectId:String}
+        )
+        GROUP BY project_id, property_name
       `,
       query_params: { projectId },
     });
@@ -358,16 +366,24 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
       query: `
         INSERT INTO analytics.property_metadata
         SELECT
-            project_id, key AS property_name, 'number' AS property_type,
-            minState(timestamp) AS first_seen, maxState(timestamp) AS last_seen,
-            sumState(toUInt64(1)) AS event_count,
-            uniqState(toString(props_num[key])) AS unique_values,
-            anyState(toString(props_num[key])) AS example_value,
-            maxState(timestamp) AS updated_at
-        FROM analytics.events
-        WHERE project_id = {projectId:String}
-        ARRAY JOIN mapKeys(props_num) AS key
-        GROUP BY project_id, key
+            project_id, property_name, 'number' AS property_type,
+            minState(first_seen) AS first_seen, maxState(last_seen) AS last_seen,
+            sumState(event_count) AS event_count,
+            uniqState(unique_values) AS unique_values,
+            anyState(example_value) AS example_value,
+            maxState(updated_at) AS updated_at
+        FROM (
+            SELECT project_id, key AS property_name,
+                timestamp AS first_seen, timestamp AS last_seen,
+                toUInt64(1) AS event_count,
+                toString(props_num[key]) AS unique_values,
+                toString(props_num[key]) AS example_value,
+                timestamp AS updated_at
+            FROM analytics.events
+            ARRAY JOIN mapKeys(props_num) AS key
+            WHERE project_id = {projectId:String}
+        )
+        GROUP BY project_id, property_name
       `,
       query_params: { projectId },
     });
@@ -375,16 +391,24 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
       query: `
         INSERT INTO analytics.property_metadata
         SELECT
-            project_id, key AS property_name, 'boolean' AS property_type,
-            minState(timestamp) AS first_seen, maxState(timestamp) AS last_seen,
-            sumState(toUInt64(1)) AS event_count,
-            uniqState(if(props_bool[key] = 1, 'true', 'false')) AS unique_values,
-            anyState(if(props_bool[key] = 1, 'true', 'false')) AS example_value,
-            maxState(timestamp) AS updated_at
-        FROM analytics.events
-        WHERE project_id = {projectId:String}
-        ARRAY JOIN mapKeys(props_bool) AS key
-        GROUP BY project_id, key
+            project_id, property_name, 'boolean' AS property_type,
+            minState(first_seen) AS first_seen, maxState(last_seen) AS last_seen,
+            sumState(event_count) AS event_count,
+            uniqState(unique_values) AS unique_values,
+            anyState(example_value) AS example_value,
+            maxState(updated_at) AS updated_at
+        FROM (
+            SELECT project_id, key AS property_name,
+                timestamp AS first_seen, timestamp AS last_seen,
+                toUInt64(1) AS event_count,
+                if(props_bool[key] = 1, 'true', 'false') AS unique_values,
+                if(props_bool[key] = 1, 'true', 'false') AS example_value,
+                timestamp AS updated_at
+            FROM analytics.events
+            ARRAY JOIN mapKeys(props_bool) AS key
+            WHERE project_id = {projectId:String}
+        )
+        GROUP BY project_id, property_name
       `,
       query_params: { projectId },
     });

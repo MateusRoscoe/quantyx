@@ -5,33 +5,47 @@ import { backfillPropertyMetadata } from './services/property-metadata.js';
 
 const logger = getLogger('scheduler-analytics');
 
-async function run(): Promise<void> {
-  logger.info(
-    { mode: environment.SCHEDULER_MODE },
-    'Starting scheduler-analytics',
-  );
+const shutdownController = new AbortController();
 
-  if (environment.SCHEDULER_MODE === 'oneshot') {
-    await backfillPropertyMetadata();
-    logger.info('Oneshot run complete, exiting');
-    process.exit(0);
+process.once('SIGTERM', () => {
+  logger.info('SIGTERM received, finishing current chunk before exiting');
+  shutdownController.abort();
+});
+process.once('SIGINT', () => {
+  logger.info('SIGINT received, finishing current chunk before exiting');
+  shutdownController.abort();
+});
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve();
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      resolve();
+    }, { once: true });
+  });
+}
+
+async function run(): Promise<void> {
+  const { SCHEDULER_MODE, SCHEDULER_INTERVAL_MS } = environment;
+  const signal = shutdownController.signal;
+
+  logger.info({ mode: SCHEDULER_MODE }, 'Starting scheduler-analytics');
+
+  while (!signal.aborted) {
+    try {
+      await backfillPropertyMetadata(signal);
+    } catch (error) {
+      logger.error({ error }, 'Backfill failed');
+    }
+
+    if (SCHEDULER_MODE === 'oneshot') break;
+
+    await sleep(SCHEDULER_INTERVAL_MS, signal);
   }
 
-  // Daemon mode: run immediately, then on interval
-  await backfillPropertyMetadata();
-
-  setInterval(async () => {
-    try {
-      await backfillPropertyMetadata();
-    } catch (error) {
-      logger.error({ error }, 'Scheduled backfill failed');
-    }
-  }, environment.SCHEDULER_INTERVAL_MS);
-
-  logger.info(
-    { intervalMs: environment.SCHEDULER_INTERVAL_MS },
-    'Daemon mode active, scheduling recurring backfill',
-  );
+  logger.info('Shutdown complete');
 }
 
 run().catch((error) => {

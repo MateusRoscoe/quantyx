@@ -40,7 +40,10 @@ PARTITION BY
     toYYYYMM (`timestamp`)
 ORDER BY
     (project_id, `timestamp`)
-SETTINGS index_granularity = 8192;
+TTL `timestamp` + INTERVAL 14 MONTH
+SETTINGS index_granularity = 8192,
+    non_replicated_deduplication_window = 1000,
+    ttl_only_drop_parts = 1;
 
 -- Users table (aggregated user data)
 CREATE TABLE

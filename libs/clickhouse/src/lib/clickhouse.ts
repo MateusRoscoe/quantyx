@@ -12,8 +12,11 @@ export const clickhouse = createClient({
     response: true,
   },
   clickhouse_settings: {
-    async_insert: 1,
-    wait_for_async_insert: 1,
+    async_insert: environment.CLICKHOUSE_ASYNC_INSERT ? 1 : 0,
+    wait_for_async_insert: environment.CLICKHOUSE_WAIT_FOR_ASYNC_INSERT ? 1 : 0,
+    async_insert_deduplicate: environment.CLICKHOUSE_ASYNC_INSERT_DEDUPLICATE
+      ? 1
+      : 0,
   },
 });
 
