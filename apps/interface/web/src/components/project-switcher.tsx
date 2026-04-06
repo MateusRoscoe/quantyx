@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useOrganizations } from '@/hooks/use-organizations';
 import { useProjects } from '@/hooks/use-projects';
 import { useMembership } from '@/hooks/use-membership';
+import { useAnalyticsTrack } from '@/hooks/use-analytics';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ export function ProjectSwitcher({ orgId, projectId }: ProjectSwitcherProps) {
   const { data: orgs } = useOrganizations();
   const { data: projects } = useProjects(orgId ?? '');
   const membership = useMembership(orgId ?? '');
+  const track = useAnalyticsTrack();
 
   const currentOrg = orgs?.find((o) => o.id === orgId);
   const orgInitial = currentOrg?.name?.charAt(0).toUpperCase() ?? 'Q';
@@ -93,7 +95,12 @@ export function ProjectSwitcher({ orgId, projectId }: ProjectSwitcherProps) {
                 {projects?.map((project) => (
                   <DropdownMenuItem
                     key={project.id}
-                    onClick={() => router.push(`/app/${orgId}/${project.id}`)}
+                    onClick={() => {
+                      track('project_switch', {
+                        props_str: { project_id: project.id, project_name: project.name },
+                      });
+                      router.push(`/app/${orgId}/${project.id}`);
+                    }}
                   >
                     <FolderOpen className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span className="flex-1">{project.name}</span>
