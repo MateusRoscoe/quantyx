@@ -833,12 +833,18 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         first_seen: string;
         last_seen: string;
         total_events: string;
+        props_str: Record<string, string>;
+        props_num: Record<string, number>;
+        props_bool: Record<string, number>;
       }>(
         `SELECT
           user_id,
           min(first_seen) as first_seen,
           max(last_seen) as last_seen,
-          sum(total_events) as total_events
+          sum(total_events) as total_events,
+          anyLastMerge(props_str) as props_str,
+          anyLastMerge(props_num) as props_num,
+          anyLastMerge(props_bool) as props_bool
         FROM analytics.users
         WHERE project_id = {projectId:String}
           AND user_id = {userId:String}
@@ -851,11 +857,23 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       }
 
       const u = rows[0];
+      const properties: Record<string, string | number | boolean> = {};
+      for (const [k, v] of Object.entries(u.props_str ?? {})) {
+        properties[k] = v;
+      }
+      for (const [k, v] of Object.entries(u.props_num ?? {})) {
+        properties[k] = v;
+      }
+      for (const [k, v] of Object.entries(u.props_bool ?? {})) {
+        properties[k] = v === 1;
+      }
+
       return {
         userId: u.user_id,
         firstSeen: u.first_seen,
         lastSeen: u.last_seen,
         totalEvents: Number(u.total_events),
+        properties,
       };
     },
   });

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAnalyticsUser } from '@/hooks/use-analytics-users';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
+import { useDateRange } from '@/hooks/use-date-range';
 import {
   DataTable,
   DateTimeCell,
@@ -16,7 +17,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, Clock, Zap } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Zap,
+  Hash,
+  Activity,
+} from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 interface SessionRow {
@@ -57,9 +65,24 @@ function useSessionColumns() {
     },
     { accessorKey: 'startedAt', header: 'Started', cell: DateTimeCell },
     { accessorKey: 'endedAt', header: 'Last Event', cell: DateTimeCell },
-    { accessorKey: 'totalEvents', header: 'Events', cell: NumberCell, size: 80 },
-    { accessorKey: 'pageViews', header: 'Pages', cell: NumberCell, size: 80 },
-    { accessorKey: 'browser', header: 'Browser', cell: BrowserCell, size: 120 },
+    {
+      accessorKey: 'totalEvents',
+      header: 'Events',
+      cell: NumberCell,
+      size: 80,
+    },
+    {
+      accessorKey: 'pageViews',
+      header: 'Pages',
+      cell: NumberCell,
+      size: 80,
+    },
+    {
+      accessorKey: 'browser',
+      header: 'Browser',
+      cell: BrowserCell,
+      size: 120,
+    },
     { accessorKey: 'country', header: 'Country', cell: CountryCell, size: 60 },
   ];
 
@@ -74,6 +97,7 @@ export default function UserDetailPage() {
   }>();
 
   const sessionColumns = useSessionColumns();
+  const { from, to } = useDateRange();
   const { data: user, isLoading: userLoading } =
     useAnalyticsUser(projectId, userId);
   const {
@@ -88,6 +112,23 @@ export default function UserDetailPage() {
     () => sessionsData?.pages.flatMap((p) => p.sessions) ?? [],
     [sessionsData],
   );
+
+  const sessionStats = useMemo(() => {
+    if (userSessions.length === 0) return null;
+    const totalEvents = userSessions.reduce(
+      (sum, s) => sum + s.totalEvents,
+      0,
+    );
+    return {
+      count: userSessions.length,
+      avgEvents: Math.round(totalEvents / userSessions.length),
+    };
+  }, [userSessions]);
+
+  const properties = user?.properties ?? {};
+  const hasProperties = Object.keys(properties).length > 0;
+
+  const dateLabel = `${from.toLocaleDateString()} — ${to.toLocaleDateString()}`;
 
   return (
     <div className="space-y-6">
@@ -109,7 +150,7 @@ export default function UserDetailPage() {
           <Skeleton className="h-20" />
         </div>
       ) : user ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
           <Card className="gap-0 p-4">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
@@ -137,19 +178,67 @@ export default function UserDetailPage() {
               {user.totalEvents.toLocaleString()}
             </p>
           </Card>
+          {sessionStats && (
+            <>
+              <Card className="gap-0 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <Hash className="h-3.5 w-3.5" />
+                  Sessions loaded
+                </div>
+                <p className="mt-1 font-mono text-sm font-semibold tabular-nums">
+                  {sessionStats.count.toLocaleString()}
+                </p>
+              </Card>
+              <Card className="gap-0 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <Activity className="h-3.5 w-3.5" />
+                  Avg events/session
+                </div>
+                <p className="mt-1 font-mono text-sm font-semibold tabular-nums">
+                  {sessionStats.avgEvents.toLocaleString()}
+                </p>
+              </Card>
+            </>
+          )}
         </div>
       ) : (
         <Card className="gap-0 p-4">
-          <p className="text-sm text-muted-foreground">
-            User not found.
-          </p>
+          <p className="text-sm text-muted-foreground">User not found.</p>
+        </Card>
+      )}
+
+      {/* User properties */}
+      {hasProperties && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">
+              Properties
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+              {Object.entries(properties).map(([key, value]) => (
+                <div key={key}>
+                  <dt className="text-xs font-medium text-muted-foreground">
+                    {key}
+                  </dt>
+                  <dd className="mt-0.5 truncate font-mono text-sm">
+                    {String(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
         </Card>
       )}
 
       {/* User sessions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Sessions</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Sessions</CardTitle>
+            <span className="text-xs text-muted-foreground">{dateLabel}</span>
+          </div>
         </CardHeader>
         <CardContent>
           <DataTable

@@ -18,6 +18,7 @@ interface UserDetail {
   firstSeen: string;
   lastSeen: string;
   totalEvents: number;
+  properties: Record<string, string | number | boolean>;
 }
 
 export function useAnalyticsUsers(
