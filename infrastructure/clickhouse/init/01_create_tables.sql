@@ -254,28 +254,28 @@ SELECT
     toUInt64(countIf(event_name NOT LIKE '$%')) AS total_events,
     -- SDK properties: only from $identify
     argMaxState(
-        if(event_name = '$identify', props_str, map()),
+        if(event_name = '$identify', props_str, CAST(map() AS Map(String, String))),
         if(event_name = '$identify', timestamp, toDateTime(0))
     ) AS props_str,
     argMaxState(
-        if(event_name = '$identify', props_num, map()),
+        if(event_name = '$identify', props_num, CAST(map() AS Map(String, Float64))),
         if(event_name = '$identify', timestamp, toDateTime(0))
     ) AS props_num,
     argMaxState(
-        if(event_name = '$identify', props_bool, map()),
+        if(event_name = '$identify', props_bool, CAST(map() AS Map(String, UInt8))),
         if(event_name = '$identify', timestamp, toDateTime(0))
     ) AS props_bool,
     -- Server properties: only from $server_identify
     argMaxState(
-        if(event_name = '$server_identify', props_str, map()),
+        if(event_name = '$server_identify', props_str, CAST(map() AS Map(String, String))),
         if(event_name = '$server_identify', timestamp, toDateTime(0))
     ) AS server_props_str,
     argMaxState(
-        if(event_name = '$server_identify', props_num, map()),
+        if(event_name = '$server_identify', props_num, CAST(map() AS Map(String, Float64))),
         if(event_name = '$server_identify', timestamp, toDateTime(0))
     ) AS server_props_num,
     argMaxState(
-        if(event_name = '$server_identify', props_bool, map()),
+        if(event_name = '$server_identify', props_bool, CAST(map() AS Map(String, UInt8))),
         if(event_name = '$server_identify', timestamp, toDateTime(0))
     ) AS server_props_bool,
     max(timestamp) AS updated_at
@@ -299,30 +299,30 @@ SELECT
     argMaxState(
         if(event_name = '$group_identify',
            mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), props_str),
-           map()),
+           CAST(map() AS Map(String, String))),
         if(event_name = '$group_identify', timestamp, toDateTime(0))
     ) AS props_str,
     argMaxState(
-        if(event_name = '$group_identify', props_num, map()),
+        if(event_name = '$group_identify', props_num, CAST(map() AS Map(String, Float64))),
         if(event_name = '$group_identify', timestamp, toDateTime(0))
     ) AS props_num,
     argMaxState(
-        if(event_name = '$group_identify', props_bool, map()),
+        if(event_name = '$group_identify', props_bool, CAST(map() AS Map(String, UInt8))),
         if(event_name = '$group_identify', timestamp, toDateTime(0))
     ) AS props_bool,
     -- Server properties: only from $server_group_identify
     argMaxState(
         if(event_name = '$server_group_identify',
            mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), props_str),
-           map()),
+           CAST(map() AS Map(String, String))),
         if(event_name = '$server_group_identify', timestamp, toDateTime(0))
     ) AS server_props_str,
     argMaxState(
-        if(event_name = '$server_group_identify', props_num, map()),
+        if(event_name = '$server_group_identify', props_num, CAST(map() AS Map(String, Float64))),
         if(event_name = '$server_group_identify', timestamp, toDateTime(0))
     ) AS server_props_num,
     argMaxState(
-        if(event_name = '$server_group_identify', props_bool, map()),
+        if(event_name = '$server_group_identify', props_bool, CAST(map() AS Map(String, UInt8))),
         if(event_name = '$server_group_identify', timestamp, toDateTime(0))
     ) AS server_props_bool,
     max(timestamp) AS updated_at
