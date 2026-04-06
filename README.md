@@ -39,7 +39,7 @@ cp .env.example .env
 #   POSTGRES_PASSWORD=password
 #   BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 
-# Start ClickHouse, PostgreSQL, Kafka, Redis, and Kafbat UI
+# Start all infrastructure services
 docker compose up -d
 ```
 
@@ -56,6 +56,8 @@ docker compose ps   # all should show "healthy" or "running"
 | Kafka      | 29092 (host access)        | —                     |
 | Redis      | 6379                       | —                     |
 | Kafbat UI  | 8080                       | http://localhost:8080 |
+| Grafana    | 3003                       | http://localhost:3003 |
+| MailHog    | 1025 (SMTP), 8025 (web)    | http://localhost:8025 |
 
 ### 3. Configure app environment variables
 
@@ -75,6 +77,16 @@ cp apps/api-tenant-manager/.env.example apps/api-tenant-manager/.env
 #   DATABASE_URL=postgresql://admin:password@localhost:5432/quantyx
 #   BETTER_AUTH_SECRET=<same value as root .env>
 # SMTP vars can be left empty for local dev (email verification won't send)
+
+# api-analytics-bff
+cp apps/api-analytics-bff/.env.example apps/api-analytics-bff/.env
+# Required: set DATABASE_URL
+#   DATABASE_URL=postgresql://admin:password@localhost:5432/quantyx
+
+# api-server-ingest
+cp apps/api-server-ingest/.env.example apps/api-server-ingest/.env
+# Required: set DATABASE_URL
+#   DATABASE_URL=postgresql://admin:password@localhost:5432/quantyx
 
 # consumer-events-ingest — uses Kafka/ClickHouse env vars from libs,
 # no app-level .env needed for defaults
@@ -104,10 +116,16 @@ npx nx serve api-event-webhook
 # Terminal 2 — Tenant management API (port 3001)
 npx nx serve api-tenant-manager
 
-# Terminal 3 — Kafka consumer
+# Terminal 3 — Analytics query API (port 3004)
+npx nx serve api-analytics-bff
+
+# Terminal 4 — Server-side identification API (port 3005)
+npx nx serve api-server-ingest
+
+# Terminal 5 — Kafka consumer
 npx nx serve consumer-events-ingest
 
-# Terminal 4 — Web frontend (port 3000)
+# Terminal 6 — Web frontend (port 3000)
 npx nx dev web
 ```
 
@@ -116,6 +134,8 @@ Once running:
 - **Web app**: http://localhost:3000
 - **Tenant Manager Swagger**: http://localhost:3001/docs
 - **Event Webhook Swagger**: http://localhost:3002/docs
+- **Analytics BFF Swagger**: http://localhost:3004/docs
+- **Server Ingest Swagger**: http://localhost:3005/docs
 - **Kafbat UI**: http://localhost:8080
 
 ### 6. Create your first organization, project, and API key
@@ -157,14 +177,17 @@ quantyx/
 ├── apps/
 │   ├── api-event-webhook/       # Fastify — event ingestion (port 3002)
 │   ├── api-tenant-manager/      # Fastify — tenant/org management (port 3001)
+│   ├── api-analytics-bff/       # Fastify — analytics queries (port 3004)
+│   ├── api-server-ingest/       # Fastify — server-side identification (port 3005)
 │   ├── consumer-events-ingest/  # Kafka consumer → ClickHouse
+│   ├── scheduler-analytics/     # ClickHouse maintenance tasks
 │   └── interface/
 │       ├── web/                 # Next.js frontend (port 3000)
 │       └── web-e2e/             # Playwright E2E tests
 ├── libs/
 │   ├── shared/                  # Zod schemas (browser-compatible)
 │   ├── shared-backend/          # Pino logger, API key crypto
-│   ├── kafka/                   # KafkaJS client wrapper
+│   ├── kafka/                   # Confluent Kafka wrapper
 │   ├── clickhouse/              # ClickHouse client wrapper
 │   ├── postgres/                # Prisma client + schema
 │   ├── redis/                   # ioredis wrapper
@@ -216,17 +239,14 @@ Tests use [Vitest](https://vitest.dev/). Some projects require Docker for Testco
 
 ```bash
 # Unit tests (no Docker needed)
-npx nx test shared              # 20 tests — Zod schemas
-npx nx test auth                # 3 tests — auth config
-npx nx test clickhouse          # 6 tests — client wrapper
-npx nx test react-sdk           # 15 tests — SDK + React hooks
+npx nx test shared              # Zod schemas
+npx nx test auth                # auth config
+npx nx test clickhouse          # client wrapper
+npx nx test react-sdk           # SDK + React hooks
 
 # Integration tests (need Docker)
-npx nx test api-tenant-manager  # 38 tests — PostgreSQL via Testcontainers
-npx nx test api-event-webhook   # 10 tests — Kafka + PostgreSQL + Redis via Testcontainers
-
-# Frontend tests (no Docker needed)
-npx nx test web                 # 49 tests — React Testing Library
+npx nx test api-tenant-manager  # PostgreSQL via Testcontainers
+npx nx test api-event-webhook   # Kafka + PostgreSQL + Redis via Testcontainers
 
 # E2E tests (need Docker, starts apps automatically)
 npx nx e2e web-e2e              # Playwright — auth flows + org CRUD

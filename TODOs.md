@@ -43,7 +43,7 @@ Outstanding work items for the Quantyx project, organized by category and priori
 
 ## Testing
 
-- [ ] **libs/kafka: tests** — No tests for the KafkaJS wrapper. Add unit tests with mocks and/or integration tests with Testcontainers.
+- [ ] **libs/kafka: tests** — No tests for the Kafka wrapper (`@confluentinc/kafka-javascript`). Add unit tests with mocks and/or integration tests with Testcontainers.
 - [ ] **libs/shared-backend: tests** — No tests for the Pino logger factory. Add unit tests.
 - [ ] **libs/postgres: tests** — No tests for the Prisma client singleton. Add integration tests with Testcontainers Postgres.
 - [ ] **react-sdk: integration test** — End-to-end test verifying events flow from SDK → api-event-webhook → Kafka → consumer → ClickHouse

@@ -2,7 +2,7 @@
 
 ## Data Retention
 
-Raw events have a 90-day TTL (`TTL timestamp + INTERVAL 90 DAY`). After expiry, rows are dropped during background merges. Aggregate tables have no TTL — historical trends survive beyond raw event retention.
+Raw events have a 14-month TTL (`TTL timestamp + INTERVAL 14 MONTH`). After expiry, rows are dropped during background merges. Aggregate tables have no TTL — historical trends survive beyond raw event retention.
 
 If a materialized view is added or changed after raw events have expired, those events cannot be backfilled into the new aggregates. Create new MVs before you need the data.
 
