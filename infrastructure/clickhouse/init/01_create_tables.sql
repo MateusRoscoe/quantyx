@@ -68,7 +68,9 @@ CREATE TABLE
 PARTITION BY
     toYYYYMM (last_seen)
 ORDER BY
-    (project_id, user_id);
+    (project_id, user_id)
+TTL last_seen + INTERVAL 3 YEAR
+SETTINGS ttl_only_drop_parts = 1;
 
 -- Groups table (aggregated group data)
 -- Group identity is extracted from props_str['$group_type'] and props_str['$group_id'].
@@ -89,8 +91,12 @@ CREATE TABLE
         server_props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
         updated_at SimpleAggregateFunction (max, DateTime)
     ) ENGINE = AggregatingMergeTree ()
+PARTITION BY
+    toYYYYMM (last_seen)
 ORDER BY
-    (project_id, group_type, group_id);
+    (project_id, group_type, group_id)
+TTL last_seen + INTERVAL 3 YEAR
+SETTINGS ttl_only_drop_parts = 1;
 
 -- User-group membership (maps user_id → group_type/group_id)
 CREATE TABLE
@@ -124,7 +130,9 @@ ORDER BY
         hour,
         metric_type,
         dimension_value
-    );
+    )
+TTL hour + INTERVAL 3 YEAR
+SETTINGS ttl_only_drop_parts = 1;
 
 -- Property metadata (tracks all properties seen)
 CREATE TABLE
@@ -192,7 +200,9 @@ CREATE TABLE
 PARTITION BY
     toYYYYMM (started_at)
 ORDER BY
-    (project_id, started_at, session_id);
+    (project_id, started_at, session_id)
+TTL started_at + INTERVAL 3 YEAR
+SETTINGS ttl_only_drop_parts = 1;
 
 -- Session-user lookup (maps user_id → session_ids for fast user-scoped queries)
 CREATE TABLE
@@ -243,7 +253,9 @@ CREATE TABLE
 PARTITION BY
     toYYYYMM (hour)
 ORDER BY
-    (project_id, hour, continent, country, region, city);
+    (project_id, hour, continent, country, region, city)
+TTL hour + INTERVAL 3 YEAR
+SETTINGS ttl_only_drop_parts = 1;
 
 -- City coordinates (representative lat/lon per city for point-on-map)
 CREATE TABLE
@@ -395,24 +407,9 @@ SELECT
 FROM analytics.events
 WHERE session_id != '' AND user_id != '';
 
--- MV: Hourly metrics — system events ($%) excluded from all metrics MVs
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_overall
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'overall' AS dimension_name,
-    '' AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE event_name NOT LIKE '$%'
-GROUP BY project_id, hour;
-
--- MV: Consolidated metrics for all standard dimensions
+-- MV: Hourly metrics — consolidated overall, standard dimensions, and path.
+-- System events ($%) excluded. One MV replaces three (mv_metrics_overall,
+-- mv_metrics_all, mv_metrics_path) to reduce write amplification.
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_all
 TO analytics.metrics_hourly
 AS
@@ -428,18 +425,22 @@ FROM analytics.events
 ARRAY JOIN
     arrayFilter(
         x -> x.2 != '',
-        [
-            ('event_name', event_name),
-            ('browser', browser),
-            ('os', os),
-            ('device_type', device_type),
-            ('platform', platform),
-            ('country', country),
-            ('continent', continent),
-            ('region', region),
-            ('city', city),
-            ('state', state)
-        ]
+        arrayConcat(
+            [
+                ('overall', '_'),
+                ('event_name', event_name),
+                ('browser', browser),
+                ('os', os),
+                ('device_type', device_type),
+                ('platform', platform),
+                ('country', country),
+                ('continent', continent),
+                ('region', region),
+                ('city', city),
+                ('state', state)
+            ],
+            if(event_name = 'page_view' AND path != '', [('path', path)], [])
+        )
     ) AS dim
 WHERE event_name NOT LIKE '$%'
 GROUP BY project_id, hour, dim.1, dim.2;
@@ -458,21 +459,6 @@ FROM analytics.events AS events
 WHERE city != '' AND events.latitude != 0 AND events.longitude != 0
   AND event_name NOT LIKE '$%'
 GROUP BY project_id, city, country;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_path
-TO analytics.metrics_hourly
-AS
-SELECT
-    project_id,
-    toStartOfHour(timestamp) AS hour,
-    'event' AS metric_type,
-    'path' AS dimension_name,
-    path AS dimension_value,
-    sumState(toUInt64(1)) AS event_count,
-    uniqState(user_id) AS unique_users
-FROM analytics.events
-WHERE event_name = 'page_view' AND path != ''
-GROUP BY project_id, hour, path;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_geo
 TO analytics.metrics_geo
