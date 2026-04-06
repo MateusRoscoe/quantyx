@@ -77,9 +77,9 @@ PARTITION BY
 ORDER BY
     (
         project_id,
+        dimension_name,
         hour,
         metric_type,
-        dimension_name,
         dimension_value
     );
 
@@ -128,6 +128,28 @@ CREATE TABLE
 ORDER BY
     (project_id, session_id);
 
+-- Sessions daily (denormalized for date-filtered list queries)
+CREATE TABLE
+    IF NOT EXISTS analytics.sessions_daily (
+        project_id String,
+        session_id String,
+        user_id String,
+        started_at DateTime,
+        ended_at DateTime,
+        total_events UInt64,
+        page_views UInt64,
+        browser LowCardinality (String),
+        os LowCardinality (String),
+        device_type LowCardinality (String),
+        country LowCardinality (String),
+        continent LowCardinality (String),
+        region LowCardinality (String)
+    ) ENGINE = ReplacingMergeTree (ended_at)
+PARTITION BY
+    toYYYYMM (started_at)
+ORDER BY
+    (project_id, started_at, session_id);
+
 -- Session-user lookup (maps user_id → session_ids for fast user-scoped queries)
 CREATE TABLE
     IF NOT EXISTS analytics.session_user_map (
@@ -137,6 +159,24 @@ CREATE TABLE
     ) ENGINE = ReplacingMergeTree ()
 ORDER BY
     (project_id, user_id, session_id);
+
+-- Geographic metrics (pre-aggregated for cross-dimension geo drill-down)
+CREATE TABLE
+    IF NOT EXISTS analytics.metrics_geo (
+        project_id String,
+        hour DateTime,
+        continent LowCardinality (String),
+        country LowCardinality (String),
+        region LowCardinality (String),
+        state LowCardinality (String),
+        city String CODEC(ZSTD(1)),
+        event_count AggregateFunction (sum, UInt64),
+        unique_users AggregateFunction (uniq, String)
+    ) ENGINE = AggregatingMergeTree ()
+PARTITION BY
+    toYYYYMM (hour)
+ORDER BY
+    (project_id, hour, continent, country, region, city);
 
 -- City coordinates (representative lat/lon per city for point-on-map)
 CREATE TABLE
@@ -191,6 +231,28 @@ SELECT
     anyState(country) AS country,
     anyState(continent) AS continent,
     anyState(region) AS region
+FROM analytics.events
+WHERE session_id != ''
+GROUP BY project_id, session_id;
+
+-- MV: Denormalized sessions for date-filtered list queries
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_sessions_daily
+TO analytics.sessions_daily
+AS
+SELECT
+    project_id,
+    session_id,
+    max(user_id) AS user_id,
+    min(timestamp) AS started_at,
+    max(timestamp) AS ended_at,
+    toUInt64(count()) AS total_events,
+    toUInt64(countIf(event_name = 'page_view')) AS page_views,
+    any(browser) AS browser,
+    any(os) AS os,
+    any(device_type) AS device_type,
+    any(country) AS country,
+    any(continent) AS continent,
+    any(region) AS region
 FROM analytics.events
 WHERE session_id != ''
 GROUP BY project_id, session_id;
@@ -281,6 +343,23 @@ SELECT
 FROM analytics.events
 WHERE event_name = 'page_view' AND path != ''
 GROUP BY project_id, hour, path;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_geo
+TO analytics.metrics_geo
+AS
+SELECT
+    project_id,
+    toStartOfHour(timestamp) AS hour,
+    continent,
+    country,
+    region,
+    state,
+    city,
+    sumState(toUInt64(1)) AS event_count,
+    uniqState(user_id) AS unique_users
+FROM analytics.events
+WHERE continent != ''
+GROUP BY project_id, hour, continent, country, region, state, city;
 
 -- Property metadata is populated by the scheduler-analytics app (watermark-based backfill),
 -- not by materialized views. See FIXES.md for rationale.

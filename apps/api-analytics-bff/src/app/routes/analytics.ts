@@ -67,12 +67,15 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           { projectId, from, to },
         ),
         queryClickHouse<{ total_sessions: string }>(
-          `SELECT count(DISTINCT session_id) as total_sessions
-          FROM analytics.events
-          WHERE project_id = {projectId:String}
-            AND timestamp >= toDateTime({from:String})
-            AND timestamp < toDateTime({to:String})
-            AND session_id != ''`,
+          `SELECT count() as total_sessions
+          FROM (
+            SELECT session_id
+            FROM analytics.sessions_daily
+            WHERE project_id = {projectId:String}
+              AND started_at >= toDateTime({from:String})
+              AND started_at < toDateTime({to:String})
+            GROUP BY session_id
+          )`,
           { projectId, from, to },
         ),
         queryClickHouse<{ page_views: string }>(
@@ -437,28 +440,73 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
 
       const filterClause = filters.join(' ');
 
-      // For city/state drill-down, also return lat/lon
-      const latLonSelect =
-        dimension === 'city'
-          ? ', any(latitude) as latitude, any(longitude) as longitude'
-          : '';
+      // For city drill-down, enrich with lat/lon from city_coordinates
+      if (dimension === 'city') {
+        const rows = await queryClickHouse<{
+          value: string;
+          count: string;
+          unique_users: string;
+          latitude: string;
+          longitude: string;
+        }>(
+          `SELECT
+            g.value,
+            g.count,
+            g.unique_users,
+            c.latitude,
+            c.longitude
+          FROM (
+            SELECT
+              city as value,
+              sumMerge(event_count) as count,
+              uniqMerge(unique_users) as unique_users,
+              any(country) as country
+            FROM analytics.metrics_geo
+            WHERE project_id = {projectId:String}
+              AND hour >= toDateTime({from:String})
+              AND hour < toDateTime({to:String})
+              AND city != ''
+              ${filterClause}
+            GROUP BY city
+            ORDER BY count DESC
+            LIMIT {limit:UInt32}
+          ) AS g
+          LEFT JOIN (
+            SELECT city, country,
+              anyMerge(latitude) as latitude,
+              anyMerge(longitude) as longitude
+            FROM analytics.city_coordinates
+            WHERE project_id = {projectId:String}
+            GROUP BY city, country
+          ) AS c ON g.value = c.city AND g.country = c.country
+          ORDER BY g.count DESC`,
+          params,
+        );
+
+        return {
+          data: rows.map((r) => ({
+            value: r.value,
+            count: Number(r.count),
+            uniqueUsers: Number(r.unique_users),
+            latitude: Number(r.latitude ?? 0),
+            longitude: Number(r.longitude ?? 0),
+          })),
+        };
+      }
 
       const rows = await queryClickHouse<{
         value: string;
         count: string;
         unique_users: string;
-        latitude?: string;
-        longitude?: string;
       }>(
         `SELECT
           ${dimension} as value,
-          count() as count,
-          uniq(user_id) as unique_users
-          ${latLonSelect}
-        FROM analytics.events
+          sumMerge(event_count) as count,
+          uniqMerge(unique_users) as unique_users
+        FROM analytics.metrics_geo
         WHERE project_id = {projectId:String}
-          AND timestamp >= toDateTime({from:String})
-          AND timestamp < toDateTime({to:String})
+          AND hour >= toDateTime({from:String})
+          AND hour < toDateTime({to:String})
           AND ${dimension} != ''
           ${filterClause}
         GROUP BY ${dimension}
@@ -472,10 +520,6 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           value: r.value,
           count: Number(r.count),
           uniqueUsers: Number(r.unique_users),
-          ...(dimension === 'city' && {
-            latitude: Number(r.latitude ?? 0),
-            longitude: Number(r.longitude ?? 0),
-          }),
         })),
       };
     },
@@ -514,13 +558,8 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       const cursorClause = hasCursor
         ? `AND (started_at, session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
         : '';
-      const userSessionFilter = user_id
-        ? `AND session_id IN (
-            SELECT session_id
-            FROM analytics.session_user_map
-            WHERE project_id = {projectId:String}
-              AND user_id = {userId:String}
-          )`
+      const userFilter = user_id
+        ? `AND user_id = {userId:String}`
         : '';
 
       const sessions = await queryClickHouse<{
@@ -537,22 +576,22 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       }>(
         `SELECT
           session_id,
-          maxMerge(user_id) as user_id,
-          minMerge(started_at) as started_at,
-          maxMerge(ended_at) as ended_at,
-          sumMerge(total_events) as total_events,
-          sumMerge(page_views) as page_views,
-          anyMerge(browser) as browser,
-          anyMerge(os) as os,
-          anyMerge(device_type) as device_type,
-          anyMerge(country) as country
-        FROM analytics.sessions
+          max(user_id) as user_id,
+          min(started_at) as started_at,
+          max(ended_at) as ended_at,
+          sum(total_events) as total_events,
+          sum(page_views) as page_views,
+          any(browser) as browser,
+          any(os) as os,
+          any(device_type) as device_type,
+          any(country) as country
+        FROM analytics.sessions_daily
         WHERE project_id = {projectId:String}
-          ${userSessionFilter}
-        GROUP BY session_id
-        HAVING started_at >= toDateTime({from:String})
+          AND started_at >= toDateTime({from:String})
           AND started_at < toDateTime({to:String})
+          ${userFilter}
           ${cursorClause}
+        GROUP BY session_id
         ORDER BY started_at ${direction === 'desc' ? 'DESC' : 'ASC'}, session_id ${direction === 'desc' ? 'DESC' : 'ASC'}
         LIMIT {fetchLimit:UInt32}`,
         {
@@ -929,18 +968,20 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         projectId: z.string().uuid(),
         propertyName: z.string(),
       }),
-      querystring: z.object({
+      querystring: withDateRangeLimit(dateRangeSchema.extend({
         type: z.enum(['str', 'num', 'bool']),
         search: z.string().optional(),
         limit: z.coerce.number().min(1).max(200).default(50),
-      }),
+      })),
     },
     handler: async (request, reply) => {
       const { projectId, propertyName } = request.params as {
         projectId: string;
         propertyName: string;
       };
-      const { type, search, limit } = request.query as {
+      const { from, to, type, search, limit } = request.query as {
+        from: string;
+        to: string;
         type: 'str' | 'num' | 'bool';
         search?: string;
         limit: number;
@@ -963,12 +1004,16 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         `SELECT DISTINCT toString(${col}[{name:String}]) as value
         FROM analytics.events
         WHERE project_id = {projectId:String}
+          AND timestamp >= toDateTime({from:String})
+          AND timestamp < toDateTime({to:String})
           AND mapContains(${col}, {name:String})
           ${searchClause}
         ORDER BY value
         LIMIT {limit:UInt32}`,
         {
           projectId,
+          from,
+          to,
           name: propertyName,
           ...(search && { search: `${search}%` }),
           limit,
