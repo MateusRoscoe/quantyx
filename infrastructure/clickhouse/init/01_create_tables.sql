@@ -130,27 +130,28 @@ CREATE TABLE
 ORDER BY
     (project_id, session_id);
 
--- Sessions daily (denormalized for date-filtered list queries)
+-- Sessions daily (aggregated per-session data for date-filtered list queries)
 CREATE TABLE
     IF NOT EXISTS analytics.sessions_daily (
         project_id String,
         session_id String,
-        user_id String,
-        started_at DateTime,
-        ended_at DateTime,
-        total_events UInt64,
-        page_views UInt64,
+        user_id SimpleAggregateFunction (max, String),
+        started_at SimpleAggregateFunction (min, DateTime),
+        ended_at SimpleAggregateFunction (max, DateTime),
+        total_events SimpleAggregateFunction (sum, UInt64),
+        page_views SimpleAggregateFunction (sum, UInt64),
         browser LowCardinality (String),
         os LowCardinality (String),
         device_type LowCardinality (String),
         country LowCardinality (String),
         continent LowCardinality (String),
-        region LowCardinality (String)
-    ) ENGINE = ReplacingMergeTree (ended_at)
+        region LowCardinality (String),
+        INDEX idx_started_at started_at TYPE minmax GRANULARITY 1
+    ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
     toYYYYMM (started_at)
 ORDER BY
-    (project_id, started_at, session_id);
+    (project_id, session_id);
 
 -- Session-user lookup (maps user_id → session_ids for fast user-scoped queries)
 CREATE TABLE

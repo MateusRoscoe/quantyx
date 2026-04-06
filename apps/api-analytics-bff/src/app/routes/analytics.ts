@@ -556,7 +556,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       const hasCursor = cursor_ts && cursor_id;
       const op = direction === 'desc' ? '<' : '>';
       const cursorClause = hasCursor
-        ? `AND (started_at, session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
+        ? `HAVING (min(started_at), session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
         : '';
       const userFilter = user_id
         ? `AND user_id = {userId:String}`
@@ -590,8 +590,8 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           AND started_at >= toDateTime({from:String})
           AND started_at < toDateTime({to:String})
           ${userFilter}
-          ${cursorClause}
         GROUP BY session_id
+        ${cursorClause}
         ORDER BY started_at ${direction === 'desc' ? 'DESC' : 'ASC'}, session_id ${direction === 'desc' ? 'DESC' : 'ASC'}
         LIMIT {fetchLimit:UInt32}`,
         {
