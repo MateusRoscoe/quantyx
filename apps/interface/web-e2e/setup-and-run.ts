@@ -1,5 +1,5 @@
 /**
- * Starts PostgreSQL + MailHog Testcontainers, sets environment variables,
+ * Starts PostgreSQL + Mailpit Testcontainers, sets environment variables,
  * runs Prisma migrations, then launches Playwright. This ensures all env vars
  * are available before Playwright spawns the webServer processes.
  */
@@ -12,7 +12,7 @@ const apiURL = 'http://localhost:3001';
 const baseURL = 'http://localhost:3000';
 
 async function main() {
-  // Start PostgreSQL and MailHog in parallel
+  // Start PostgreSQL and Mailpit in parallel
   console.log('[e2e] Starting containers…');
   const [pgContainer, mailContainer] = await Promise.all([
     new PostgreSqlContainer('postgres:18-trixie')
@@ -21,7 +21,7 @@ async function main() {
       .withPassword('postgres')
       .withStartupTimeout(60_000)
       .start(),
-    new GenericContainer('mailhog/mailhog')
+    new GenericContainer('axllent/mailpit')
       .withExposedPorts(1025, 8025)
       .withStartupTimeout(30_000)
       .start(),
@@ -30,7 +30,7 @@ async function main() {
   const connectionUri = pgContainer.getConnectionUri();
   const smtpPort = mailContainer.getMappedPort(1025);
   console.log(`[e2e] PostgreSQL ready at ${connectionUri}`);
-  console.log(`[e2e] MailHog SMTP on port ${smtpPort}`);
+  console.log(`[e2e] Mailpit SMTP on port ${smtpPort}`);
 
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),

@@ -31,7 +31,7 @@ npx nx lint <project>
 # Run a single test file
 npx nx test <project> -- --testPathPattern=<pattern>
 
-# Start infrastructure (ClickHouse, Postgres, Redis, Kafka, Kafbat UI, Grafana, MailHog)
+# Start infrastructure (ClickHouse, Postgres, Redis, Kafka, Kafbat UI, Grafana, Mailpit)
 docker compose up -d
 
 
@@ -102,7 +102,7 @@ HTTP Request + X-API-Key → api-event-webhook (Fastify)
 - **Redis**: API key cache with configurable TTL. Port 6379.
 - **Kafka**: Single-node KRaft mode on port 29092 (host access). Kafbat UI on port 8080.
 - **Grafana**: Pre-provisioned dashboards and ClickHouse datasource. Port 3003. Config in `infrastructure/grafana/provisioning/`.
-- **MailHog**: Local SMTP testing. SMTP port 1025, web UI port 8025.
+- **Mailpit**: Local SMTP testing. SMTP port 1025, web UI port 8025.
 
 ### Environment
 

@@ -51,8 +51,8 @@ API_TENANT_MANAGER_EXTERNAL_URL=http://localhost:3001
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_SECURE=false
-SMTP_USER=mailhog
-SMTP_PASS=mailhog
+SMTP_USER=mailpit
+SMTP_PASS=mailpit
 SMTP_FROM=noreply@quantyx.io
 WEB_APP_URL=http://localhost:3000"
 

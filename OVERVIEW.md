@@ -427,13 +427,13 @@ Event schemas are defined in `libs/shared/src/lib/validators.ts`. The pipeline t
 
 | Service    | Image                                       | Port         | Purpose              |
 | ---------- | ------------------------------------------- | ------------ | -------------------- |
-| ClickHouse | `clickhouse/clickhouse-server:25.11-alpine` | 8123, 9000   | Analytics database   |
+| ClickHouse | `clickhouse/clickhouse-server:26.3-alpine`  | 8123, 9000   | Analytics database   |
 | PostgreSQL | `postgres:18-trixie`                        | 5432         | Tenant/auth database |
-| Kafka      | `apache/kafka:4.1.1`                        | 29092 (host) | Event messaging      |
+| Kafka      | `apache/kafka:4.2.0`                        | 29092 (host) | Event messaging      |
 | Redis      | `redis:8-alpine`                            | 6379         | API key + session cache |
 | Kafbat UI  | `kafbat/kafka-ui:latest`                    | 8080         | Kafka management UI    |
 | Grafana    | `grafana/grafana-oss:latest`                | 3003         | Analytics dashboards   |
-| MailHog    | `mailhog/mailhog`                           | 1025, 8025   | Local SMTP testing     |
+| Mailpit    | `axllent/mailpit:latest`                    | 1025, 8025   | Local SMTP testing     |
 
 ### CI/CD
 

@@ -1,6 +1,6 @@
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:25.11-alpine
+    image: clickhouse/clickhouse-server:26.3-alpine
     container_name: quantyx-clickhouse
     restart: unless-stopped
     ports:
@@ -41,7 +41,7 @@ services:
       retries: 5
 
   kafka:
-    image: apache/kafka:4.1.1
+    image: apache/kafka:4.2.0
     container_name: quantyx-kafka
     restart: unless-stopped
     ports:
@@ -121,9 +121,9 @@ services:
     depends_on:
       - clickhouse
 
-  mailhog:
-    image: mailhog/mailhog
-    container_name: quantyx-mailhog
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: quantyx-mailpit
     restart: unless-stopped
     ports:
       - '1025:1025' # SMTP

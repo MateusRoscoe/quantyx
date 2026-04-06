@@ -41,7 +41,7 @@ export async function setup() {
       .withExposedPorts(9093)
       .withStartupTimeout(60_000)
       .start(),
-    new GenericContainer('clickhouse/clickhouse-server:25.11-alpine')
+    new GenericContainer('clickhouse/clickhouse-server:26.3-alpine')
       .withExposedPorts(8123)
       .withEnvironment({ CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1' })
       .withWaitStrategy(Wait.forHttp('/ping', 8123).forStatusCode(200))

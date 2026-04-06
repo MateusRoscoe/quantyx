@@ -57,7 +57,7 @@ docker compose ps   # all should show "healthy" or "running"
 | Redis      | 6379                       | —                     |
 | Kafbat UI  | 8080                       | http://localhost:8080 |
 | Grafana    | 3003                       | http://localhost:3003 |
-| MailHog    | 1025 (SMTP), 8025 (web)    | http://localhost:8025 |
+| Mailpit    | 1025 (SMTP), 8025 (web)    | http://localhost:8025 |
 
 ### 3. Configure app environment variables
 
