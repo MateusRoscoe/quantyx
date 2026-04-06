@@ -114,7 +114,7 @@ Composite project references with `emitDeclarationOnly`. ESM throughout (`module
 
 ### CI
 
-GitHub Actions on push to main and PRs. Uses Nx Cloud task distribution across 3 `linux-medium-js` agents. Pipeline: `format:check` → `lint`, `test`, `build`, `typecheck`, `e2e-ci` (parallel via `run-many`).
+GitHub Actions on push to main and PRs. Single `ubuntu-latest` runner (no Nx Cloud). Pipeline: `format:check` → `lint`, `test`, `build`, `typecheck`, `e2e` (parallel via `run-many`).
 
 ## Conventions
 
