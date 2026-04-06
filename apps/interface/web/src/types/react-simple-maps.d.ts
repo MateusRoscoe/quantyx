@@ -60,7 +60,7 @@ declare module 'react-simple-maps' {
     step?: [number, number];
   }
 
-  export interface SphereProps extends SVGAttributes<SVGPathElement> {}
+  export type SphereProps = SVGAttributes<SVGPathElement>;
 
   export const ComposableMap: ComponentType<ComposableMapProps>;
   export const ZoomableGroup: ComponentType<ZoomableGroupProps>;

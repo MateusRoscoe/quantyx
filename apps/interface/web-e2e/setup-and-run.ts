@@ -12,14 +12,18 @@ const apiURL = 'http://localhost:3001';
 const baseURL = 'http://localhost:3000';
 
 async function main() {
-  // Start PostgreSQL and Mailpit in parallel
+  // Start PostgreSQL, Redis, and Mailpit in parallel
   console.log('[e2e] Starting containers…');
-  const [pgContainer, mailContainer] = await Promise.all([
+  const [pgContainer, redisContainer, mailContainer] = await Promise.all([
     new PostgreSqlContainer('postgres:18-trixie')
       .withDatabase('quantyx_e2e')
       .withUsername('postgres')
       .withPassword('postgres')
       .withStartupTimeout(60_000)
+      .start(),
+    new GenericContainer('redis:8-alpine')
+      .withExposedPorts(6379)
+      .withStartupTimeout(30_000)
       .start(),
     new GenericContainer('axllent/mailpit')
       .withExposedPorts(1025, 8025)
@@ -28,14 +32,17 @@ async function main() {
   ]);
 
   const connectionUri = pgContainer.getConnectionUri();
+  const redisPort = redisContainer.getMappedPort(6379);
   const smtpPort = mailContainer.getMappedPort(1025);
   console.log(`[e2e] PostgreSQL ready at ${connectionUri}`);
+  console.log(`[e2e] Redis on port ${redisPort}`);
   console.log(`[e2e] Mailpit SMTP on port ${smtpPort}`);
 
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),
     DATABASE_URL: connectionUri,
     POSTGRES_URL: connectionUri,
+    REDIS_URL: `redis://localhost:${redisPort}`,
     BETTER_AUTH_SECRET: 'e2e-test-secret-for-better-auth-at-least-32-chars',
     API_TENANT_MANAGER_EXTERNAL_URL: apiURL,
     WEB_APP_URL: baseURL,
@@ -67,7 +74,11 @@ async function main() {
 
   // Cleanup
   console.log('[e2e] Stopping containers…');
-  await Promise.all([pgContainer.stop(), mailContainer.stop()]);
+  await Promise.all([
+    pgContainer.stop(),
+    redisContainer.stop(),
+    mailContainer.stop(),
+  ]);
 
   process.exit(result.status ?? 1);
 }

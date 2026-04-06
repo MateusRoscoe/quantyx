@@ -1,27 +1,43 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { GenericContainer, type StartedTestContainer } from 'testcontainers';
 import { execSync } from 'child_process';
 import * as path from 'path';
 
-let container: Awaited<ReturnType<PostgreSqlContainer['start']>>;
+let pgContainer: Awaited<ReturnType<PostgreSqlContainer['start']>>;
+let redisContainer: StartedTestContainer;
+let mailContainer: StartedTestContainer;
 
 export async function setup() {
-  container = await new PostgreSqlContainer('postgres:18-trixie')
-    .withDatabase('quantyx_test')
-    .withUsername('postgres')
-    .withPassword('postgres')
-    .withStartupTimeout(60_000)
-    .start();
+  [pgContainer, redisContainer, mailContainer] = await Promise.all([
+    new PostgreSqlContainer('postgres:18-trixie')
+      .withDatabase('quantyx_test')
+      .withUsername('postgres')
+      .withPassword('postgres')
+      .withStartupTimeout(60_000)
+      .start(),
+    new GenericContainer('redis:8-alpine')
+      .withExposedPorts(6379)
+      .withStartupTimeout(30_000)
+      .start(),
+    new GenericContainer('axllent/mailpit')
+      .withExposedPorts(1025)
+      .withStartupTimeout(30_000)
+      .start(),
+  ]);
 
-  const connectionUri = container.getConnectionUri();
+  const connectionUri = pgContainer.getConnectionUri();
+  const redisPort = redisContainer.getMappedPort(6379);
+  const smtpPort = mailContainer.getMappedPort(1025);
 
   // Prisma CLI reads DATABASE_URL; runtime adapter reads POSTGRES_URL
   process.env.DATABASE_URL = connectionUri;
   process.env.POSTGRES_URL = connectionUri;
+  process.env.REDIS_URL = `redis://localhost:${redisPort}`;
   process.env.BETTER_AUTH_SECRET =
     'test-secret-for-better-auth-at-least-32-chars';
   process.env.API_TENANT_MANAGER_EXTERNAL_URL = 'http://localhost:3001';
   process.env.SMTP_HOST = 'localhost';
-  process.env.SMTP_PORT = '1025';
+  process.env.SMTP_PORT = String(smtpPort);
   process.env.SMTP_SECURE = 'false';
   process.env.SMTP_USER = 'test';
   process.env.SMTP_PASS = 'test';
@@ -40,5 +56,9 @@ export async function setup() {
 }
 
 export async function teardown() {
-  await container?.stop();
+  await Promise.all([
+    pgContainer?.stop(),
+    redisContainer?.stop(),
+    mailContainer?.stop(),
+  ]);
 }

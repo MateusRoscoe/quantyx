@@ -26,6 +26,7 @@ export default defineConfig({
     pool: 'forks',
     fileParallelism: false,
     testTimeout: 60_000,
+    hookTimeout: 30_000,
     coverage: {
       reportsDirectory: 'test-output/vitest/coverage',
       provider: 'v8',
