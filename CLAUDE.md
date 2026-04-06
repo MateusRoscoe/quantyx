@@ -128,6 +128,18 @@ GitHub Actions on push to main and PRs. Uses Nx Cloud task distribution across 3
 - ESLint flat config with `@nx/enforce-module-boundaries`
 - Prettier with single quotes
 
+## Verification Requirements
+
+- **Always verify changes with tests.** After modifying code, run the relevant project's tests (`npx nx test <project>`). If tests don't exist for the change, run typecheck at minimum (`npx nx run-many -t typecheck`).
+- **When changing a library or schema, also test its consumers.** For example, changes to `libs/shared` should be followed by running tests for `api-event-webhook`, `consumer-events-ingest`, and any other app that imports from it.
+- **ClickHouse schema changes must be validated against a fresh disposable container** before committing — never test against the docker-compose instance which may contain data or stale state:
+  ```bash
+  docker run --rm -d --name ch-test -p 19000:9000 clickhouse/clickhouse-server:latest
+  sleep 2
+  docker exec ch-test clickhouse-client --multiquery < infrastructure/clickhouse/init/01_create_tables.sql
+  docker stop ch-test
+  ```
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
