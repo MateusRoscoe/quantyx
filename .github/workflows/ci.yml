@@ -10,8 +10,54 @@ permissions:
   actions: read
   contents: read
 
+# Cancel in-progress runs for the same branch/PR
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  main:
+  # ─── Shared setup: determine affected range ───
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.set-shas.outputs.base }}
+      head: ${{ steps.set-shas.outputs.head }}
+      has-affected: ${{ steps.check.outputs.has-affected }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: nrwl/nx-set-shas@v4
+        id: set-shas
+
+      - name: Check for affected projects
+        id: check
+        run: |
+          affected=$(npx nx show projects --affected --base=${{ steps.set-shas.outputs.base }} --head=${{ steps.set-shas.outputs.head }})
+          if [ -z "$affected" ]; then
+            echo "has-affected=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-affected=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Format check
+        run: npx nx format:check --base=${{ steps.set-shas.outputs.base }} --head=${{ steps.set-shas.outputs.head }}
+
+  # ─── Fast checks: lint + typecheck + build (no Docker) ───
+  checks:
+    needs: setup
+    if: needs.setup.outputs.has-affected == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -24,12 +70,73 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ github.sha }}
+          restore-keys: nx-${{ runner.os }}-
+
+      - run: npx nx affected -t lint typecheck build --base=${{ needs.setup.outputs.base }} --head=${{ needs.setup.outputs.head }}
+
+  # ─── Tests: unit + integration (may need Docker for Testcontainers) ───
+  test:
+    needs: setup
+    if: needs.setup.outputs.has-affected == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ github.sha }}
+          restore-keys: nx-${{ runner.os }}-
+
+      - run: npx nx affected -t test --base=${{ needs.setup.outputs.base }} --head=${{ needs.setup.outputs.head }}
+
+  # ─── E2E: Playwright (needs Docker + browsers) ───
+  e2e:
+    needs: [setup, checks]
+    if: needs.setup.outputs.has-affected == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ github.sha }}
+          restore-keys: nx-${{ runner.os }}-
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - run: npx nx format:check --base="remotes/origin/main"
-      - run: npx nx run-many -t lint test build typecheck e2e
+      - run: npx nx affected -t e2e --base=${{ needs.setup.outputs.base }} --head=${{ needs.setup.outputs.head }}
