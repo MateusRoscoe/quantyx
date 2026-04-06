@@ -53,9 +53,9 @@ CREATE TABLE
         first_seen SimpleAggregateFunction (min, DateTime),
         last_seen SimpleAggregateFunction (max, DateTime),
         total_events SimpleAggregateFunction (sum, UInt64),
-        props_str AggregateFunction (anyLast, Map(String, String)),
-        props_num AggregateFunction (anyLast, Map(String, Float64)),
-        props_bool AggregateFunction (anyLast, Map(String, UInt8)),
+        props_str AggregateFunction (argMax, Map(String, String), DateTime),
+        props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
+        props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
         updated_at SimpleAggregateFunction (max, DateTime)
     ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
@@ -209,9 +209,9 @@ SELECT
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen,
     toUInt64(count()) AS total_events,
-    anyLastState(props_str) AS props_str,
-    anyLastState(props_num) AS props_num,
-    anyLastState(props_bool) AS props_bool,
+    argMaxState(props_str, timestamp) AS props_str,
+    argMaxState(props_num, timestamp) AS props_num,
+    argMaxState(props_bool, timestamp) AS props_bool,
     max(timestamp) AS updated_at
 FROM analytics.events
 WHERE user_id != ''

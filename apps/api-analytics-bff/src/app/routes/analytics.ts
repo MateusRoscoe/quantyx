@@ -842,9 +842,9 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           min(first_seen) as first_seen,
           max(last_seen) as last_seen,
           sum(total_events) as total_events,
-          anyLastMerge(props_str) as props_str,
-          anyLastMerge(props_num) as props_num,
-          anyLastMerge(props_bool) as props_bool
+          argMaxMerge(props_str) as props_str,
+          argMaxMerge(props_num) as props_num,
+          argMaxMerge(props_bool) as props_bool
         FROM analytics.users
         WHERE project_id = {projectId:String}
           AND user_id = {userId:String}
