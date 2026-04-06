@@ -62,7 +62,7 @@ describe('useIdentify', () => {
     const mockInstance = vi.mocked(QuantyxClient).mock.results[0]?.value as {
       identify: ReturnType<typeof vi.fn>;
     };
-    expect(mockInstance.identify).toHaveBeenCalledWith('user-123');
+    expect(mockInstance.identify).toHaveBeenCalledWith('user-123', undefined);
   });
 });
 

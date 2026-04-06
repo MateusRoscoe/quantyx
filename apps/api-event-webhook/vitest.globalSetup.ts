@@ -21,7 +21,6 @@ async function waitForKafkaReady(brokers: string[], maxAttempts = 15) {
     try {
       await admin.connect();
       await admin.createTopics({
-        waitForLeaders: true,
         topics: [{ topic: TOPIC, numPartitions: 1, replicationFactor: 1 }],
       });
       await admin.disconnect();

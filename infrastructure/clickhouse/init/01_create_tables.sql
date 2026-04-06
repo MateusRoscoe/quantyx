@@ -402,7 +402,6 @@ SELECT
     sumState(toUInt64(1)) AS event_count,
     uniqState(user_id) AS unique_users
 FROM analytics.events
-WHERE event_name NOT LIKE '$%'
 ARRAY JOIN
     arrayFilter(
         x -> x.2 != '',
@@ -419,6 +418,7 @@ ARRAY JOIN
             ('state', state)
         ]
     ) AS dim
+WHERE event_name NOT LIKE '$%'
 GROUP BY project_id, hour, dim.1, dim.2;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_city_coordinates

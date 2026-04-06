@@ -17,8 +17,13 @@ const consumer = createConsumer({
   'js.consumer.max.batch.size': environment.KAFKA_MAX_BATCH_SIZE,
 });
 
+let connected = false;
+
 export async function getAndConnectConsumer() {
-  await consumer.connect();
-  logger.info('Kafka consumer connected');
+  if (!connected) {
+    await consumer.connect();
+    connected = true;
+    logger.info('Kafka consumer connected');
+  }
   return consumer;
 }

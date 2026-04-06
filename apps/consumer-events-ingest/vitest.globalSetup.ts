@@ -19,7 +19,6 @@ async function waitForKafkaReady(brokers: string[], maxAttempts = 15) {
     try {
       await admin.connect();
       await admin.createTopics({
-        waitForLeaders: true,
         topics: [{ topic: TOPIC, numPartitions: 1, replicationFactor: 1 }],
       });
       await admin.disconnect();
@@ -75,7 +74,7 @@ export async function setup() {
   const statements = initSql
     .split(';')
     .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+    .filter((s) => s.replace(/--.*$/gm, '').trim().length > 0);
 
   for (const stmt of statements) {
     const resp = await fetch(chUrl, {

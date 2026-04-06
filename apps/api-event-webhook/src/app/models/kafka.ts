@@ -18,9 +18,13 @@ producer.on('event.error', (err) => {
   logger.error(err, 'Kafka producer error');
 });
 
+let connected = false;
+
 export function connectProducer(): Promise<void> {
+  if (connected) return Promise.resolve();
   return new Promise((resolve, reject) => {
     producer.on('ready', () => {
+      connected = true;
       logger.info('Kafka producer connected');
       resolve();
     });

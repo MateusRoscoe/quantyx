@@ -188,9 +188,9 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
           SELECT
             project_id,
             user_id,
-            minMerge(first_seen) AS first_seen,
-            maxMerge(last_seen) AS last_seen,
-            sumMerge(total_events) AS total_events
+            min(first_seen) AS first_seen,
+            max(last_seen) AS last_seen,
+            sum(total_events) AS total_events
           FROM analytics.users
           WHERE project_id = {projectId:String} AND user_id = {userId:String}
           GROUP BY project_id, user_id

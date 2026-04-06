@@ -167,13 +167,13 @@ describe('GET /organizations/:id', () => {
     expect(response.statusCode).toBe(403);
   });
 
-  it('returns 404 for unknown UUID', async () => {
+  it('returns 403 for unknown UUID (no membership)', async () => {
     const response = await server.inject({
       method: 'GET',
       url: '/organizations/00000000-0000-0000-0000-000000000000',
       headers: authCtx.headers,
     });
-    expect(response.statusCode).toBe(404);
+    expect(response.statusCode).toBe(403);
   });
 
   it('returns 404 for a soft-deleted organization', async () => {
@@ -226,14 +226,14 @@ describe('PATCH /organizations/:id', () => {
     expect(response.statusCode).toBe(403);
   });
 
-  it('returns 404 for unknown UUID', async () => {
+  it('returns 403 for unknown UUID (no membership)', async () => {
     const response = await server.inject({
       method: 'PATCH',
       url: '/organizations/00000000-0000-0000-0000-000000000000',
       payload: { name: 'Anything' },
       headers: authCtx.headers,
     });
-    expect(response.statusCode).toBe(404);
+    expect(response.statusCode).toBe(403);
   });
 });
 
@@ -273,13 +273,13 @@ describe('DELETE /organizations/:id', () => {
     expect(response.statusCode).toBe(403);
   });
 
-  it('returns 404 for unknown UUID', async () => {
+  it('returns 403 for unknown UUID (no membership)', async () => {
     const response = await server.inject({
       method: 'DELETE',
       url: '/organizations/00000000-0000-0000-0000-000000000000',
       headers: authCtx.headers,
     });
-    expect(response.statusCode).toBe(404);
+    expect(response.statusCode).toBe(403);
   });
 
   it('returns 404 when deleting an already soft-deleted organization', async () => {

@@ -122,14 +122,14 @@ describe('POST /organizations/:orgId/projects', () => {
     expect(body.updatedAt).toBeDefined();
   });
 
-  it('returns 404 for unknown orgId', async () => {
+  it('returns 403 for unknown orgId (no membership)', async () => {
     const response = await server.inject({
       method: 'POST',
       url: '/organizations/00000000-0000-0000-0000-000000000000/projects',
       payload: { name: 'Ghost Project' },
       headers: authCtx.headers,
     });
-    expect(response.statusCode).toBe(404);
+    expect(response.statusCode).toBe(403);
   });
 
   it('returns 400 for missing name', async () => {
