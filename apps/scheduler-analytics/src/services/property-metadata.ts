@@ -75,6 +75,7 @@ async function backfillPropertyType(
           ARRAY JOIN mapKeys(${propColumn}) AS key
           WHERE timestamp >= parseDateTimeBestEffort({from:String})
             AND timestamp < parseDateTimeBestEffort({to:String})
+            AND event_name NOT LIKE '$%'
       )
       GROUP BY project_id, property_name
     `,

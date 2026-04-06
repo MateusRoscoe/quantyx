@@ -3,6 +3,8 @@ import type {
   EventProperties,
   EventPayload,
   DeviceContext,
+  UserTraits,
+  GroupTraits,
 } from './types.js';
 import { generateUUIDv7 } from './utils/uuid.js';
 import { getSessionId, resetSessionId } from './utils/session.js';
@@ -36,12 +38,46 @@ export class QuantyxClient {
     this.start();
   }
 
-  /** Set the user ID for all subsequent events. Resets the session on user switch. */
-  identify(userId: string): void {
+  /** Set the user ID for all subsequent events. Resets the session on user switch.
+   *  Optionally sends a $identify event with user traits. */
+  identify(userId: string, traits?: UserTraits): void {
     if (this.userId && userId !== this.userId) {
       this.sessionId = resetSessionId();
     }
     this.userId = userId;
+
+    if (traits && (traits.props_str || traits.props_num || traits.props_bool)) {
+      this.track('$identify', {
+        props_str: traits.props_str,
+        props_num: traits.props_num,
+        props_bool: traits.props_bool,
+      });
+    }
+  }
+
+  /** Set group membership and optionally group traits.
+   *  Emits $group_identify (with traits) and $group_assign (if user is identified). */
+  group(groupType: string, groupId: string, traits?: GroupTraits): void {
+    const groupProps: Record<string, string> = {
+      $group_type: groupType,
+      $group_id: groupId,
+      ...traits?.props_str,
+    };
+
+    this.track('$group_identify', {
+      props_str: groupProps,
+      props_num: traits?.props_num,
+      props_bool: traits?.props_bool,
+    });
+
+    if (this.userId) {
+      this.track('$group_assign', {
+        props_str: {
+          $group_type: groupType,
+          $group_id: groupId,
+        },
+      });
+    }
   }
 
   /** Queue an event for batching. */

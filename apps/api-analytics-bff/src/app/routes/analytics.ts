@@ -836,6 +836,9 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         props_str: Record<string, string>;
         props_num: Record<string, number>;
         props_bool: Record<string, number>;
+        server_props_str: Record<string, string>;
+        server_props_num: Record<string, number>;
+        server_props_bool: Record<string, number>;
       }>(
         `SELECT
           user_id,
@@ -844,7 +847,10 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           sum(total_events) as total_events,
           argMaxMerge(props_str) as props_str,
           argMaxMerge(props_num) as props_num,
-          argMaxMerge(props_bool) as props_bool
+          argMaxMerge(props_bool) as props_bool,
+          argMaxMerge(server_props_str) as server_props_str,
+          argMaxMerge(server_props_num) as server_props_num,
+          argMaxMerge(server_props_bool) as server_props_bool
         FROM analytics.users
         WHERE project_id = {projectId:String}
           AND user_id = {userId:String}
@@ -868,12 +874,24 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         properties[k] = v === 1;
       }
 
+      const serverProperties: Record<string, string | number | boolean> = {};
+      for (const [k, v] of Object.entries(u.server_props_str ?? {})) {
+        serverProperties[k] = v;
+      }
+      for (const [k, v] of Object.entries(u.server_props_num ?? {})) {
+        serverProperties[k] = v;
+      }
+      for (const [k, v] of Object.entries(u.server_props_bool ?? {})) {
+        serverProperties[k] = v === 1;
+      }
+
       return {
         userId: u.user_id,
         firstSeen: u.first_seen,
         lastSeen: u.last_seen,
         totalEvents: Number(u.total_events),
         properties,
+        serverProperties,
       };
     },
   });

@@ -46,6 +46,8 @@ SETTINGS index_granularity = 8192,
     ttl_only_drop_parts = 1;
 
 -- Users table (aggregated user data)
+-- Properties come only from $identify/$server_identify events.
+-- Regular track() events contribute to counts/timestamps but NOT properties.
 CREATE TABLE
     IF NOT EXISTS analytics.users (
         project_id String,
@@ -53,15 +55,54 @@ CREATE TABLE
         first_seen SimpleAggregateFunction (min, DateTime),
         last_seen SimpleAggregateFunction (max, DateTime),
         total_events SimpleAggregateFunction (sum, UInt64),
+        -- SDK-set properties (from $identify)
         props_str AggregateFunction (argMax, Map(String, String), DateTime),
         props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
         props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
+        -- Server-set properties (from $server_identify)
+        server_props_str AggregateFunction (argMax, Map(String, String), DateTime),
+        server_props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
+        server_props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
         updated_at SimpleAggregateFunction (max, DateTime)
     ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
     toYYYYMM (last_seen)
 ORDER BY
     (project_id, user_id);
+
+-- Groups table (aggregated group data)
+-- Group identity is extracted from props_str['$group_type'] and props_str['$group_id'].
+CREATE TABLE
+    IF NOT EXISTS analytics.groups (
+        project_id String,
+        group_type String,
+        group_id String,
+        first_seen SimpleAggregateFunction (min, DateTime),
+        last_seen SimpleAggregateFunction (max, DateTime),
+        -- SDK-set properties (from $group_identify)
+        props_str AggregateFunction (argMax, Map(String, String), DateTime),
+        props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
+        props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
+        -- Server-set properties (from $server_group_identify)
+        server_props_str AggregateFunction (argMax, Map(String, String), DateTime),
+        server_props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
+        server_props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
+        updated_at SimpleAggregateFunction (max, DateTime)
+    ) ENGINE = AggregatingMergeTree ()
+ORDER BY
+    (project_id, group_type, group_id);
+
+-- User-group membership (maps user_id → group_type/group_id)
+CREATE TABLE
+    IF NOT EXISTS analytics.user_groups (
+        project_id String,
+        user_id String,
+        group_type String,
+        group_id String,
+        assigned_at SimpleAggregateFunction (min, DateTime)
+    ) ENGINE = AggregatingMergeTree ()
+ORDER BY
+    (project_id, user_id, group_type, group_id);
 
 -- Hourly metrics (pre-aggregated for performance, supports timezone-aware queries)
 CREATE TABLE
@@ -198,9 +239,10 @@ ORDER BY
 -- Materialized Views
 -- ════════════════════════════════════════════════
 
--- MV 1: Aggregate per-user stats from events
--- Uses regular aggregates for SimpleAggregateFunction columns,
--- State combinators for AggregateFunction columns (props).
+-- MV: Aggregate per-user stats from events.
+-- Properties come ONLY from $identify/$server_identify events (via conditional argMaxState).
+-- Regular track() events update counts/timestamps but NOT properties.
+-- The toDateTime(0) trick ensures non-matching events always lose argMax comparisons.
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_users
 TO analytics.users
 AS
@@ -209,14 +251,101 @@ SELECT
     user_id,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen,
-    toUInt64(count()) AS total_events,
-    argMaxState(props_str, timestamp) AS props_str,
-    argMaxState(props_num, timestamp) AS props_num,
-    argMaxState(props_bool, timestamp) AS props_bool,
+    toUInt64(countIf(event_name NOT LIKE '$%')) AS total_events,
+    -- SDK properties: only from $identify
+    argMaxState(
+        if(event_name = '$identify', props_str, map()),
+        if(event_name = '$identify', timestamp, toDateTime(0))
+    ) AS props_str,
+    argMaxState(
+        if(event_name = '$identify', props_num, map()),
+        if(event_name = '$identify', timestamp, toDateTime(0))
+    ) AS props_num,
+    argMaxState(
+        if(event_name = '$identify', props_bool, map()),
+        if(event_name = '$identify', timestamp, toDateTime(0))
+    ) AS props_bool,
+    -- Server properties: only from $server_identify
+    argMaxState(
+        if(event_name = '$server_identify', props_str, map()),
+        if(event_name = '$server_identify', timestamp, toDateTime(0))
+    ) AS server_props_str,
+    argMaxState(
+        if(event_name = '$server_identify', props_num, map()),
+        if(event_name = '$server_identify', timestamp, toDateTime(0))
+    ) AS server_props_num,
+    argMaxState(
+        if(event_name = '$server_identify', props_bool, map()),
+        if(event_name = '$server_identify', timestamp, toDateTime(0))
+    ) AS server_props_bool,
     max(timestamp) AS updated_at
 FROM analytics.events
 WHERE user_id != ''
 GROUP BY project_id, user_id;
+
+-- MV: Aggregate per-group stats from events.
+-- Extracts group_type/group_id from props_str reserved keys ($group_type, $group_id).
+-- Strips identity keys from stored properties via mapFilter.
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_groups
+TO analytics.groups
+AS
+SELECT
+    project_id,
+    props_str['$group_type'] AS group_type,
+    props_str['$group_id'] AS group_id,
+    min(timestamp) AS first_seen,
+    max(timestamp) AS last_seen,
+    -- SDK properties: only from $group_identify
+    argMaxState(
+        if(event_name = '$group_identify',
+           mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), props_str),
+           map()),
+        if(event_name = '$group_identify', timestamp, toDateTime(0))
+    ) AS props_str,
+    argMaxState(
+        if(event_name = '$group_identify', props_num, map()),
+        if(event_name = '$group_identify', timestamp, toDateTime(0))
+    ) AS props_num,
+    argMaxState(
+        if(event_name = '$group_identify', props_bool, map()),
+        if(event_name = '$group_identify', timestamp, toDateTime(0))
+    ) AS props_bool,
+    -- Server properties: only from $server_group_identify
+    argMaxState(
+        if(event_name = '$server_group_identify',
+           mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), props_str),
+           map()),
+        if(event_name = '$server_group_identify', timestamp, toDateTime(0))
+    ) AS server_props_str,
+    argMaxState(
+        if(event_name = '$server_group_identify', props_num, map()),
+        if(event_name = '$server_group_identify', timestamp, toDateTime(0))
+    ) AS server_props_num,
+    argMaxState(
+        if(event_name = '$server_group_identify', props_bool, map()),
+        if(event_name = '$server_group_identify', timestamp, toDateTime(0))
+    ) AS server_props_bool,
+    max(timestamp) AS updated_at
+FROM analytics.events
+WHERE event_name IN ('$group_identify', '$server_group_identify')
+  AND props_str['$group_type'] != '' AND props_str['$group_id'] != ''
+GROUP BY project_id, group_type, group_id;
+
+-- MV: Populate user-group membership from $group_assign events.
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_user_groups
+TO analytics.user_groups
+AS
+SELECT
+    project_id,
+    user_id,
+    props_str['$group_type'] AS group_type,
+    props_str['$group_id'] AS group_id,
+    min(timestamp) AS assigned_at
+FROM analytics.events
+WHERE event_name = '$group_assign'
+  AND user_id != ''
+  AND props_str['$group_type'] != '' AND props_str['$group_id'] != ''
+GROUP BY project_id, user_id, group_type, group_id;
 
 -- MV: Aggregate per-session stats from events
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_sessions
@@ -273,7 +402,7 @@ SELECT
 FROM analytics.events
 WHERE session_id != '' AND user_id != '';
 
--- MV: Hourly metrics — one MV per dimension (ClickHouse processes each independently)
+-- MV: Hourly metrics — system events ($%) excluded from all metrics MVs
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_overall
 TO analytics.metrics_hourly
@@ -287,9 +416,10 @@ SELECT
     sumState(toUInt64(1)) AS event_count,
     uniqState(user_id) AS unique_users
 FROM analytics.events
+WHERE event_name NOT LIKE '$%'
 GROUP BY project_id, hour;
 
--- MV: Consolidated metrics for all standard dimensions (replaces 10 individual dimension MVs)
+-- MV: Consolidated metrics for all standard dimensions
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_all
 TO analytics.metrics_hourly
 AS
@@ -318,6 +448,7 @@ ARRAY JOIN
             ('state', state)
         ]
     ) AS dim
+WHERE event_name NOT LIKE '$%'
 GROUP BY project_id, hour, dim.1, dim.2;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_city_coordinates
@@ -332,6 +463,7 @@ SELECT
     sumState(toUInt64(1)) AS event_count
 FROM analytics.events AS events
 WHERE city != '' AND events.latitude != 0 AND events.longitude != 0
+  AND event_name NOT LIKE '$%'
 GROUP BY project_id, city, country;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_metrics_path
@@ -363,7 +495,7 @@ SELECT
     sumState(toUInt64(1)) AS event_count,
     uniqState(user_id) AS unique_users
 FROM analytics.events
-WHERE continent != ''
+WHERE continent != '' AND event_name NOT LIKE '$%'
 GROUP BY project_id, hour, continent, country, region, state, city;
 
 -- Property metadata is populated by the scheduler-analytics app (watermark-based backfill),

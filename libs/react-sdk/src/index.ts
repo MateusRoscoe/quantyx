@@ -4,4 +4,6 @@ export type {
   EventProperties,
   EventPayload,
   DeviceContext,
+  UserTraits,
+  GroupTraits,
 } from './types.js';

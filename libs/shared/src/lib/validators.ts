@@ -13,7 +13,23 @@ export type CountryCode = z.infer<typeof CountryCode>;
 
 export const MAX_USER_AGENT_LENGTH = 1024;
 
-export const EventMessageInput = z.object({
+// System event names for user/group identification
+export const SYSTEM_EVENTS = {
+  IDENTIFY: '$identify',
+  SERVER_IDENTIFY: '$server_identify',
+  GROUP_IDENTIFY: '$group_identify',
+  SERVER_GROUP_IDENTIFY: '$server_group_identify',
+  GROUP_ASSIGN: '$group_assign',
+} as const;
+
+// Reserved props_str keys used to carry group identity on system events
+export const GROUP_IDENTITY_KEYS = {
+  GROUP_TYPE: '$group_type',
+  GROUP_ID: '$group_id',
+} as const;
+
+// Base object schema (used by EventMessage.extend and server-side schemas)
+const EventMessageInputBase = z.object({
   // Core identifiers
   event_id: z.uuidv7(),
   session_id: z.uuidv7(),
@@ -51,6 +67,80 @@ export const EventMessageInput = z.object({
   user_agent: z.string().max(MAX_USER_AGENT_LENGTH).optional(),
 });
 
+// Refinement for system event validation rules
+function validateSystemEvents(
+  data: z.infer<typeof EventMessageInputBase>,
+  ctx: z.RefinementCtx,
+) {
+  const { event_name, user_id, props_str } = data;
+
+  // Blanket reject any $server* event names from SDK/webhook ingestion
+  if (event_name.startsWith('$server')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Event name "${event_name}" is reserved for server-side use`,
+      path: ['event_name'],
+    });
+    return;
+  }
+
+  // $identify requires a non-empty user_id
+  if (event_name === SYSTEM_EVENTS.IDENTIFY && !user_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: '$identify requires a non-empty user_id',
+      path: ['user_id'],
+    });
+  }
+
+  // $group_identify requires $group_type and $group_id in props_str
+  if (event_name === SYSTEM_EVENTS.GROUP_IDENTIFY) {
+    if (!props_str?.[GROUP_IDENTITY_KEYS.GROUP_TYPE]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '$group_identify requires $group_type in props_str',
+        path: ['props_str'],
+      });
+    }
+    if (!props_str?.[GROUP_IDENTITY_KEYS.GROUP_ID]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '$group_identify requires $group_id in props_str',
+        path: ['props_str'],
+      });
+    }
+  }
+
+  // $group_assign requires user_id + $group_type/$group_id in props_str
+  if (event_name === SYSTEM_EVENTS.GROUP_ASSIGN) {
+    if (!user_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '$group_assign requires a non-empty user_id',
+        path: ['user_id'],
+      });
+    }
+    if (!props_str?.[GROUP_IDENTITY_KEYS.GROUP_TYPE]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '$group_assign requires $group_type in props_str',
+        path: ['props_str'],
+      });
+    }
+    if (!props_str?.[GROUP_IDENTITY_KEYS.GROUP_ID]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '$group_assign requires $group_id in props_str',
+        path: ['props_str'],
+      });
+    }
+  }
+}
+
+// Exported with refinements for webhook/SDK validation
+export const EventMessageInput =
+  EventMessageInputBase.superRefine(validateSystemEvents);
+
 export const Continent = z.enum(CONTINENTS).describe('Continent name');
 
 export type Continent = z.infer<typeof Continent>;
@@ -59,7 +149,7 @@ const Region = z.enum(REGIONS).describe('Geographical region');
 
 export type Region = z.infer<typeof Region>;
 
-export const EventMessage = EventMessageInput.extend({
+export const EventMessage = EventMessageInputBase.extend({
   project_id: z.uuidv4(),
   ip_address: z.ipv4().or(z.ipv6()),
   continent: Continent.optional(),
@@ -159,3 +249,31 @@ export const MemberResponse = z.object({
 export type AddMemberBody = z.infer<typeof AddMemberBody>;
 export type UpdateMemberRoleBody = z.infer<typeof UpdateMemberRoleBody>;
 export type MemberResponse = z.infer<typeof MemberResponse>;
+
+// --- Server-side Identification ---
+const PropertiesFields = {
+  props_str: z.record(z.string().max(256), z.string().max(256)).optional(),
+  props_num: z.record(z.string().max(256), z.number()).optional(),
+  props_bool: z.record(z.string().max(256), z.boolean()).optional(),
+};
+
+export const ServerIdentifyBody = z.object({
+  userId: z.string().min(1).max(256),
+  ...PropertiesFields,
+});
+
+export const ServerGroupIdentifyBody = z.object({
+  groupType: z.string().min(1).max(256),
+  groupId: z.string().min(1).max(256),
+  ...PropertiesFields,
+});
+
+export const ServerGroupAssignBody = z.object({
+  userId: z.string().min(1).max(256),
+  groupType: z.string().min(1).max(256),
+  groupId: z.string().min(1).max(256),
+});
+
+export type ServerIdentifyBody = z.infer<typeof ServerIdentifyBody>;
+export type ServerGroupIdentifyBody = z.infer<typeof ServerGroupIdentifyBody>;
+export type ServerGroupAssignBody = z.infer<typeof ServerGroupAssignBody>;

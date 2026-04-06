@@ -1,7 +1,7 @@
 import { useCallback, useContext } from 'react';
 import { QuantyxContext } from './provider.js';
 import type { QuantyxClient } from '../client.js';
-import type { EventProperties } from '../types.js';
+import type { EventProperties, UserTraits, GroupTraits } from '../types.js';
 
 function useQuantyxClient(): QuantyxClient {
   const client = useContext(QuantyxContext);
@@ -30,12 +30,27 @@ export function useTrack(): (
   );
 }
 
-/** Returns a stable `identify` function. */
-export function useIdentify(): (userId: string) => void {
+/** Returns a stable `identify` function. Optionally sends user traits via $identify event. */
+export function useIdentify(): (userId: string, traits?: UserTraits) => void {
   const client = useQuantyxClient();
   return useCallback(
-    (userId: string) => {
-      client.identify(userId);
+    (userId: string, traits?: UserTraits) => {
+      client.identify(userId, traits);
+    },
+    [client],
+  );
+}
+
+/** Returns a stable `group` function for setting group membership and traits. */
+export function useGroup(): (
+  groupType: string,
+  groupId: string,
+  traits?: GroupTraits,
+) => void {
+  const client = useQuantyxClient();
+  return useCallback(
+    (groupType: string, groupId: string, traits?: GroupTraits) => {
+      client.group(groupType, groupId, traits);
     },
     [client],
   );

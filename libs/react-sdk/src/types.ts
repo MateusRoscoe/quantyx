@@ -26,6 +26,18 @@ export interface EventProperties {
   props_bool?: Record<string, boolean>;
 }
 
+export interface UserTraits {
+  props_str?: Record<string, string>;
+  props_num?: Record<string, number>;
+  props_bool?: Record<string, boolean>;
+}
+
+export interface GroupTraits {
+  props_str?: Record<string, string>;
+  props_num?: Record<string, number>;
+  props_bool?: Record<string, boolean>;
+}
+
 export interface EventPayload {
   event_id: string;
   session_id: string;

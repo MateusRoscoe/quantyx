@@ -1,0 +1,85 @@
+{
+  "name": "@quantyx/api-server-ingest",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "api-server-ingest",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "platform": "node",
+          "outputPath": "apps/api-server-ingest/dist",
+          "format": [
+            "cjs"
+          ],
+          "bundle": false,
+          "main": "apps/api-server-ingest/src/main.ts",
+          "tsConfig": "apps/api-server-ingest/tsconfig.app.json",
+          "assets": [
+            "apps/api-server-ingest/src/assets"
+          ],
+          "esbuildConfig": "tools/esbuild/prisma-cjs-fix.js",
+          "sourcemap": true
+        },
+        "configurations": {
+          "development": {},
+          "production": {
+            "generateLockfile": true,
+            "sourcemap": false
+          }
+        }
+      },
+      "serve": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "api-server-ingest:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "api-server-ingest:build:development"
+          },
+          "production": {
+            "buildTarget": "api-server-ingest:build:production"
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@fastify/autoload": "~6.3.1",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/sensible": "~6.0.4",
+    "@fastify/swagger": "~9.7.0",
+    "@fastify/swagger-ui": "~5.2.5",
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "better-auth": "^1.5.6",
+    "fastify": "~5.8.4",
+    "ioredis": "^5.10.1",
+    "fastify-plugin": "~5.1.0",
+    "fastify-type-provider-zod": "~6.1.0",
+    "node-rdkafka": "^3.4.0",
+    "pg": "^8.20.0",
+    "pino": "^10.3.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@quantyx/auth": "workspace:*",
+    "@quantyx/kafka": "workspace:*",
+    "@quantyx/postgres": "workspace:*",
+    "@quantyx/redis": "workspace:*",
+    "@quantyx/shared": "workspace:*",
+    "@quantyx/shared-backend": "workspace:*"
+  }
+}

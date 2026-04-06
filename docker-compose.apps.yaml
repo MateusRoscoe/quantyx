@@ -63,7 +63,8 @@ services:
     image: apps-consumer-events-ingest:latest
     restart: unless-stopped
     deploy:
-      replicas: ${CONSUMER_REPLICAS:-4}
+      # replicas: ${CONSUMER_REPLICAS:-4}
+      replicas: 6
     env_file:
       - .env
       - apps/consumer-events-ingest/.env
