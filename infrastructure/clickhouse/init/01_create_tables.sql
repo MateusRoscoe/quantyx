@@ -240,96 +240,66 @@ ORDER BY
 -- ════════════════════════════════════════════════
 
 -- MV: Aggregate per-user stats from events.
--- Properties come ONLY from $identify/$server_identify events (via conditional argMaxState).
+-- Properties come ONLY from $identify/$server_identify events (via argMaxStateIf combinator).
 -- Regular track() events update counts/timestamps but NOT properties.
--- The toDateTime(0) trick ensures non-matching events always lose argMax comparisons.
+-- When no matching events exist in a batch, the -If combinator produces an empty aggregate state
+-- that loses during AggregatingMergeTree merges.
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_users
 TO analytics.users
 AS
 SELECT
-    project_id,
-    user_id,
-    min(timestamp) AS first_seen,
-    max(timestamp) AS last_seen,
-    toUInt64(countIf(event_name NOT LIKE '$%')) AS total_events,
+    e.project_id,
+    e.user_id,
+    min(e.timestamp) AS first_seen,
+    max(e.timestamp) AS last_seen,
+    toUInt64(countIf(e.event_name NOT LIKE '$%')) AS total_events,
     -- SDK properties: only from $identify
-    argMaxState(
-        if(event_name = '$identify', props_str, CAST(map() AS Map(String, String))),
-        if(event_name = '$identify', timestamp, toDateTime(0))
-    ) AS props_str,
-    argMaxState(
-        if(event_name = '$identify', props_num, CAST(map() AS Map(String, Float64))),
-        if(event_name = '$identify', timestamp, toDateTime(0))
-    ) AS props_num,
-    argMaxState(
-        if(event_name = '$identify', props_bool, CAST(map() AS Map(String, UInt8))),
-        if(event_name = '$identify', timestamp, toDateTime(0))
-    ) AS props_bool,
+    argMaxStateIf(e.props_str, e.timestamp, e.event_name = '$identify') AS props_str,
+    argMaxStateIf(e.props_num, e.timestamp, e.event_name = '$identify') AS props_num,
+    argMaxStateIf(e.props_bool, e.timestamp, e.event_name = '$identify') AS props_bool,
     -- Server properties: only from $server_identify
-    argMaxState(
-        if(event_name = '$server_identify', props_str, CAST(map() AS Map(String, String))),
-        if(event_name = '$server_identify', timestamp, toDateTime(0))
-    ) AS server_props_str,
-    argMaxState(
-        if(event_name = '$server_identify', props_num, CAST(map() AS Map(String, Float64))),
-        if(event_name = '$server_identify', timestamp, toDateTime(0))
-    ) AS server_props_num,
-    argMaxState(
-        if(event_name = '$server_identify', props_bool, CAST(map() AS Map(String, UInt8))),
-        if(event_name = '$server_identify', timestamp, toDateTime(0))
-    ) AS server_props_bool,
-    max(timestamp) AS updated_at
-FROM analytics.events
-WHERE user_id != ''
-GROUP BY project_id, user_id;
+    argMaxStateIf(e.props_str, e.timestamp, e.event_name = '$server_identify') AS server_props_str,
+    argMaxStateIf(e.props_num, e.timestamp, e.event_name = '$server_identify') AS server_props_num,
+    argMaxStateIf(e.props_bool, e.timestamp, e.event_name = '$server_identify') AS server_props_bool,
+    max(e.timestamp) AS updated_at
+FROM analytics.events AS e
+WHERE e.user_id != ''
+GROUP BY e.project_id, e.user_id;
 
 -- MV: Aggregate per-group stats from events.
 -- Extracts group_type/group_id from props_str reserved keys ($group_type, $group_id).
 -- Strips identity keys from stored properties via mapFilter.
+-- Also processes $group_assign to create group entries on membership assignment.
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_groups
 TO analytics.groups
 AS
 SELECT
-    project_id,
-    props_str['$group_type'] AS group_type,
-    props_str['$group_id'] AS group_id,
-    min(timestamp) AS first_seen,
-    max(timestamp) AS last_seen,
+    e.project_id,
+    e.props_str['$group_type'] AS group_type,
+    e.props_str['$group_id'] AS group_id,
+    min(e.timestamp) AS first_seen,
+    max(e.timestamp) AS last_seen,
     -- SDK properties: only from $group_identify
-    argMaxState(
-        if(event_name = '$group_identify',
-           mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), props_str),
-           CAST(map() AS Map(String, String))),
-        if(event_name = '$group_identify', timestamp, toDateTime(0))
+    argMaxStateIf(
+        mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), e.props_str),
+        e.timestamp,
+        e.event_name = '$group_identify'
     ) AS props_str,
-    argMaxState(
-        if(event_name = '$group_identify', props_num, CAST(map() AS Map(String, Float64))),
-        if(event_name = '$group_identify', timestamp, toDateTime(0))
-    ) AS props_num,
-    argMaxState(
-        if(event_name = '$group_identify', props_bool, CAST(map() AS Map(String, UInt8))),
-        if(event_name = '$group_identify', timestamp, toDateTime(0))
-    ) AS props_bool,
+    argMaxStateIf(e.props_num, e.timestamp, e.event_name = '$group_identify') AS props_num,
+    argMaxStateIf(e.props_bool, e.timestamp, e.event_name = '$group_identify') AS props_bool,
     -- Server properties: only from $server_group_identify
-    argMaxState(
-        if(event_name = '$server_group_identify',
-           mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), props_str),
-           CAST(map() AS Map(String, String))),
-        if(event_name = '$server_group_identify', timestamp, toDateTime(0))
+    argMaxStateIf(
+        mapFilter((k, v) -> k NOT IN ('$group_type', '$group_id'), e.props_str),
+        e.timestamp,
+        e.event_name = '$server_group_identify'
     ) AS server_props_str,
-    argMaxState(
-        if(event_name = '$server_group_identify', props_num, CAST(map() AS Map(String, Float64))),
-        if(event_name = '$server_group_identify', timestamp, toDateTime(0))
-    ) AS server_props_num,
-    argMaxState(
-        if(event_name = '$server_group_identify', props_bool, CAST(map() AS Map(String, UInt8))),
-        if(event_name = '$server_group_identify', timestamp, toDateTime(0))
-    ) AS server_props_bool,
-    max(timestamp) AS updated_at
-FROM analytics.events
-WHERE event_name IN ('$group_identify', '$server_group_identify', '$group_assign')
-  AND props_str['$group_type'] != '' AND props_str['$group_id'] != ''
-GROUP BY project_id, group_type, group_id;
+    argMaxStateIf(e.props_num, e.timestamp, e.event_name = '$server_group_identify') AS server_props_num,
+    argMaxStateIf(e.props_bool, e.timestamp, e.event_name = '$server_group_identify') AS server_props_bool,
+    max(e.timestamp) AS updated_at
+FROM analytics.events AS e
+WHERE e.event_name IN ('$group_identify', '$server_group_identify', '$group_assign')
+  AND e.props_str['$group_type'] != '' AND e.props_str['$group_id'] != ''
+GROUP BY e.project_id, group_type, group_id;
 
 -- MV: Populate user-group membership from $group_assign events.
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_user_groups
