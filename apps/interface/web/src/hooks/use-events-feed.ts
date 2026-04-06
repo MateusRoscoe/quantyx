@@ -8,6 +8,7 @@ interface RawEvent {
   timestamp: string;
   user_id: string;
   session_id: string;
+  path: string;
   browser: string;
   os: string;
   device_type: string;

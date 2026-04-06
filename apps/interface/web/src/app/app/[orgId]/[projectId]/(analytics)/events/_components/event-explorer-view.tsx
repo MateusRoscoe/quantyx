@@ -59,6 +59,12 @@ function EventRow({
           {event.event_name}
         </span>
 
+        {event.path && (
+          <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
+            {event.path}
+          </span>
+        )}
+
         <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
           {propsCount > 0 && (
             <Badge variant="secondary" className="text-[10px]">
@@ -77,6 +83,12 @@ function EventRow({
         <div className="border-t bg-card px-4 py-3 space-y-3">
           {/* Identifiers */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
+            {event.path && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Path: </span>
+                <span className="font-mono">{event.path}</span>
+              </div>
+            )}
             <div>
               <span className="text-muted-foreground">User: </span>
               {event.user_id ? (

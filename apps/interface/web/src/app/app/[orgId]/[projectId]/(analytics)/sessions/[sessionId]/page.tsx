@@ -278,6 +278,11 @@ export default function SessionDetailPage() {
                       <span className="font-mono text-sm font-medium">
                         {event.event_name}
                       </span>
+                      {event.path && (
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {event.path}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {new Date(event.timestamp).toLocaleTimeString()}
                       </span>

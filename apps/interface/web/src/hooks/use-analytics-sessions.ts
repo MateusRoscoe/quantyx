@@ -67,6 +67,7 @@ interface SessionEvent {
   event_name: string;
   timestamp: string;
   user_id: string;
+  path: string;
   props_str: string;
 }
 

@@ -559,7 +559,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         ? `HAVING (min(started_at), session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
         : '';
       const userFilter = user_id
-        ? `AND user_id = {userId:String}`
+        ? `AND sd.user_id = {userId:String}`
         : '';
 
       const sessions = await queryClickHouse<{
@@ -575,22 +575,22 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         country: string;
       }>(
         `SELECT
-          session_id,
-          max(user_id) as user_id,
-          min(started_at) as started_at,
-          max(ended_at) as ended_at,
-          sum(total_events) as total_events,
-          sum(page_views) as page_views,
-          any(browser) as browser,
-          any(os) as os,
-          any(device_type) as device_type,
-          any(country) as country
-        FROM analytics.sessions_daily
-        WHERE project_id = {projectId:String}
-          AND started_at >= toDateTime({from:String})
-          AND started_at < toDateTime({to:String})
+          sd.session_id,
+          max(sd.user_id) as user_id,
+          min(sd.started_at) as started_at,
+          max(sd.ended_at) as ended_at,
+          sum(sd.total_events) as total_events,
+          sum(sd.page_views) as page_views,
+          any(sd.browser) as browser,
+          any(sd.os) as os,
+          any(sd.device_type) as device_type,
+          any(sd.country) as country
+        FROM analytics.sessions_daily AS sd
+        WHERE sd.project_id = {projectId:String}
+          AND sd.started_at >= toDateTime({from:String})
+          AND sd.started_at < toDateTime({to:String})
           ${userFilter}
-        GROUP BY session_id
+        GROUP BY sd.session_id
         ${cursorClause}
         ORDER BY started_at ${direction === 'desc' ? 'DESC' : 'ASC'}, session_id ${direction === 'desc' ? 'DESC' : 'ASC'}
         LIMIT {fetchLimit:UInt32}`,
@@ -713,6 +713,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         event_name: string;
         timestamp: string;
         user_id: string;
+        path: string;
         props_str: string;
       }>(
         `SELECT
@@ -720,6 +721,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           event_name,
           timestamp,
           user_id,
+          path,
           props_str
         FROM analytics.events
         WHERE project_id = {projectId:String}
@@ -776,15 +778,15 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         events_in_period: string;
       }>(
         `SELECT
-          user_id,
-          max(last_seen) as last_seen,
-          sum(total_events) as events_in_period
-        FROM analytics.users
-        WHERE project_id = {projectId:String}
-          AND user_id != ''
-          AND last_seen >= toDateTime({from:String})
-          AND last_seen < toDateTime({to:String})
-        GROUP BY user_id
+          u.user_id,
+          max(u.last_seen) as last_seen,
+          sum(u.total_events) as events_in_period
+        FROM analytics.users AS u
+        WHERE u.project_id = {projectId:String}
+          AND u.user_id != ''
+          AND u.last_seen >= toDateTime({from:String})
+          AND u.last_seen < toDateTime({to:String})
+        GROUP BY u.user_id
         ${cursorClause}
         ORDER BY last_seen DESC, user_id DESC
         LIMIT {fetchLimit:UInt32}`,
@@ -1008,6 +1010,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         timestamp: string;
         user_id: string;
         session_id: string;
+        path: string;
         browser: string;
         os: string;
         device_type: string;
@@ -1018,7 +1021,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       }>(
         `SELECT
           event_id, event_name, timestamp, user_id, session_id,
-          browser, os, device_type, country,
+          path, browser, os, device_type, country,
           props_str, props_num, props_bool
         FROM analytics.events
         WHERE project_id = {projectId:String}

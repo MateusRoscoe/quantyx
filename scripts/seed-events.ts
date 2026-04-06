@@ -400,6 +400,56 @@ const UTM_CAMPAIGNS = [
   'webinar-q1',
 ];
 
+// ── User identity data (for $identify events) ─────────────────────────────
+
+const FIRST_NAMES = [
+  'Alice', 'Bob', 'Carlos', 'Diana', 'Erik', 'Fatima', 'George', 'Hannah',
+  'Ivan', 'Julia', 'Kenji', 'Laura', 'Miguel', 'Nina', 'Oscar', 'Priya',
+  'Quinn', 'Rosa', 'Stefan', 'Tanya', 'Ulrich', 'Valentina', 'Wei', 'Xena',
+  'Yuki', 'Zara',
+];
+
+const LAST_NAMES = [
+  'Anderson', 'Brown', 'Chen', 'Díaz', 'Evans', 'Fischer', 'García', 'Huang',
+  'Ivanov', 'Jensen', 'Kim', 'López', 'Müller', 'Nakamura', 'O\'Brien',
+  'Patel', 'Quinn', 'Rossi', 'Silva', 'Tanaka', 'Ueda', 'Volkov', 'Wang',
+  'Xu', 'Yamamoto', 'Zhang',
+];
+
+const EMAIL_DOMAINS = [
+  'gmail.com', 'outlook.com', 'yahoo.com', 'proton.me', 'icloud.com',
+  'company.io', 'work.dev', 'startup.co',
+];
+
+const USER_PLANS = ['free', 'starter', 'pro', 'enterprise'];
+const USER_ROLES = ['developer', 'designer', 'pm', 'data-analyst', 'marketing', 'exec'];
+
+// ── Group data (for $group_identify / $group_assign events) ────────────────
+
+interface GroupDef {
+  groupType: string;
+  groupId: string;
+  props: Record<string, string>;
+  propsNum: Record<string, number>;
+}
+
+const COMPANY_NAMES = [
+  'Acme Corp', 'TechNova', 'DataFlow Inc', 'CloudPeak', 'NexGen Labs',
+  'Pinnacle Systems', 'Quantum Dynamics', 'Vertex Solutions', 'BlueSky Analytics',
+  'Ironclad Software', 'Mosaic Digital', 'Prism Technologies', 'Stratos AI',
+  'Ember Works', 'Catalyst Ventures',
+];
+
+const INDUSTRIES = [
+  'saas', 'fintech', 'healthtech', 'e-commerce', 'edtech',
+  'devtools', 'cybersecurity', 'ai-ml', 'logistics', 'media',
+];
+
+const TEAM_NAMES = [
+  'Engineering', 'Product', 'Marketing', 'Sales', 'Design',
+  'Data', 'Support', 'Platform', 'Growth', 'Infrastructure',
+];
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function pick<T>(arr: T[]): T {
@@ -522,12 +572,174 @@ function realisticTimestamp(): number {
 // ── User / session simulation ───────────────────────────────────────────────
 
 const NUM_USERS = Math.max(100, Math.floor(TOTAL / 30));
-const users: string[] = Array.from(
-  { length: NUM_USERS },
-  () => `user_${randomUUID().slice(0, 12)}`,
-);
+
+interface UserProfile {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  plan: string;
+  role: string;
+}
+
+const userProfiles: UserProfile[] = Array.from({ length: NUM_USERS }, () => {
+  const firstName = pick(FIRST_NAMES);
+  const lastName = pick(LAST_NAMES);
+  return {
+    userId: `user_${randomUUID().slice(0, 12)}`,
+    firstName,
+    lastName,
+    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${pick(EMAIL_DOMAINS)}`,
+    plan: pick(USER_PLANS),
+    role: pick(USER_ROLES),
+  };
+});
+
+const users: string[] = userProfiles.map((u) => u.userId);
 // Some events are anonymous
 users.push('', '', '');
+
+// ── Group simulation ────────────────────────────────────────────────────────
+
+const NUM_COMPANIES = Math.min(COMPANY_NAMES.length, Math.max(5, Math.floor(NUM_USERS / 20)));
+const NUM_TEAMS = Math.min(TEAM_NAMES.length, Math.max(3, Math.floor(NUM_COMPANIES * 1.5)));
+
+const groups: GroupDef[] = [];
+
+for (let i = 0; i < NUM_COMPANIES; i++) {
+  groups.push({
+    groupType: 'company',
+    groupId: `company_${randomUUID().slice(0, 8)}`,
+    props: {
+      name: COMPANY_NAMES[i],
+      industry: pick(INDUSTRIES),
+      plan: pick(USER_PLANS),
+    },
+    propsNum: {
+      employee_count: pick([5, 10, 25, 50, 100, 250, 500, 1000]),
+    },
+  });
+}
+
+for (let i = 0; i < NUM_TEAMS; i++) {
+  groups.push({
+    groupType: 'team',
+    groupId: `team_${randomUUID().slice(0, 8)}`,
+    props: {
+      name: TEAM_NAMES[i % TEAM_NAMES.length],
+    },
+    propsNum: {
+      member_count: pick([3, 5, 8, 12, 20]),
+    },
+  });
+}
+
+// Assign each user to 1 company and 0-1 teams
+const companies = groups.filter((g) => g.groupType === 'company');
+const teams = groups.filter((g) => g.groupType === 'team');
+
+interface UserGroupAssignment {
+  userId: string;
+  groupType: string;
+  groupId: string;
+}
+
+const userGroupAssignments: UserGroupAssignment[] = [];
+
+for (const profile of userProfiles) {
+  // Every user belongs to a company
+  userGroupAssignments.push({
+    userId: profile.userId,
+    groupType: 'company',
+    groupId: pick(companies).groupId,
+  });
+  // ~60% of users belong to a team
+  if (Math.random() < 0.6) {
+    userGroupAssignments.push({
+      userId: profile.userId,
+      groupType: 'team',
+      groupId: pick(teams).groupId,
+    });
+  }
+}
+
+// ── System event generation ($identify, $group_identify, $group_assign) ────
+
+function generateSystemEvents(): Record<string, unknown>[] {
+  const events: Record<string, unknown>[] = [];
+
+  // $group_identify for each group (early in the time range)
+  for (const group of groups) {
+    const ts = startMs + Math.random() * 3 * 24 * 60 * 60 * 1000; // first 3 days
+    events.push({
+      event_id: uuidv7(ts),
+      session_id: uuidv7(ts),
+      user_id: '', // group identify doesn't require a user
+      event_name: '$group_identify',
+      timestamp: new Date(ts).toISOString(),
+      props_str: {
+        $group_type: group.groupType,
+        $group_id: group.groupId,
+        ...group.props,
+      },
+      props_num: group.propsNum,
+    });
+  }
+
+  // $identify for each user (scattered across first ~20% of time range)
+  for (const profile of userProfiles) {
+    const ts = startMs + Math.random() * 0.2 * DAYS_BACK * 24 * 60 * 60 * 1000;
+    const session = createSession(ts);
+    events.push({
+      event_id: uuidv7(ts),
+      session_id: session.sessionId,
+      user_id: profile.userId,
+      event_name: '$identify',
+      timestamp: new Date(ts).toISOString(),
+      country: session.country.code,
+      state: session.country.state,
+      city: session.country.city,
+      device_type: session.device.device_type,
+      browser: session.device.browser,
+      os: session.device.os,
+      ip_address: session.ipAddress,
+      user_agent: session.userAgent,
+      props_str: {
+        name: `${profile.firstName} ${profile.lastName}`,
+        email: profile.email,
+        plan: profile.plan,
+        role: profile.role,
+      },
+    });
+  }
+
+  // $group_assign for each user-group membership
+  for (const assignment of userGroupAssignments) {
+    const ts = startMs + Math.random() * 0.25 * DAYS_BACK * 24 * 60 * 60 * 1000;
+    const session = createSession(ts);
+    events.push({
+      event_id: uuidv7(ts),
+      session_id: session.sessionId,
+      user_id: assignment.userId,
+      event_name: '$group_assign',
+      timestamp: new Date(ts).toISOString(),
+      country: session.country.code,
+      state: session.country.state,
+      city: session.country.city,
+      device_type: session.device.device_type,
+      browser: session.device.browser,
+      os: session.device.os,
+      ip_address: session.ipAddress,
+      user_agent: session.userAgent,
+      props_str: {
+        $group_type: assignment.groupType,
+        $group_id: assignment.groupId,
+      },
+    });
+  }
+
+  return events;
+}
 
 interface Session {
   sessionId: string;
@@ -759,7 +971,28 @@ async function run(): Promise<void> {
   console.log(`  Concurrency: ${CONCURRENCY}`);
   console.log(`  Time range:  last ${DAYS_BACK} days`);
   console.log(`  Users:       ~${NUM_USERS.toLocaleString()}`);
+  console.log(`  Groups:      ${groups.length} (${NUM_COMPANIES} companies, ${NUM_TEAMS} teams)`);
   console.log();
+
+  // ── Phase 1: Send system events ($identify, $group_identify, $group_assign)
+  const systemEvents = generateSystemEvents();
+  console.log(`Sending ${systemEvents.length} system events ($identify, $group_identify, $group_assign)...`);
+
+  const systemBatches: Record<string, unknown>[][] = [];
+  for (let i = 0; i < systemEvents.length; i += BATCH_SIZE) {
+    systemBatches.push(systemEvents.slice(i, i + BATCH_SIZE));
+  }
+
+  let systemSent = 0;
+  for (const batch of systemBatches) {
+    await sendBatch(batch);
+    systemSent += batch.length;
+    process.stdout.write(`\r  Sent ${systemSent} / ${systemEvents.length} system events`);
+  }
+  console.log(' — done\n');
+
+  // ── Phase 2: Send track events
+  console.log('Sending track events...');
 
   let sent = 0;
   let failed = 0;
