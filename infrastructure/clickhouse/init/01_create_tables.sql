@@ -89,7 +89,7 @@ CREATE TABLE
         server_props_str AggregateFunction (argMax, Map(String, String), DateTime),
         server_props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
         server_props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
-        member_count AggregateFunction (uniq, String),
+        member_count AggregateFunction (uniqExact, String),
         updated_at SimpleAggregateFunction (max, DateTime)
     ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
@@ -346,7 +346,7 @@ SELECT
     ) AS server_props_str,
     argMaxStateIf(e.props_num, e.timestamp, e.event_name = '$server_group_identify') AS server_props_num,
     argMaxStateIf(e.props_bool, e.timestamp, e.event_name = '$server_group_identify') AS server_props_bool,
-    uniqStateIf(e.user_id, e.event_name = '$group_assign' AND e.user_id != '') AS member_count,
+    uniqExactStateIf(e.user_id, e.event_name = '$group_assign' AND e.user_id != '') AS member_count,
     max(e.timestamp) AS updated_at
 FROM analytics.events AS e
 WHERE e.event_name IN ('$group_identify', '$server_group_identify', '$group_assign')

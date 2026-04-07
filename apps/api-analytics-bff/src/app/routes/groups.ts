@@ -78,7 +78,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           min(g.first_seen) as first_seen,
           max(g.last_seen) as last_seen,
           n.name AS name,
-          uniqMerge(g.member_count) as member_count
+          uniqExactMerge(g.member_count) as member_count
         FROM analytics.groups AS g
         LEFT JOIN (
           SELECT group_type, group_id, name FROM analytics.group_names FINAL
