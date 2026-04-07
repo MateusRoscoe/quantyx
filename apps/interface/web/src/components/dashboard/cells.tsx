@@ -48,6 +48,8 @@ export function DateCell<T>({ getValue }: CellContext<T, unknown>) {
     <span className="text-sm">
       {new Date(getValue() as string).toLocaleDateString(undefined, {
         timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
       })}
     </span>
   );
