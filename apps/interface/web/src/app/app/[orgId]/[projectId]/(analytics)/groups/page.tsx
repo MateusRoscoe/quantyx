@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useAnalyticsGroups, type GroupListItem } from '@/hooks/use-analytics-groups';
+import { useAnalyticsGroups } from '@/hooks/use-analytics-groups';
 import {
   DataTable,
   PageHeader,

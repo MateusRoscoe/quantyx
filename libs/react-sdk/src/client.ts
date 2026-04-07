@@ -5,6 +5,7 @@ import type {
   DeviceContext,
   UserTraits,
   GroupTraits,
+  SessionProperties,
 } from './types.js';
 import { generateUUIDv7 } from './utils/uuid.js';
 import { getSessionId, resetSessionId } from './utils/session.js';
@@ -91,6 +92,21 @@ export class QuantyxClient {
           $group_type: groupType,
           $group_id: groupId,
         },
+      });
+    }
+  }
+
+  /** Set properties on the current session.
+   *
+   *  **Important:** Properties use last-write-wins semantics — each call replaces
+   *  the entire property map per type. Always include all current properties,
+   *  not just changed ones. Omitted keys will be lost. */
+  setSessionProperties(properties: SessionProperties): void {
+    if (properties.props_str || properties.props_num || properties.props_bool) {
+      this.track('$session_set', {
+        props_str: properties.props_str,
+        props_num: properties.props_num,
+        props_bool: properties.props_bool,
       });
     }
   }

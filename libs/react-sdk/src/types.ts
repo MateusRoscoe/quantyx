@@ -48,6 +48,17 @@ export interface GroupTraits {
   props_bool?: Record<string, boolean>;
 }
 
+/**
+ * Session properties passed to `setSessionProperties()`. Uses last-write-wins
+ * semantics — each call replaces the entire property map. Always include all
+ * current properties, not just changed ones.
+ */
+export interface SessionProperties {
+  props_str?: Record<string, string>;
+  props_num?: Record<string, number>;
+  props_bool?: Record<string, boolean>;
+}
+
 export interface EventPayload {
   event_id: string;
   session_id: string;

@@ -6,6 +6,7 @@ import {
   parsePropertyFilters,
   buildPropertyFilterClauses,
 } from '../../helpers/query';
+import { mergeProps } from '../../helpers/merge-props';
 
 const MAX_DATE_RANGE_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -654,38 +655,62 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
 
       await fastify.verifyProjectAccess(request, projectId);
 
-      // Fetch session metadata from the aggregate table
-      const sessionRows = await queryClickHouse<{
-        session_id: string;
-        user_id: string;
-        started_at: string;
-        ended_at: string;
-        total_events: string;
-        page_views: string;
-        browser: string;
-        os: string;
-        device_type: string;
-        country: string;
-      }>(
-        `SELECT
-          session_id,
-          maxMerge(user_id) as user_id,
-          minMerge(started_at) as started_at,
-          maxMerge(ended_at) as ended_at,
-          sumMerge(total_events) as total_events,
-          sumMerge(page_views) as page_views,
-          anyMerge(browser) as browser,
-          anyMerge(os) as os,
-          anyMerge(device_type) as device_type,
-          anyMerge(country) as country
-        FROM analytics.sessions
-        WHERE project_id = {projectId:String}
-          AND session_id = {sessionId:String}
-        GROUP BY session_id`,
-        { projectId, sessionId },
-      );
+      // Fetch session metadata and properties in parallel
+      const [sessionRows, propsRows] = await Promise.all([
+        queryClickHouse<{
+          session_id: string;
+          user_id: string;
+          started_at: string;
+          ended_at: string;
+          total_events: string;
+          page_views: string;
+          browser: string;
+          os: string;
+          device_type: string;
+          country: string;
+        }>(
+          `SELECT
+            session_id,
+            maxMerge(user_id) as user_id,
+            minMerge(started_at) as started_at,
+            maxMerge(ended_at) as ended_at,
+            sumMerge(total_events) as total_events,
+            sumMerge(page_views) as page_views,
+            anyMerge(browser) as browser,
+            anyMerge(os) as os,
+            anyMerge(device_type) as device_type,
+            anyMerge(country) as country
+          FROM analytics.sessions
+          WHERE project_id = {projectId:String}
+            AND session_id = {sessionId:String}
+          GROUP BY session_id`,
+          { projectId, sessionId },
+        ),
+        queryClickHouse<{
+          props_str: Record<string, string>;
+          props_num: Record<string, number>;
+          props_bool: Record<string, number>;
+          server_props_str: Record<string, string>;
+          server_props_num: Record<string, number>;
+          server_props_bool: Record<string, number>;
+        }>(
+          `SELECT
+            argMaxMerge(props_str) as props_str,
+            argMaxMerge(props_num) as props_num,
+            argMaxMerge(props_bool) as props_bool,
+            argMaxMerge(server_props_str) as server_props_str,
+            argMaxMerge(server_props_num) as server_props_num,
+            argMaxMerge(server_props_bool) as server_props_bool
+          FROM analytics.session_properties
+          WHERE project_id = {projectId:String}
+            AND session_id = {sessionId:String}
+          GROUP BY session_id`,
+          { projectId, sessionId },
+        ),
+      ]);
 
       const s = sessionRows[0];
+      const p = propsRows[0];
       const session = s
         ? {
             sessionId: s.session_id,
@@ -698,6 +723,14 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             os: s.os,
             deviceType: s.device_type,
             country: s.country,
+            properties: p ? mergeProps(p) : {},
+            serverProperties: p
+              ? mergeProps({
+                  props_str: p.server_props_str,
+                  props_num: p.server_props_num,
+                  props_bool: p.server_props_bool,
+                })
+              : {},
           }
         : null;
 
@@ -870,35 +903,18 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       }
 
       const u = rows[0];
-      const properties: Record<string, string | number | boolean> = {};
-      for (const [k, v] of Object.entries(u.props_str ?? {})) {
-        properties[k] = v;
-      }
-      for (const [k, v] of Object.entries(u.props_num ?? {})) {
-        properties[k] = v;
-      }
-      for (const [k, v] of Object.entries(u.props_bool ?? {})) {
-        properties[k] = v === 1;
-      }
-
-      const serverProperties: Record<string, string | number | boolean> = {};
-      for (const [k, v] of Object.entries(u.server_props_str ?? {})) {
-        serverProperties[k] = v;
-      }
-      for (const [k, v] of Object.entries(u.server_props_num ?? {})) {
-        serverProperties[k] = v;
-      }
-      for (const [k, v] of Object.entries(u.server_props_bool ?? {})) {
-        serverProperties[k] = v === 1;
-      }
 
       return {
         userId: u.user_id,
         firstSeen: u.first_seen,
         lastSeen: u.last_seen,
         totalEvents: Number(u.total_events),
-        properties,
-        serverProperties,
+        properties: mergeProps(u),
+        serverProperties: mergeProps({
+          props_str: u.server_props_str,
+          props_num: u.server_props_num,
+          props_bool: u.server_props_bool,
+        }),
       };
     },
   });

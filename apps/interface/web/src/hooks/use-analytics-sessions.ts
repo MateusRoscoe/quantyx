@@ -13,6 +13,8 @@ interface Session {
   os: string;
   deviceType: string;
   country: string;
+  properties?: Record<string, string | number | boolean>;
+  serverProperties?: Record<string, string | number | boolean>;
 }
 
 interface SessionsData {

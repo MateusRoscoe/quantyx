@@ -6,4 +6,5 @@ export type {
   DeviceContext,
   UserTraits,
   GroupTraits,
+  SessionProperties,
 } from './types.js';

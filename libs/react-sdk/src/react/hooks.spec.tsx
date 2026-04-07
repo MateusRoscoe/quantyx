@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { render, cleanup } from '@testing-library/react';
 import { QuantyxProvider } from './provider.js';
-import { useQuantyx, useTrack, useIdentify } from './hooks.js';
+import { useQuantyx, useTrack, useIdentify, useSetSessionProperties } from './hooks.js';
 import { QuantyxClient } from '../client.js';
 import type { QuantyxConfig } from '../types.js';
 
@@ -11,6 +11,7 @@ vi.mock('../client.js', () => {
   ) {
     this.track = vi.fn();
     this.identify = vi.fn();
+    this.setSessionProperties = vi.fn();
     this.flush = vi.fn().mockResolvedValue(undefined);
     this.shutdown = vi.fn().mockResolvedValue(undefined);
   });
@@ -77,6 +78,23 @@ describe('useQuantyx', () => {
     );
 
     consoleSpy.mockRestore();
+  });
+});
+
+describe('useSetSessionProperties', () => {
+  it('calls client.setSessionProperties()', () => {
+    const { result } = renderHook(() => useSetSessionProperties(), { wrapper });
+
+    act(() => {
+      result.current({ props_str: { theme: 'dark' } });
+    });
+
+    const mockInstance = vi.mocked(QuantyxClient).mock.results[0]?.value as {
+      setSessionProperties: ReturnType<typeof vi.fn>;
+    };
+    expect(mockInstance.setSessionProperties).toHaveBeenCalledWith({
+      props_str: { theme: 'dark' },
+    });
   });
 });
 

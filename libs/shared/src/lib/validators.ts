@@ -13,13 +13,15 @@ export type CountryCode = z.infer<typeof CountryCode>;
 
 export const MAX_USER_AGENT_LENGTH = 1024;
 
-// System event names for user/group identification
+// System event names for user/group/session identification
 export const SYSTEM_EVENTS = {
   IDENTIFY: '$identify',
   SERVER_IDENTIFY: '$server_identify',
   GROUP_IDENTIFY: '$group_identify',
   SERVER_GROUP_IDENTIFY: '$server_group_identify',
   GROUP_ASSIGN: '$group_assign',
+  SESSION_SET: '$session_set',
+  SERVER_SESSION_SET: '$server_session_set',
 } as const;
 
 // Reserved props_str keys used to carry group identity on system events
@@ -279,6 +281,13 @@ export const ServerGroupAssignBody = z.object({
   groupId: z.string().min(1).max(256),
 });
 
+/** Set session properties server-side. Replaces the full property map per type. */
+export const ServerSessionSetBody = z.object({
+  sessionId: z.string().min(1).max(256),
+  ...PropertiesFields,
+});
+
 export type ServerIdentifyBody = z.infer<typeof ServerIdentifyBody>;
 export type ServerGroupIdentifyBody = z.infer<typeof ServerGroupIdentifyBody>;
 export type ServerGroupAssignBody = z.infer<typeof ServerGroupAssignBody>;
+export type ServerSessionSetBody = z.infer<typeof ServerSessionSetBody>;

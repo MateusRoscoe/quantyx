@@ -136,6 +136,39 @@ describe('QuantyxClient', () => {
     await client.shutdown();
   });
 
+  it('setSessionProperties() emits $session_set with properties', async () => {
+    const client = new QuantyxClient(TEST_CONFIG);
+    client.setSessionProperties({
+      props_str: { theme: 'dark' },
+      props_bool: { premium: true },
+    });
+
+    await client.flush();
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    const body = JSON.parse(
+      (fetchSpy.mock.calls[0] as [string, RequestInit])[1].body as string,
+    ) as Array<Record<string, unknown>>;
+    expect(body).toHaveLength(1);
+    expect(body[0]).toMatchObject({
+      event_name: '$session_set',
+      props_str: { theme: 'dark' },
+      props_bool: { premium: true },
+    });
+
+    await client.shutdown();
+  });
+
+  it('setSessionProperties() is a no-op with empty properties', async () => {
+    const client = new QuantyxClient(TEST_CONFIG);
+    client.setSessionProperties({});
+
+    await client.flush();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    await client.shutdown();
+  });
+
   it('visibilitychange triggers flush via sendBeacon', async () => {
     const sendBeaconSpy = vi.fn().mockReturnValue(true);
     vi.stubGlobal('navigator', { ...navigator, sendBeacon: sendBeaconSpy });

@@ -56,6 +56,11 @@ export default function SessionDetailPage() {
   const session = data?.pages[0]?.session ?? null;
   const events = data?.pages.flatMap((p) => p.events) ?? [];
 
+  const properties = session?.properties ?? {};
+  const hasProperties = Object.keys(properties).length > 0;
+  const serverProperties = session?.serverProperties ?? {};
+  const hasServerProperties = Object.keys(serverProperties).length > 0;
+
   // Infinite scroll: observe the sentinel at the bottom
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -221,6 +226,56 @@ export default function SessionDetailPage() {
               </div>
             </Card>
           </div>
+
+          {/* Properties */}
+          {hasProperties && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold">
+                  Properties
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {Object.entries(properties).map(([key, value]) => (
+                    <div key={key}>
+                      <dt className="text-xs font-medium text-muted-foreground">
+                        {key}
+                      </dt>
+                      <dd className="mt-0.5 truncate font-mono text-sm">
+                        {String(value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Server Properties */}
+          {hasServerProperties && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold">
+                  Server Properties
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {Object.entries(serverProperties).map(([key, value]) => (
+                    <div key={key}>
+                      <dt className="text-xs font-medium text-muted-foreground">
+                        {key}
+                      </dt>
+                      <dd className="mt-0.5 truncate font-mono text-sm">
+                        {String(value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

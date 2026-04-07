@@ -1,20 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { queryClickHouse } from '../../helpers/query';
-
-function mergeProps(row: {
-  props_str?: Record<string, string>;
-  props_num?: Record<string, number>;
-  props_bool?: Record<string, number>;
-}): Record<string, string | number | boolean> {
-  const result: Record<string, string | number | boolean> = {};
-  for (const [k, v] of Object.entries(row.props_str ?? {})) result[k] = v;
-  for (const [k, v] of Object.entries(row.props_num ?? {})) result[k] = v;
-  for (const [k, v] of Object.entries(row.props_bool ?? {})) {
-    result[k] = v === 1;
-  }
-  return result;
-}
+import { mergeProps } from '../../helpers/merge-props';
 
 function encodeCursor(groupType: string, groupId: string): string {
   return Buffer.from(JSON.stringify({ t: groupType, i: groupId })).toString(
