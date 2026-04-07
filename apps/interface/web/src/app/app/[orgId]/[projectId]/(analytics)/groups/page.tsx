@@ -103,9 +103,10 @@ export default function GroupsPage() {
     [data],
   );
 
+  const knownTypesRef = useRef(new Set<string>());
   const knownTypes = useMemo(() => {
-    const types = new Set(groups.map((g) => g.groupType));
-    return [...types].sort();
+    for (const g of groups) knownTypesRef.current.add(g.groupType);
+    return [...knownTypesRef.current].sort();
   }, [groups]);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -143,7 +144,7 @@ export default function GroupsPage() {
                   className="pl-8"
                 />
               </div>
-              {knownTypes.length > 1 && (
+              {(knownTypes.length > 1 || groupTypeFilter) && (
                 <Select
                   value={groupTypeFilter ?? 'all'}
                   onValueChange={setGroupTypeFilter}
