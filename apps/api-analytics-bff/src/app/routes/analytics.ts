@@ -875,6 +875,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       querystring: withDateRangeLimit(
         dateRangeSchema.extend({
           limit: z.coerce.number().min(1).max(200).default(50),
+          search: z.string().optional(),
           cursor_ts: z.string().optional(),
           cursor_id: z.string().optional(),
         }),
@@ -882,20 +883,32 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
-      const { from, to, limit, cursor_ts, cursor_id } = request.query as {
-        from: string;
-        to: string;
-        limit: number;
-        cursor_ts?: string;
-        cursor_id?: string;
-      };
+      const { from, to, limit, search, cursor_ts, cursor_id } =
+        request.query as {
+          from: string;
+          to: string;
+          limit: number;
+          search?: string;
+          cursor_ts?: string;
+          cursor_id?: string;
+        };
 
       await fastify.verifyProjectAccess(request, projectId);
 
       const hasCursor = cursor_ts && cursor_id;
-      const cursorClause = hasCursor
-        ? `HAVING (last_seen, user_id) < (toDateTime({cursorTs:String}), {cursorId:String})`
-        : '';
+      const havingParts: string[] = [];
+      if (hasCursor) {
+        havingParts.push(
+          '(last_seen, user_id) < (toDateTime({cursorTs:String}), {cursorId:String})',
+        );
+      }
+      if (search) {
+        havingParts.push(
+          '(positionCaseInsensitive(user_id, {search:String}) > 0 OR positionCaseInsensitive(n.name, {search:String}) > 0)',
+        );
+      }
+      const havingClause =
+        havingParts.length > 0 ? `HAVING ${havingParts.join(' AND ')}` : '';
 
       const users = await queryClickHouse<{
         user_id: string;
@@ -905,18 +918,20 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       }>(
         `SELECT
           u.user_id,
-          (SELECT name FROM analytics.user_names FINAL
-           WHERE project_id = {projectId:String} AND user_id = u.user_id
-           ) AS name,
+          n.name,
           max(u.last_seen) as last_seen,
           sum(u.total_events) as events_in_period
         FROM analytics.users AS u
+        LEFT JOIN (
+          SELECT user_id, name FROM analytics.user_names FINAL
+          WHERE project_id = {projectId:String}
+        ) AS n ON n.user_id = u.user_id
         WHERE u.project_id = {projectId:String}
           AND u.user_id != ''
           AND u.last_seen >= toDateTime({from:String})
           AND u.last_seen < toDateTime({to:String})
-        GROUP BY u.user_id
-        ${cursorClause}
+        GROUP BY u.user_id, n.name
+        ${havingClause}
         ORDER BY last_seen DESC, user_id DESC
         LIMIT {fetchLimit:UInt32}`,
         {
@@ -924,6 +939,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           from,
           to,
           ...(hasCursor && { cursorTs: cursor_ts, cursorId: cursor_id }),
+          ...(search && { search }),
           fetchLimit: limit + 1,
         },
       );

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import {
   DataTable,
   PageHeader,
@@ -12,6 +13,7 @@ import {
   DateCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import type { ColumnDef } from '@tanstack/react-table';
 
 interface UserRow {
@@ -49,8 +51,13 @@ export default function UsersPage() {
     projectId: string;
   }>();
   const router = useRouter();
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useAnalyticsUsers(projectId, { limit: 25 });
+    useAnalyticsUsers(projectId, {
+      limit: 25,
+      search: debouncedSearch || undefined,
+    });
 
   const users = useMemo(
     () => data?.pages.flatMap((p) => p.users) ?? [],
@@ -80,7 +87,18 @@ export default function UsersPage() {
       <PageHeader title="Users" showFilterBar={false} />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Users</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-medium">Users</CardTitle>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <DataTable

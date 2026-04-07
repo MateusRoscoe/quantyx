@@ -23,14 +23,16 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       params: z.object({ projectId: z.string().uuid() }),
       querystring: z.object({
         group_type: z.string().optional(),
+        search: z.string().optional(),
         limit: z.coerce.number().int().min(1).max(200).default(50),
         cursor: z.string().optional(),
       }),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
-      const { group_type, limit, cursor } = request.query as {
+      const { group_type, search, limit, cursor } = request.query as {
         group_type?: string;
+        search?: string;
         limit: number;
         cursor?: string;
       };
@@ -38,24 +40,29 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       await fastify.verifyProjectAccess(request, projectId);
 
       const typeFilter = group_type
-        ? 'AND group_type = {groupType:String}'
+        ? 'AND g.group_type = {groupType:String}'
         : '';
 
       let cursorFilter = '';
       const params: Record<string, string | number> = { projectId, limit };
       if (group_type) params.groupType = group_type;
+      if (search) params.search = search;
 
       if (cursor) {
         try {
           const decoded = decodeCursor(cursor);
           cursorFilter =
-            'AND (group_type, group_id) > ({cursorType:String}, {cursorId:String})';
+            'AND (g.group_type, g.group_id) > ({cursorType:String}, {cursorId:String})';
           params.cursorType = decoded.t;
           params.cursorId = decoded.i;
         } catch {
           return reply.badRequest('Invalid cursor');
         }
       }
+
+      const searchClause = search
+        ? `HAVING positionCaseInsensitive(g.group_id, {search:String}) > 0 OR positionCaseInsensitive(n.name, {search:String}) > 0`
+        : '';
 
       const rows = await queryClickHouse<{
         group_type: string;
@@ -69,15 +76,17 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           g.group_id,
           min(g.first_seen) as first_seen,
           max(g.last_seen) as last_seen,
-          (SELECT name FROM analytics.group_names FINAL
-           WHERE project_id = {projectId:String}
-             AND group_type = g.group_type AND group_id = g.group_id
-           ) AS name
+          n.name
         FROM analytics.groups AS g
+        LEFT JOIN (
+          SELECT group_type, group_id, name FROM analytics.group_names FINAL
+          WHERE project_id = {projectId:String}
+        ) AS n ON n.group_type = g.group_type AND n.group_id = g.group_id
         WHERE g.project_id = {projectId:String}
           ${typeFilter}
           ${cursorFilter}
-        GROUP BY g.group_type, g.group_id
+        GROUP BY g.group_type, g.group_id, n.name
+        ${searchClause}
         ORDER BY g.group_type, g.group_id
         LIMIT {limit:UInt32}`,
         params,

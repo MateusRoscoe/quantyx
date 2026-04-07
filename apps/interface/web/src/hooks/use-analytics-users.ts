@@ -25,18 +25,20 @@ interface UserDetail {
 
 export function useAnalyticsUsers(
   projectId: string,
-  opts?: { limit?: number },
+  opts?: { limit?: number; search?: string },
 ) {
   const { fromStr, toStr } = useDateRange();
   const limit = opts?.limit ?? 50;
+  const search = opts?.search;
 
   return useInfiniteQuery({
-    queryKey: ['analytics', 'users', projectId, fromStr, toStr, limit],
+    queryKey: ['analytics', 'users', projectId, fromStr, toStr, limit, search],
     queryFn: ({ pageParam }) =>
       analyticsApi.get<UsersListData>(`/projects/${projectId}/users`, {
         from: fromStr,
         to: toStr,
         limit: String(limit),
+        ...(search && { search }),
         ...(pageParam && {
           cursor_ts: pageParam.cursorTs,
           cursor_id: pageParam.cursorId,

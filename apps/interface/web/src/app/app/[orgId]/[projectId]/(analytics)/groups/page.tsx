@@ -1,14 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useParams,
   useRouter,
   useSearchParams,
   usePathname,
 } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { useAnalyticsGroups } from '@/hooks/use-analytics-groups';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import {
   DataTable,
   PageHeader,
@@ -16,6 +17,7 @@ import {
   DateTimeCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -84,8 +86,14 @@ export default function GroupsPage() {
     [searchParams, pathname, router],
   );
 
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useAnalyticsGroups(projectId, { groupType: groupTypeFilter, limit: 25 });
+    useAnalyticsGroups(projectId, {
+      groupType: groupTypeFilter,
+      search: debouncedSearch || undefined,
+      limit: 25,
+    });
 
   const groups = useMemo(
     () => data?.pages.flatMap((p) => p.groups) ?? [],
@@ -122,24 +130,35 @@ export default function GroupsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-medium">Groups</CardTitle>
-            {knownTypes.length > 1 && (
-              <Select
-                value={groupTypeFilter ?? 'all'}
-                onValueChange={setGroupTypeFilter}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  {knownTypes.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <div className="flex items-center gap-2">
+              <div className="relative w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name or ID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              {knownTypes.length > 1 && (
+                <Select
+                  value={groupTypeFilter ?? 'all'}
+                  onValueChange={setGroupTypeFilter}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="All types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All types</SelectItem>
+                    {knownTypes.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>

@@ -20,17 +20,19 @@ export type { GroupListItem };
 
 export function useAnalyticsGroups(
   projectId: string,
-  opts?: { groupType?: string; limit?: number },
+  opts?: { groupType?: string; search?: string; limit?: number },
 ) {
   const limit = opts?.limit ?? 50;
   const groupType = opts?.groupType;
+  const search = opts?.search;
 
   return useInfiniteQuery({
-    queryKey: ['analytics', 'groups', projectId, groupType, limit],
+    queryKey: ['analytics', 'groups', projectId, groupType, search, limit],
     queryFn: ({ pageParam }) =>
       analyticsApi.get<GroupsListData>(`/projects/${projectId}/groups`, {
         limit: String(limit),
         ...(groupType && { group_type: groupType }),
+        ...(search && { search }),
         ...(pageParam && { cursor: pageParam }),
       }),
     initialPageParam: null as string | null,
