@@ -35,13 +35,11 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
 
       const apiKey = request.headers['x-api-key'] as string | undefined;
       if (!apiKey) {
-        return reply
-          .code(401)
-          .send({
-            statusCode: 401,
-            error: 'Unauthorized',
-            message: 'Missing X-API-Key header',
-          });
+        return reply.code(401).send({
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'Missing X-API-Key header',
+        });
       }
 
       const keyHash = hashApiKey(apiKey);
@@ -50,25 +48,21 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
       // Check Redis cache first
       const cached = await redis.get(cacheKey);
       if (cached === 'NF') {
-        return reply
-          .code(401)
-          .send({
-            statusCode: 401,
-            error: 'Unauthorized',
-            message: 'Invalid API key',
-          });
+        return reply.code(401).send({
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'Invalid API key',
+        });
       }
       if (cached) {
         const data: CachedKeyData = JSON.parse(cached);
 
         if (data.expiresAt && new Date(data.expiresAt) < new Date()) {
-          return reply
-            .code(401)
-            .send({
-              statusCode: 401,
-              error: 'Unauthorized',
-              message: 'API key has expired',
-            });
+          return reply.code(401).send({
+            statusCode: 401,
+            error: 'Unauthorized',
+            message: 'API key has expired',
+          });
         }
 
         request.projectId = data.projectId;
@@ -95,23 +89,19 @@ export default fp(async function apiKeyAuth(fastify: FastifyInstance) {
           .catch(() => {
             /* best-effort */
           });
-        return reply
-          .code(401)
-          .send({
-            statusCode: 401,
-            error: 'Unauthorized',
-            message: 'Invalid API key',
-          });
+        return reply.code(401).send({
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'Invalid API key',
+        });
       }
 
       if (record.expiresAt && record.expiresAt < new Date()) {
-        return reply
-          .code(401)
-          .send({
-            statusCode: 401,
-            error: 'Unauthorized',
-            message: 'API key has expired',
-          });
+        return reply.code(401).send({
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'API key has expired',
+        });
       }
 
       // Cache the result
