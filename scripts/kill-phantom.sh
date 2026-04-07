@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Kills orphaned Nx serve processes (api-event-webhook, consumer-events-ingest)
+# Kills orphaned Nx serve processes (api-event-webhook, consumer-events-ingest, scheduler-analytics, api-server-ingest, api-tenant-manager, api-analytics-bff)
 # and frees their ports.
 
 set -euo pipefail
 
-PORTS=(3002 3003 9229)
-PATTERNS="consumer-events|api-event-webhook"
+PORTS=(3000 3002 3003 9229)
+PATTERNS="consumer-events|api-event-webhook|scheduler-analytics|api-server-ingest|api-tenant-manager|api-analytics-bff"
 
 killed=0
 
