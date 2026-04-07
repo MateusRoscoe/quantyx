@@ -1032,11 +1032,37 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/properties', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
+      querystring: z.object({
+        limit: z.coerce.number().int().min(1).max(200).optional(),
+        search: z.string().optional(),
+        cursor_count: z.coerce.number().optional(),
+        cursor_name: z.string().optional(),
+      }),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
+      const { limit, search, cursor_count, cursor_name } = request.query as {
+        limit?: number;
+        search?: string;
+        cursor_count?: number;
+        cursor_name?: string;
+      };
 
       await fastify.verifyProjectAccess(request, projectId);
+
+      const havingParts: string[] = [];
+      if (search) {
+        havingParts.push('position(property_name, {search:String}) > 0');
+      }
+      const hasCursor = cursor_count !== undefined && cursor_name !== undefined;
+      if (hasCursor) {
+        havingParts.push(
+          '(event_count, property_name) < ({cursorCount:UInt64}, {cursorName:String})',
+        );
+      }
+      const havingClause =
+        havingParts.length > 0 ? `HAVING ${havingParts.join(' AND ')}` : '';
+      const limitClause = limit ? `LIMIT {fetchLimit:UInt32}` : '';
 
       const properties = await queryClickHouse<{
         property_name: string;
@@ -1058,12 +1084,25 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         FROM analytics.property_metadata
         WHERE project_id = {projectId:String}
         GROUP BY property_name, property_type
-        ORDER BY event_count DESC`,
-        { projectId },
+        ${havingClause}
+        ORDER BY event_count DESC, property_name DESC
+        ${limitClause}`,
+        {
+          projectId,
+          ...(search && { search }),
+          ...(hasCursor && {
+            cursorCount: cursor_count,
+            cursorName: cursor_name,
+          }),
+          ...(limit && { fetchLimit: limit + 1 }),
+        },
       );
 
+      const hasMore = limit ? properties.length > limit : false;
+      const page = hasMore ? properties.slice(0, limit) : properties;
+
       return {
-        properties: properties.map((p) => ({
+        properties: page.map((p) => ({
           name: p.property_name,
           type: p.property_type,
           firstSeen: p.first_seen,
@@ -1072,6 +1111,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           uniqueValues: Number(p.unique_values),
           exampleValue: p.example_value,
         })),
+        hasMore,
       };
     },
   });
