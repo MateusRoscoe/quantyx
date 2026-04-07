@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Bar,
@@ -10,7 +11,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useAnalyticsPages } from '@/hooks/use-analytics-pages';
+import { Loader2, Search } from 'lucide-react';
+import {
+  useAnalyticsPages,
+  useAnalyticsPagesTable,
+} from '@/hooks/use-analytics-pages';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import {
   ChartCard,
   DataTable,
@@ -22,6 +28,7 @@ import {
   gridStyle,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import type { ColumnDef } from '@tanstack/react-table';
 
 type PageRow = { path: string; views: number; uniqueUsers: number };
@@ -37,12 +44,49 @@ export default function PagesPage() {
   const { data, isLoading } = useAnalyticsPages(projectId);
   const top10 = data?.pages?.slice(0, 10) ?? [];
 
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const {
+    data: tableData,
+    isLoading: tableLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useAnalyticsPagesTable(projectId, {
+    limit: 25,
+    search: debouncedSearch || undefined,
+  });
+
+  const allPages = useMemo(
+    () => tableData?.pages.flatMap((p) => p.pages) ?? [],
+    [tableData],
+  );
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Pages" showFilterBar={false} />
 
       <ChartCard
-        title="Top 10 Pages"
+        title="Top 10 Pages by Views"
         isLoading={isLoading}
         isEmpty={top10.length === 0}
       >
@@ -74,15 +118,33 @@ export default function PagesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">All Pages</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-medium">All Pages</CardTitle>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search paths..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
-            data={data?.pages ?? []}
-            isLoading={isLoading}
-            pageSize={20}
+            data={allPages}
+            isLoading={tableLoading}
+            disablePagination
+            disableSorting
           />
+          <div ref={sentinelRef} className="h-1" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

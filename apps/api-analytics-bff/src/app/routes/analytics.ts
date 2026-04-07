@@ -195,13 +195,37 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/pages', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(querySchema),
+      querystring: withDateRangeLimit(
+        querySchema.extend({
+          limit: z.coerce.number().int().min(1).max(200).optional(),
+          search: z.string().optional(),
+          cursor_views: z.coerce.number().optional(),
+          cursor_path: z.string().optional(),
+        }),
+      ),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
-      const { from, to } = request.query as { from: string; to: string };
+      const { from, to, limit, search, cursor_views, cursor_path } =
+        request.query as {
+          from: string;
+          to: string;
+          limit?: number;
+          search?: string;
+          cursor_views?: number;
+          cursor_path?: string;
+        };
 
       await fastify.verifyProjectAccess(request, projectId);
+
+      const searchClause = search
+        ? `AND position(dimension_value, {search:String}) > 0`
+        : '';
+      const hasCursor = cursor_views !== undefined && cursor_path !== undefined;
+      const cursorClause = hasCursor
+        ? `HAVING (views, path) < ({cursorViews:UInt64}, {cursorPath:String})`
+        : '';
+      const limitClause = limit ? `LIMIT {fetchLimit:UInt32}` : '';
 
       const pages = await queryClickHouse<{
         path: string;
@@ -217,17 +241,34 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           AND hour >= toDateTime({from:String})
           AND hour < toDateTime({to:String})
           AND dimension_name = 'path'
+          ${searchClause}
         GROUP BY dimension_value
-        ORDER BY views DESC`,
-        { projectId, from, to },
+        ${cursorClause}
+        ORDER BY views DESC, path DESC
+        ${limitClause}`,
+        {
+          projectId,
+          from,
+          to,
+          ...(search && { search }),
+          ...(hasCursor && {
+            cursorViews: cursor_views,
+            cursorPath: cursor_path,
+          }),
+          ...(limit && { fetchLimit: limit + 1 }),
+        },
       );
 
+      const hasMore = limit ? pages.length > limit : false;
+      const page = hasMore ? pages.slice(0, limit) : pages;
+
       return {
-        pages: pages.map((p) => ({
+        pages: page.map((p) => ({
           path: p.path,
           views: Number(p.views),
           uniqueUsers: Number(p.unique_users),
         })),
+        hasMore,
       };
     },
   });
