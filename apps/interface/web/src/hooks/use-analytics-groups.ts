@@ -7,6 +7,7 @@ interface GroupListItem {
   groupType: string;
   groupId: string;
   name: string | null;
+  memberCount: number;
   firstSeen: string;
   lastSeen: string;
 }

@@ -14,6 +14,7 @@ import {
   DataTable,
   PageHeader,
   MonoCell,
+  NumberCell,
   DateTimeCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +33,7 @@ interface GroupRow {
   groupType: string;
   groupId: string;
   name: string | null;
+  memberCount: number;
   firstSeen: string;
   lastSeen: string;
 }
@@ -58,6 +60,7 @@ const columns: ColumnDef<GroupRow, unknown>[] = [
     },
   },
   { accessorKey: 'groupId', header: 'Group ID', cell: MonoCell },
+  { accessorKey: 'memberCount', header: 'Members', cell: NumberCell },
   { accessorKey: 'firstSeen', header: 'First Seen', cell: DateTimeCell },
   { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateTimeCell },
 ];

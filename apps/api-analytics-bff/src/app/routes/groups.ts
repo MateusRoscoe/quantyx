@@ -70,22 +70,30 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         first_seen: string;
         last_seen: string;
         name: string;
+        member_count: string;
       }>(
         `SELECT
           g.group_type,
           g.group_id,
           min(g.first_seen) as first_seen,
           max(g.last_seen) as last_seen,
-          n.name
+          n.name,
+          m.member_count
         FROM analytics.groups AS g
         LEFT JOIN (
           SELECT group_type, group_id, name FROM analytics.group_names FINAL
           WHERE project_id = {projectId:String}
         ) AS n ON n.group_type = g.group_type AND n.group_id = g.group_id
+        LEFT JOIN (
+          SELECT group_type, group_id, uniqExact(user_id) as member_count
+          FROM analytics.user_groups
+          WHERE project_id = {projectId:String}
+          GROUP BY group_type, group_id
+        ) AS m ON m.group_type = g.group_type AND m.group_id = g.group_id
         WHERE g.project_id = {projectId:String}
           ${typeFilter}
           ${cursorFilter}
-        GROUP BY g.group_type, g.group_id, n.name
+        GROUP BY g.group_type, g.group_id, n.name, m.member_count
         ${searchClause}
         ORDER BY g.group_type, g.group_id
         LIMIT {limit:UInt32}`,
@@ -105,6 +113,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           groupType: r.group_type,
           groupId: r.group_id,
           name: r.name || null,
+          memberCount: Number(r.member_count) || 0,
           firstSeen: r.first_seen,
           lastSeen: r.last_seen,
         })),
