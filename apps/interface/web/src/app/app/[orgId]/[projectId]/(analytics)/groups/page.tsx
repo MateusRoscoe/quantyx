@@ -38,32 +38,52 @@ interface GroupRow {
   lastSeen: string;
 }
 
-const columns: ColumnDef<GroupRow, unknown>[] = [
-  {
-    accessorKey: 'groupType',
-    header: 'Type',
-    size: 120,
-    cell: (info) => (
-      <Badge variant="secondary">{info.getValue() as string}</Badge>
-    ),
-  },
-  {
-    accessorKey: 'name',
-    header: 'Name',
-    cell: (info) => {
-      const name = info.getValue() as string | null;
-      return name ? (
-        <span className="text-sm font-medium">{name}</span>
-      ) : (
-        <span className="text-xs text-muted-foreground">—</span>
-      );
-    },
-  },
-  { accessorKey: 'groupId', header: 'Group ID', cell: MonoCell },
-  { accessorKey: 'memberCount', header: 'Members', cell: NumberCell },
-  { accessorKey: 'firstSeen', header: 'First Seen', cell: DateTimeCell },
-  { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateTimeCell },
+const TYPE_COLORS = [
+  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+  'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
+  'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+  'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-300',
+  'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
+  'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+  'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
 ];
+
+function buildColumns(
+  typeColorMap: Map<string, string>,
+): ColumnDef<GroupRow, unknown>[] {
+  return [
+    {
+      accessorKey: 'groupType',
+      header: 'Type',
+      size: 120,
+      cell: (info) => {
+        const type = info.getValue() as string;
+        return (
+          <Badge variant="secondary" className={typeColorMap.get(type)}>
+            {type}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'name',
+      header: 'Name',
+      cell: (info) => {
+        const name = info.getValue() as string | null;
+        return name ? (
+          <span className="text-sm font-medium">{name}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        );
+      },
+    },
+    { accessorKey: 'groupId', header: 'Group ID', cell: MonoCell },
+    { accessorKey: 'memberCount', header: 'Members', cell: NumberCell },
+    { accessorKey: 'firstSeen', header: 'First Seen', cell: DateTimeCell },
+    { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateTimeCell },
+  ];
+}
 
 export default function GroupsPage() {
   const { orgId, projectId } = useParams<{
@@ -108,6 +128,13 @@ export default function GroupsPage() {
     for (const g of groups) knownTypesRef.current.add(g.groupType);
     return [...knownTypesRef.current].sort();
   }, [groups]);
+
+  const columns = useMemo(() => {
+    const colorMap = new Map<string, string>();
+    for (let i = 0; i < knownTypes.length; i++)
+      colorMap.set(knownTypes[i], TYPE_COLORS[i % TYPE_COLORS.length]);
+    return buildColumns(colorMap);
+  }, [knownTypes]);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
