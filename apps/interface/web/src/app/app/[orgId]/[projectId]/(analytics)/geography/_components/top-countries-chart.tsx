@@ -35,7 +35,11 @@ export function TopCountriesChart({ countries }: TopCountriesChartProps) {
           width={100}
         />
         <Tooltip contentStyle={tooltipStyle} />
-        <Bar dataKey="count" fill="var(--color-chart-1)" radius={[0, 4, 4, 0]} />
+        <Bar
+          dataKey="count"
+          fill="var(--color-chart-1)"
+          radius={[0, 4, 4, 0]}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

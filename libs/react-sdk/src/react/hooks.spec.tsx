@@ -1,7 +1,12 @@
 import { renderHook, act } from '@testing-library/react';
 import { render, cleanup } from '@testing-library/react';
 import { QuantyxProvider } from './provider.js';
-import { useQuantyx, useTrack, useIdentify, useSetSessionProperties } from './hooks.js';
+import {
+  useQuantyx,
+  useTrack,
+  useIdentify,
+  useSetSessionProperties,
+} from './hooks.js';
 import { QuantyxClient } from '../client.js';
 import type { QuantyxConfig } from '../types.js';
 

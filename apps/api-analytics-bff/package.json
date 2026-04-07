@@ -35,7 +35,9 @@
         }
       },
       "prune-lockfile": {
-        "dependsOn": ["build"],
+        "dependsOn": [
+          "build"
+        ],
         "cache": true,
         "executor": "@nx/js:prune-lockfile",
         "outputs": [
@@ -47,7 +49,9 @@
         }
       },
       "copy-workspace-modules": {
-        "dependsOn": ["build"],
+        "dependsOn": [
+          "build"
+        ],
         "cache": true,
         "outputs": [
           "{workspaceRoot}/apps/api-analytics-bff/dist/workspace_modules"
@@ -58,11 +62,17 @@
         }
       },
       "prune": {
-        "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+        "dependsOn": [
+          "prune-lockfile",
+          "copy-workspace-modules"
+        ],
         "executor": "nx:noop"
       },
       "docker:build": {
-        "dependsOn": ["build", "prune"]
+        "dependsOn": [
+          "build",
+          "prune"
+        ]
       },
       "serve": {
         "continuous": true,

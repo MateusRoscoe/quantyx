@@ -12,8 +12,7 @@ interface GeoKpiCardsProps {
 
 export function GeoKpiCards({ data, isLoading }: GeoKpiCardsProps) {
   const totalCountries = data?.countries.length ?? 0;
-  const totalEvents =
-    data?.countries.reduce((sum, c) => sum + c.count, 0) ?? 0;
+  const totalEvents = data?.countries.reduce((sum, c) => sum + c.count, 0) ?? 0;
   const totalUsers =
     data?.countries.reduce((sum, c) => sum + c.uniqueUsers, 0) ?? 0;
   const topCountry = data?.countries[0];

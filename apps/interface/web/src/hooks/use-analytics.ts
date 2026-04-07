@@ -3,7 +3,11 @@
 import { useCallback, useContext, useEffect, useMemo } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import { QuantyxContext } from '@quantyx/react-sdk/react';
-import type { EventProperties, UserTraits, GroupTraits } from '@quantyx/react-sdk';
+import type {
+  EventProperties,
+  UserTraits,
+  GroupTraits,
+} from '@quantyx/react-sdk';
 
 /**
  * Returns a safe `track` function that no-ops when QuantyxProvider is absent.

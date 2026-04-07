@@ -9,8 +9,8 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
   EVENT_TOPIC: z.string().min(1).default('event-webhook-ingestion'),
-  KAFKA_PRODUCER_ACKS: z
-    .coerce.number()
+  KAFKA_PRODUCER_ACKS: z.coerce
+    .number()
     .refine((v) => v === 0 || v === 1 || v === -1)
     .default(1),
   KAFKA_LINGER_MS: z.coerce.number().min(0).default(100),

@@ -60,13 +60,7 @@ const osMap: [RegExp, ComponentType<IconProps>][] = [
   [/mac|ios|iphone|ipad/i, FaApple],
 ];
 
-export function OsIcon({
-  os,
-  className,
-}: {
-  os: string;
-  className?: string;
-}) {
+export function OsIcon({ os, className }: { os: string; className?: string }) {
   const match = osMap.find(([re]) => re.test(os));
   const Icon = match ? match[1] : Monitor;
   return <Icon className={className} />;

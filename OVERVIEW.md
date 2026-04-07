@@ -237,28 +237,28 @@ Read-only analytics querying API. Serves aggregated data from ClickHouse to the 
 
 **Authentication**: Session-based via BetterAuth cookie. Session validation results are cached in Redis (TTL configurable via `SESSION_CACHE_TTL_SECONDS`, default 60s). All routes verify the user belongs to the project's parent organization. Public paths: `/healthz`, `/docs`.
 
-| Route                                                  | Method | Description                                        |
-| ------------------------------------------------------ | ------ | -------------------------------------------------- |
-| `/projects/:projectId/overview`                        | GET    | KPIs: total events, unique users, sessions, views  |
-| `/projects/:projectId/events`                          | GET    | Event type breakdown with counts + timeseries      |
-| `/projects/:projectId/pages`                           | GET    | Page/path breakdown with views + unique users      |
-| `/projects/:projectId/devices`                         | GET    | Device type, browser, OS breakdowns                |
-| `/projects/:projectId/geography`                       | GET    | Country-level geographic breakdown                 |
-| `/projects/:projectId/geography/drill-down`            | GET    | Continent → country → region → city drill-down     |
-| `/projects/:projectId/sessions`                        | GET    | Session list (paginated, date-filtered)            |
-| `/projects/:projectId/sessions/:sessionId`             | GET    | Session detail with event timeline                 |
-| `/projects/:projectId/users`                           | GET    | User list (paginated, date-filtered)               |
-| `/projects/:projectId/users/:userId`                   | GET    | User detail with properties + session history      |
-| `/projects/:projectId/properties`                      | GET    | Property metadata (names, types, counts)           |
-| `/projects/:projectId/properties/:propertyName/values` | GET    | Top values for a property                          |
-| `/projects/:projectId/events/feed`                     | GET    | Raw event feed (paginated)                         |
-| `/projects/:projectId/timeseries`                      | GET    | Generic timeseries query                           |
-| `/projects/:projectId/groups`                          | GET    | List groups (cursor-paginated, optional type)      |
-| `/projects/:projectId/groups/:groupType/:groupId`      | GET    | Group detail with properties                       |
-| `/projects/:projectId/groups/:groupType/:groupId/users`| GET    | Users in a group (cursor-paginated)                |
-| `/projects/:projectId/users/:userId/groups`            | GET    | Groups a user belongs to                           |
-| `/healthz`                                             | GET    | Connectivity status                                |
-| `/docs`                                                | GET    | Swagger UI                                         |
+| Route                                                   | Method | Description                                       |
+| ------------------------------------------------------- | ------ | ------------------------------------------------- |
+| `/projects/:projectId/overview`                         | GET    | KPIs: total events, unique users, sessions, views |
+| `/projects/:projectId/events`                           | GET    | Event type breakdown with counts + timeseries     |
+| `/projects/:projectId/pages`                            | GET    | Page/path breakdown with views + unique users     |
+| `/projects/:projectId/devices`                          | GET    | Device type, browser, OS breakdowns               |
+| `/projects/:projectId/geography`                        | GET    | Country-level geographic breakdown                |
+| `/projects/:projectId/geography/drill-down`             | GET    | Continent → country → region → city drill-down    |
+| `/projects/:projectId/sessions`                         | GET    | Session list (paginated, date-filtered)           |
+| `/projects/:projectId/sessions/:sessionId`              | GET    | Session detail with event timeline                |
+| `/projects/:projectId/users`                            | GET    | User list (paginated, date-filtered)              |
+| `/projects/:projectId/users/:userId`                    | GET    | User detail with properties + session history     |
+| `/projects/:projectId/properties`                       | GET    | Property metadata (names, types, counts)          |
+| `/projects/:projectId/properties/:propertyName/values`  | GET    | Top values for a property                         |
+| `/projects/:projectId/events/feed`                      | GET    | Raw event feed (paginated)                        |
+| `/projects/:projectId/timeseries`                       | GET    | Generic timeseries query                          |
+| `/projects/:projectId/groups`                           | GET    | List groups (cursor-paginated, optional type)     |
+| `/projects/:projectId/groups/:groupType/:groupId`       | GET    | Group detail with properties                      |
+| `/projects/:projectId/groups/:groupType/:groupId/users` | GET    | Users in a group (cursor-paginated)               |
+| `/projects/:projectId/users/:userId/groups`             | GET    | Groups a user belongs to                          |
+| `/healthz`                                              | GET    | Connectivity status                               |
+| `/docs`                                                 | GET    | Swagger UI                                        |
 
 All analytics routes accept `from`/`to` date range params (max 90-day span) and optional dimension filters (`browser`, `os`, `country`, `device_type`, `event_name`, `path`).
 
@@ -272,13 +272,13 @@ Server-side identification API. Sets user/group properties and group memberships
 
 **Authentication**: Session-based via BetterAuth cookie (same as api-analytics-bff). All routes verify the user belongs to the project's parent organization. Public paths: `/healthz`, `/docs`.
 
-| Route                                       | Method | Description                                                  |
-| ------------------------------------------- | ------ | ------------------------------------------------------------ |
-| `/projects/:projectId/users/identify`       | POST   | Set user properties (produces `$server_identify` event)      |
-| `/projects/:projectId/groups/identify`      | POST   | Set group properties (produces `$server_group_identify`)     |
-| `/projects/:projectId/groups/assign`        | POST   | Assign user to group (produces `$group_assign`)              |
-| `/healthz`                                  | GET    | Connectivity status                                          |
-| `/docs`                                     | GET    | Swagger UI                                                   |
+| Route                                  | Method | Description                                              |
+| -------------------------------------- | ------ | -------------------------------------------------------- |
+| `/projects/:projectId/users/identify`  | POST   | Set user properties (produces `$server_identify` event)  |
+| `/projects/:projectId/groups/identify` | POST   | Set group properties (produces `$server_group_identify`) |
+| `/projects/:projectId/groups/assign`   | POST   | Assign user to group (produces `$group_assign`)          |
+| `/healthz`                             | GET    | Connectivity status                                      |
+| `/docs`                                | GET    | Swagger UI                                               |
 
 All mutating routes return `202 Accepted` with `{ status: 'accepted' }`.
 
@@ -298,36 +298,36 @@ Next.js App Router frontend for authentication, tenant management, and analytics
 
 **Dashboard pages**: Organizations list, Organization detail (projects), Organization settings (edit/delete), Members (list/add/role change/remove), Project analytics (overview, events, pages, devices, geography, sessions, users, properties), Session detail, User detail, Project settings (general, API keys, setup instructions), Account settings.
 
-| Route                                                    | Description                           |
-| -------------------------------------------------------- | ------------------------------------- |
-| `/login`                                                 | Sign in with email + password         |
-| `/register`                                              | Create account                        |
-| `/verify-email`                                          | Email verification info               |
-| `/forgot-password`                                       | Request password reset                |
-| `/reset-password`                                        | Set new password (with token)         |
-| `/invite/:token`                                         | Accept organization invite            |
-| `/onboarding`                                            | Create first organization             |
-| `/onboarding/project`                                    | Create first project                  |
-| `/onboarding/setup`                                      | SDK setup instructions                |
-| `/app`                                                   | Dashboard home (org list)             |
-| `/app/organizations`                                     | List + create organizations           |
-| `/app/account`                                           | Account settings                      |
-| `/app/:orgId`                                            | Org detail with projects list         |
-| `/app/:orgId/settings`                                   | Edit/delete organization              |
-| `/app/:orgId/settings/members`                           | Manage members                        |
-| `/app/:orgId/:projectId`                                 | Analytics overview (KPIs + charts)    |
-| `/app/:orgId/:projectId/events`                          | Event type breakdown                  |
-| `/app/:orgId/:projectId/pages`                           | Page/path analytics                   |
-| `/app/:orgId/:projectId/devices`                         | Device/browser/OS breakdown           |
-| `/app/:orgId/:projectId/geography`                       | Geographic analytics                  |
-| `/app/:orgId/:projectId/sessions`                        | Session list                          |
-| `/app/:orgId/:projectId/sessions/:sessionId`             | Session detail + event timeline       |
-| `/app/:orgId/:projectId/users`                           | User list                             |
-| `/app/:orgId/:projectId/users/:userId`                   | User detail + properties              |
-| `/app/:orgId/:projectId/properties`                      | Property metadata explorer            |
-| `/app/:orgId/:projectId/settings`                        | Project settings                      |
-| `/app/:orgId/:projectId/settings/api-keys`               | API key management                    |
-| `/app/:orgId/:projectId/settings/setup`                  | SDK setup instructions                |
+| Route                                        | Description                        |
+| -------------------------------------------- | ---------------------------------- |
+| `/login`                                     | Sign in with email + password      |
+| `/register`                                  | Create account                     |
+| `/verify-email`                              | Email verification info            |
+| `/forgot-password`                           | Request password reset             |
+| `/reset-password`                            | Set new password (with token)      |
+| `/invite/:token`                             | Accept organization invite         |
+| `/onboarding`                                | Create first organization          |
+| `/onboarding/project`                        | Create first project               |
+| `/onboarding/setup`                          | SDK setup instructions             |
+| `/app`                                       | Dashboard home (org list)          |
+| `/app/organizations`                         | List + create organizations        |
+| `/app/account`                               | Account settings                   |
+| `/app/:orgId`                                | Org detail with projects list      |
+| `/app/:orgId/settings`                       | Edit/delete organization           |
+| `/app/:orgId/settings/members`               | Manage members                     |
+| `/app/:orgId/:projectId`                     | Analytics overview (KPIs + charts) |
+| `/app/:orgId/:projectId/events`              | Event type breakdown               |
+| `/app/:orgId/:projectId/pages`               | Page/path analytics                |
+| `/app/:orgId/:projectId/devices`             | Device/browser/OS breakdown        |
+| `/app/:orgId/:projectId/geography`           | Geographic analytics               |
+| `/app/:orgId/:projectId/sessions`            | Session list                       |
+| `/app/:orgId/:projectId/sessions/:sessionId` | Session detail + event timeline    |
+| `/app/:orgId/:projectId/users`               | User list                          |
+| `/app/:orgId/:projectId/users/:userId`       | User detail + properties           |
+| `/app/:orgId/:projectId/properties`          | Property metadata explorer         |
+| `/app/:orgId/:projectId/settings`            | Project settings                   |
+| `/app/:orgId/:projectId/settings/api-keys`   | API key management                 |
+| `/app/:orgId/:projectId/settings/setup`      | SDK setup instructions             |
 
 **Session guard**: Dashboard layout uses `useSession()` from BetterAuth React client; redirects to `/login` if unauthenticated.
 
@@ -361,9 +361,9 @@ Standalone scheduled task runner for ClickHouse maintenance. Supports `daemon` m
 
 | Lib                | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **shared**         | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`, `ApiKeyBody/Response/CreatedResponse`), membership (`MemberRole`, `AddMemberBody`, `UpdateMemberRoleBody`, `MemberResponse`), server-side identification (`ServerIdentifyBody`, `ServerGroupIdentifyBody`, `ServerGroupAssignBody`), system event constants (`SYSTEM_EVENTS`, `GROUP_IDENTITY_KEYS`), country/continent/region validators. Country data is a generated static file (`country-data.ts`) with no Node-only dependencies — browser-compatible.                                                                                                                          |
+| **shared**         | Zod schemas for events (`EventMessageInput`, `EventMessage`), tenant management (`OrganizationBody/Response`, `ProjectBody/Response`, `ApiKeyBody/Response/CreatedResponse`), membership (`MemberRole`, `AddMemberBody`, `UpdateMemberRoleBody`, `MemberResponse`), server-side identification (`ServerIdentifyBody`, `ServerGroupIdentifyBody`, `ServerGroupAssignBody`), system event constants (`SYSTEM_EVENTS`, `GROUP_IDENTITY_KEYS`), country/continent/region validators. Country data is a generated static file (`country-data.ts`) with no Node-only dependencies — browser-compatible.                                                                                                                      |
 | **shared-backend** | Pino logger factory with child logger context support; API key crypto utilities (`generateApiKey`, `hashApiKey`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **kafka**          | `@confluentinc/kafka-javascript` wrapper with SASL support. Exports KafkaJS-compatible `createProducer`/`createConsumer`/`createAdmin` and a native `createNativeProducer` (rdkafka)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **kafka**          | `@confluentinc/kafka-javascript` wrapper with SASL support. Exports KafkaJS-compatible `createProducer`/`createConsumer`/`createAdmin` and a native `createNativeProducer` (rdkafka)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **clickhouse**     | ClickHouse client wrapper with compression, health check, `ClickHouseEvent` type definition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **postgres**       | Prisma 7 client singleton with `@prisma/adapter-pg` connection pooling                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **redis**          | ioredis client wrapper with lazy connect, health check, connect/disconnect helpers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -390,19 +390,19 @@ Full schema in `infrastructure/clickhouse/init/01_create_tables.sql`. Aggregate 
 
 **Tables** (12 total):
 
-| Table                        | Engine               | Purpose                                                          |
-| ---------------------------- | -------------------- | ---------------------------------------------------------------- |
-| `events`                     | MergeTree            | Raw events. Monthly partitions, 14-month TTL, bloom filters      |
-| `users`                      | AggregatingMergeTree | Per-user aggregates with SDK + server properties                 |
-| `groups`                     | AggregatingMergeTree | Per-group aggregates with SDK + server properties                |
-| `user_groups`                | AggregatingMergeTree | User → group membership mapping                                 |
-| `sessions`                   | AggregatingMergeTree | Per-session aggregates (AggregateFunction columns)               |
-| `sessions_daily`             | AggregatingMergeTree | Denormalized sessions for date-filtered list queries (SimpleAggregateFunction) |
-| `metrics_hourly`             | AggregatingMergeTree | Pre-aggregated hourly metrics across dimensions                  |
-| `metrics_geo`                | AggregatingMergeTree | Pre-aggregated geographic drill-down metrics                     |
-| `city_coordinates`           | AggregatingMergeTree | Representative lat/lon per city for map rendering                |
-| `property_metadata`          | AggregatingMergeTree | Tracks custom property names/types per tenant (scheduler-populated) |
-| `property_metadata_watermark`| ReplacingMergeTree   | Watermark for scheduler backfill job                             |
+| Table                         | Engine               | Purpose                                                                        |
+| ----------------------------- | -------------------- | ------------------------------------------------------------------------------ |
+| `events`                      | MergeTree            | Raw events. Monthly partitions, 14-month TTL, bloom filters                    |
+| `users`                       | AggregatingMergeTree | Per-user aggregates with SDK + server properties                               |
+| `groups`                      | AggregatingMergeTree | Per-group aggregates with SDK + server properties                              |
+| `user_groups`                 | AggregatingMergeTree | User → group membership mapping                                                |
+| `sessions`                    | AggregatingMergeTree | Per-session aggregates (AggregateFunction columns)                             |
+| `sessions_daily`              | AggregatingMergeTree | Denormalized sessions for date-filtered list queries (SimpleAggregateFunction) |
+| `metrics_hourly`              | AggregatingMergeTree | Pre-aggregated hourly metrics across dimensions                                |
+| `metrics_geo`                 | AggregatingMergeTree | Pre-aggregated geographic drill-down metrics                                   |
+| `city_coordinates`            | AggregatingMergeTree | Representative lat/lon per city for map rendering                              |
+| `property_metadata`           | AggregatingMergeTree | Tracks custom property names/types per tenant (scheduler-populated)            |
+| `property_metadata_watermark` | ReplacingMergeTree   | Watermark for scheduler backfill job                                           |
 
 **Materialized Views** (10 total): All aggregate tables except `property_metadata` are auto-populated from `events` inserts. System events (`$identify`, `$server_identify`, `$group_identify`, `$server_group_identify`, `$group_assign`) are excluded from metric counts via `event_name NOT LIKE '$%'`. The `mv_metrics_all` view uses `ARRAY JOIN` to consolidate all standard dimension metrics (event_name, browser, os, device_type, platform, country, continent, region, city) into a single view.
 
@@ -424,15 +424,15 @@ Event schemas are defined in `libs/shared/src/lib/validators.ts`. The pipeline t
 
 ### Docker Compose Services
 
-| Service    | Image                                       | Port         | Purpose              |
-| ---------- | ------------------------------------------- | ------------ | -------------------- |
-| ClickHouse | `clickhouse/clickhouse-server:26.3-alpine`  | 8123, 9000   | Analytics database   |
-| PostgreSQL | `postgres:18-trixie`                        | 5432         | Tenant/auth database |
-| Kafka      | `apache/kafka:4.2.0`                        | 29092 (host) | Event messaging      |
-| Redis      | `redis:8-alpine`                            | 6379         | API key + session cache |
-| Kafbat UI  | `kafbat/kafka-ui:latest`                    | 8080         | Kafka management UI    |
-| Grafana    | `grafana/grafana-oss:latest`                | 3003         | Analytics dashboards   |
-| Mailpit    | `axllent/mailpit:latest`                    | 1025, 8025   | Local SMTP testing     |
+| Service    | Image                                      | Port         | Purpose                 |
+| ---------- | ------------------------------------------ | ------------ | ----------------------- |
+| ClickHouse | `clickhouse/clickhouse-server:26.3-alpine` | 8123, 9000   | Analytics database      |
+| PostgreSQL | `postgres:18-trixie`                       | 5432         | Tenant/auth database    |
+| Kafka      | `apache/kafka:4.2.0`                       | 29092 (host) | Event messaging         |
+| Redis      | `redis:8-alpine`                           | 6379         | API key + session cache |
+| Kafbat UI  | `kafbat/kafka-ui:latest`                   | 8080         | Kafka management UI     |
+| Grafana    | `grafana/grafana-oss:latest`               | 3003         | Analytics dashboards    |
+| Mailpit    | `axllent/mailpit:latest`                   | 1025, 8025   | Local SMTP testing      |
 
 ### CI/CD
 
@@ -466,8 +466,8 @@ All 3 apps: `node:lts-alpine` + pnpm, copy `dist/`, `pnpm install`, `node main.j
 | Authorization via Fastify decorator, not global preHandler | Org ID comes from different sources (`:orgId` param, entity lookup); explicit per-route calls are clearer                                                                                                                                                                                                                       |
 | Hard-delete for memberships                                | No audit trail need; soft-delete would complicate every authorization query                                                                                                                                                                                                                                                     |
 | BetterAuth with email verification                         | Requires email verification before sign-in; password reset via SMTP; session cookies for auth                                                                                                                                                                                                                                   |
-| Dedicated analytics BFF                                    | `api-analytics-bff` serves read-only analytics queries to the frontend. Separates analytics reads from tenant management writes. Session auth with Redis-cached validation.                                                                                                                                                      |
-| Server-side identification via separate app                | `api-server-ingest` handles server-side user/group property setting, separate from client-side event ingestion. Uses native rdkafka producer for high throughput.                                                                                                                                                                |
+| Dedicated analytics BFF                                    | `api-analytics-bff` serves read-only analytics queries to the frontend. Separates analytics reads from tenant management writes. Session auth with Redis-cached validation.                                                                                                                                                     |
+| Server-side identification via separate app                | `api-server-ingest` handles server-side user/group property setting, separate from client-side event ingestion. Uses native rdkafka producer for high throughput.                                                                                                                                                               |
 | Generated static country data                              | Replaced Node-only `country-code-lookup` with a script that fetches from restcountries.com and generates a pure TS file. Keeps `@quantyx/shared` browser-compatible.                                                                                                                                                            |
 | React SDK: vanilla core + React bindings                   | Separate entry points (`@quantyx/react-sdk` and `@quantyx/react-sdk/react`) so the core works without React. React is an optional peer dep. UUIDs use `crypto.getRandomValues()` only (not `crypto.randomUUID()`) for non-secure-context compatibility. `sendBeacon` on page hide ensures events aren't lost during navigation. |
 | React SDK: publishable with `@quantyx/source` condition    | Package exports point to compiled `dist/` output for registry consumers and Next.js Turbopack (which lacks `extensionAlias` support). Workspace consumers using `nodenext` resolution get source `.ts` files via the `@quantyx/source` custom export condition configured in `tsconfig.base.json`.                              |

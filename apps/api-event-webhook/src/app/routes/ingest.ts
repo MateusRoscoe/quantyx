@@ -85,10 +85,8 @@ export default async function (fastify: server) {
               JSON.stringify({
                 ...event,
                 project_id: request.projectId,
-                ip_address:
-                  (allowOverrides && event.ip_address) || request.ip,
-                user_agent:
-                  (allowOverrides && event.user_agent) || headerUA,
+                ip_address: (allowOverrides && event.ip_address) || request.ip,
+                user_agent: (allowOverrides && event.user_agent) || headerUA,
               }),
             ),
           ),

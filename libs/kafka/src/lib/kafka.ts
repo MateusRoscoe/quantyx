@@ -11,8 +11,7 @@ if (environment.KAFKA_SASL_MECHANISM) {
   baseConfig['security.protocol'] = environment.KAFKA_SSL_ENABLED
     ? 'SASL_SSL'
     : 'SASL_PLAINTEXT';
-  baseConfig['sasl.mechanism'] =
-    environment.KAFKA_SASL_MECHANISM.toUpperCase();
+  baseConfig['sasl.mechanism'] = environment.KAFKA_SASL_MECHANISM.toUpperCase();
   baseConfig['sasl.username'] = environment.KAFKA_SASL_USERNAME;
   baseConfig['sasl.password'] = environment.KAFKA_SASL_PASSWORD;
 } else if (environment.KAFKA_SSL_ENABLED) {

@@ -1,9 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import {
-  ServerIdentifyBody,
-  SYSTEM_EVENTS,
-} from '@quantyx/shared';
+import { ServerIdentifyBody, SYSTEM_EVENTS } from '@quantyx/shared';
 import { generateUUIDv7 } from '../helpers/uuid';
 import { sendMessage, BackpressureError } from '../models/kafka';
 

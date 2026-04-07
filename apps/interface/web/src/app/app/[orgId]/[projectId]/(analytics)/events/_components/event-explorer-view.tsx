@@ -135,7 +135,10 @@ function EventRow({
             )}
             {event.device_type && (
               <Badge variant="outline" className="gap-1 text-[10px]">
-                <DeviceIcon deviceType={event.device_type} className="h-3 w-3" />
+                <DeviceIcon
+                  deviceType={event.device_type}
+                  className="h-3 w-3"
+                />
                 {event.device_type}
               </Badge>
             )}

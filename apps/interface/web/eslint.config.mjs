@@ -4,7 +4,12 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import baseConfig from '../../../eslint.config.mjs';
 
 export default [
-  { plugins: { '@next/next': nextEslintPluginNext, 'react-hooks': reactHooksPlugin } },
+  {
+    plugins: {
+      '@next/next': nextEslintPluginNext,
+      'react-hooks': reactHooksPlugin,
+    },
+  },
   ...baseConfig,
   ...nx.configs['flat/react-typescript'],
   {

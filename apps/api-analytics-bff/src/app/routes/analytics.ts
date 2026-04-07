@@ -21,7 +21,10 @@ function withDateRangeLimit<T extends z.ZodType<{ from: string; to: string }>>(
       if (to <= from) return false;
       return to.getTime() - from.getTime() <= MAX_DATE_RANGE_MS;
     },
-    { message: 'Date range must not exceed 90 days and "to" must be after "from"' },
+    {
+      message:
+        'Date range must not exceed 90 days and "to" must be after "from"',
+    },
   );
 }
 
@@ -299,10 +302,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
 
       await fastify.verifyProjectAccess(request, projectId);
 
-      async function getDimension(
-        dimensionName: string,
-        limit?: number,
-      ) {
+      async function getDimension(dimensionName: string, limit?: number) {
         const limitClause = limit ? `LIMIT {limit:UInt32}` : '';
         return queryClickHouse<{
           value: string;
@@ -406,12 +406,14 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/geography/drill-down', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(dateRangeSchema.extend({
-        dimension: z.enum(['country', 'city', 'state']),
-        continent: z.string().optional(),
-        country: z.string().optional(),
-        limit: z.coerce.number().min(1).max(200).default(50),
-      })),
+      querystring: withDateRangeLimit(
+        dateRangeSchema.extend({
+          dimension: z.enum(['country', 'city', 'state']),
+          continent: z.string().optional(),
+          country: z.string().optional(),
+          limit: z.coerce.number().min(1).max(200).default(50),
+        }),
+      ),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
@@ -428,7 +430,12 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       await fastify.verifyProjectAccess(request, projectId);
 
       const filters: string[] = [];
-      const params: Record<string, string | number> = { projectId, from, to, limit };
+      const params: Record<string, string | number> = {
+        projectId,
+        from,
+        to,
+        limit,
+      };
 
       if (continent) {
         filters.push('AND continent = {continent:String}');
@@ -531,13 +538,15 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/sessions', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(querySchema.extend({
-        limit: z.coerce.number().min(1).max(200).default(50),
-        direction: z.enum(['asc', 'desc']).default('desc'),
-        cursor_ts: z.string().optional(),
-        cursor_id: z.string().optional(),
-        user_id: z.string().optional(),
-      })),
+      querystring: withDateRangeLimit(
+        querySchema.extend({
+          limit: z.coerce.number().min(1).max(200).default(50),
+          direction: z.enum(['asc', 'desc']).default('desc'),
+          cursor_ts: z.string().optional(),
+          cursor_id: z.string().optional(),
+          user_id: z.string().optional(),
+        }),
+      ),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
@@ -559,9 +568,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       const cursorClause = hasCursor
         ? `HAVING (min(started_at), session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
         : '';
-      const userFilter = user_id
-        ? `AND sd.user_id = {userId:String}`
-        : '';
+      const userFilter = user_id ? `AND sd.user_id = {userId:String}` : '';
 
       const sessions = await queryClickHouse<{
         session_id: string;
@@ -782,11 +789,13 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/users', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(dateRangeSchema.extend({
-        limit: z.coerce.number().min(1).max(200).default(50),
-        cursor_ts: z.string().optional(),
-        cursor_id: z.string().optional(),
-      })),
+      querystring: withDateRangeLimit(
+        dateRangeSchema.extend({
+          limit: z.coerce.number().min(1).max(200).default(50),
+          cursor_ts: z.string().optional(),
+          cursor_id: z.string().optional(),
+        }),
+      ),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
@@ -973,16 +982,18 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/events/feed', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(querySchema
-        .extend({
-          user_id: z.string().optional(),
-          session_id: z.string().optional(),
-          limit: z.coerce.number().min(1).max(200).default(50),
-          direction: z.enum(['asc', 'desc']).default('desc'),
-          cursor_ts: z.string().optional(),
-          cursor_id: z.string().optional(),
-        })
-        .passthrough()), // Allow prop_str.*, prop_num.*, prop_bool.* params
+      querystring: withDateRangeLimit(
+        querySchema
+          .extend({
+            user_id: z.string().optional(),
+            session_id: z.string().optional(),
+            limit: z.coerce.number().min(1).max(200).default(50),
+            direction: z.enum(['asc', 'desc']).default('desc'),
+            cursor_ts: z.string().optional(),
+            cursor_id: z.string().optional(),
+          })
+          .passthrough(),
+      ), // Allow prop_str.*, prop_num.*, prop_bool.* params
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
@@ -1078,11 +1089,13 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         projectId: z.string().uuid(),
         propertyName: z.string(),
       }),
-      querystring: withDateRangeLimit(dateRangeSchema.extend({
-        type: z.enum(['str', 'num', 'bool']),
-        search: z.string().optional(),
-        limit: z.coerce.number().min(1).max(200).default(50),
-      })),
+      querystring: withDateRangeLimit(
+        dateRangeSchema.extend({
+          type: z.enum(['str', 'num', 'bool']),
+          search: z.string().optional(),
+          limit: z.coerce.number().min(1).max(200).default(50),
+        }),
+      ),
     },
     handler: async (request, reply) => {
       const { projectId, propertyName } = request.params as {
@@ -1139,9 +1152,11 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/timeseries', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(querySchema.extend({
-        metric: z.enum(['events', 'users']).default('events'),
-      })),
+      querystring: withDateRangeLimit(
+        querySchema.extend({
+          metric: z.enum(['events', 'users']).default('events'),
+        }),
+      ),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };

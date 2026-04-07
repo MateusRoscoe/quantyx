@@ -42,9 +42,8 @@ let ipv6Reader: MmdbReader | null = null;
 
 function getDefaultDbPath(variant: 'ipv4' | 'ipv6'): string {
   // require.resolve works in CJS (esbuild output) to find the installed package
-  const pkgPath = require.resolve(
-    '@ip-location-db/dbip-city-mmdb/package.json',
-  );
+  const pkgPath =
+    require.resolve('@ip-location-db/dbip-city-mmdb/package.json');
   return resolve(dirname(pkgPath), `dbip-city-${variant}.mmdb`);
 }
 
@@ -118,7 +117,11 @@ export function enrichGeo(
     !!existing.country && ISO3_CODES.has(existing.country);
 
   // Log mismatches when client sent geo data but IP lookup disagrees
-  if (hasValidClientCountry && inferred.country && existing.country !== inferred.country) {
+  if (
+    hasValidClientCountry &&
+    inferred.country &&
+    existing.country !== inferred.country
+  ) {
     logger.warn(
       {
         eventId,

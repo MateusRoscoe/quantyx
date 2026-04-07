@@ -199,9 +199,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       await fastify.verifyProjectAccess(request, projectId);
 
-      const cursorFilter = cursor
-        ? 'AND user_id > {cursor:String}'
-        : '';
+      const cursorFilter = cursor ? 'AND user_id > {cursor:String}' : '';
 
       const rows = await queryClickHouse<{
         user_id: string;

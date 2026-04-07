@@ -36,7 +36,11 @@ const columns: ColumnDef<UserRow, unknown>[] = [
   },
   { accessorKey: 'userId', header: 'User ID', cell: MonoCell },
   { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateCell },
-  { accessorKey: 'eventsInPeriod', header: 'Events in Period', cell: NumberCell },
+  {
+    accessorKey: 'eventsInPeriod',
+    header: 'Events in Period',
+    cell: NumberCell,
+  },
 ];
 
 export default function UsersPage() {

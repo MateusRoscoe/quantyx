@@ -9,7 +9,12 @@ async function getEarliestEventTime(): Promise<Date | null> {
     format: 'JSONEachRow',
   });
   const rows = await result.json<{ earliest: string }>();
-  if (rows.length === 0 || !rows[0].earliest || rows[0].earliest === '1970-01-01 00:00:00') return null;
+  if (
+    rows.length === 0 ||
+    !rows[0].earliest ||
+    rows[0].earliest === '1970-01-01 00:00:00'
+  )
+    return null;
   return new Date(rows[0].earliest);
 }
 
@@ -32,7 +37,10 @@ async function getWatermark(): Promise<Date | null> {
 async function updateWatermark(hour: Date): Promise<void> {
   // ClickHouse DateTime doesn't support milliseconds in JSONEachRow —
   // format as 'YYYY-MM-DD HH:MM:SS'
-  const formatted = hour.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+  const formatted = hour
+    .toISOString()
+    .replace('T', ' ')
+    .replace(/\.\d{3}Z$/, '');
   await clickhouse.insert({
     table: 'analytics.property_metadata_watermark',
     format: 'JSONEachRow',
@@ -91,7 +99,9 @@ async function backfillPropertyType(
 
 const CHUNK_MS = 6 * 60 * 60 * 1000; // 6 hours per chunk
 
-export async function backfillPropertyMetadata(signal?: AbortSignal): Promise<void> {
+export async function backfillPropertyMetadata(
+  signal?: AbortSignal,
+): Promise<void> {
   const watermark = await getWatermark();
 
   // Process up to the last fully completed hour
@@ -105,7 +115,8 @@ export async function backfillPropertyMetadata(signal?: AbortSignal): Promise<vo
     from = watermark;
   } else {
     const earliest = await getEarliestEventTime();
-    from = earliest ?? new Date(lastCompleteHour.getTime() - 24 * 60 * 60 * 1000);
+    from =
+      earliest ?? new Date(lastCompleteHour.getTime() - 24 * 60 * 60 * 1000);
   }
 
   if (from >= lastCompleteHour) {
@@ -113,10 +124,20 @@ export async function backfillPropertyMetadata(signal?: AbortSignal): Promise<vo
     return;
   }
 
-  const totalHours = Math.round((lastCompleteHour.getTime() - from.getTime()) / (60 * 60 * 1000));
-  const totalChunks = Math.ceil((lastCompleteHour.getTime() - from.getTime()) / CHUNK_MS);
+  const totalHours = Math.round(
+    (lastCompleteHour.getTime() - from.getTime()) / (60 * 60 * 1000),
+  );
+  const totalChunks = Math.ceil(
+    (lastCompleteHour.getTime() - from.getTime()) / CHUNK_MS,
+  );
   logger.info(
-    { from: from.toISOString(), to: lastCompleteHour.toISOString(), totalHours, totalChunks, watermark: watermark?.toISOString() ?? null },
+    {
+      from: from.toISOString(),
+      to: lastCompleteHour.toISOString(),
+      totalHours,
+      totalChunks,
+      watermark: watermark?.toISOString() ?? null,
+    },
     'Starting property metadata backfill',
   );
 
@@ -127,23 +148,55 @@ export async function backfillPropertyMetadata(signal?: AbortSignal): Promise<vo
   let chunkIndex = 0;
   while (cursor < lastCompleteHour) {
     if (signal?.aborted) {
-      logger.info({ chunk: `${chunkIndex}/${totalChunks}`, watermark: cursor.toISOString() }, 'Shutdown requested, stopping between chunks');
+      logger.info(
+        {
+          chunk: `${chunkIndex}/${totalChunks}`,
+          watermark: cursor.toISOString(),
+        },
+        'Shutdown requested, stopping between chunks',
+      );
       return;
     }
 
     chunkIndex++;
-    const chunkEnd = new Date(Math.min(cursor.getTime() + CHUNK_MS, lastCompleteHour.getTime()));
+    const chunkEnd = new Date(
+      Math.min(cursor.getTime() + CHUNK_MS, lastCompleteHour.getTime()),
+    );
     const fromStr = cursor.toISOString();
     const toStr = chunkEnd.toISOString();
 
-    logger.info({ chunk: `${chunkIndex}/${totalChunks}`, from: fromStr, to: toStr }, 'Processing chunk');
+    logger.info(
+      { chunk: `${chunkIndex}/${totalChunks}`, from: fromStr, to: toStr },
+      'Processing chunk',
+    );
 
-    await backfillPropertyType(fromStr, toStr, 'props_str', 'string', "toString(props_str[key])");
-    await backfillPropertyType(fromStr, toStr, 'props_num', 'number', "toString(props_num[key])");
-    await backfillPropertyType(fromStr, toStr, 'props_bool', 'boolean', "if(props_bool[key] = 1, 'true', 'false')");
+    await backfillPropertyType(
+      fromStr,
+      toStr,
+      'props_str',
+      'string',
+      'toString(props_str[key])',
+    );
+    await backfillPropertyType(
+      fromStr,
+      toStr,
+      'props_num',
+      'number',
+      'toString(props_num[key])',
+    );
+    await backfillPropertyType(
+      fromStr,
+      toStr,
+      'props_bool',
+      'boolean',
+      "if(props_bool[key] = 1, 'true', 'false')",
+    );
 
     await updateWatermark(chunkEnd);
-    logger.info({ chunk: `${chunkIndex}/${totalChunks}`, watermark: toStr }, 'Chunk complete, watermark advanced');
+    logger.info(
+      { chunk: `${chunkIndex}/${totalChunks}`, watermark: toStr },
+      'Chunk complete, watermark advanced',
+    );
     cursor = chunkEnd;
   }
 

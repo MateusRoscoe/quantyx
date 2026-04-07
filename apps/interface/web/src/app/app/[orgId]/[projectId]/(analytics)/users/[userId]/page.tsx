@@ -19,14 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  Zap,
-  Hash,
-  Activity,
-} from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Zap, Hash, Activity } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 interface SessionRow {
@@ -100,8 +93,10 @@ export default function UserDetailPage() {
 
   const sessionColumns = useSessionColumns();
   const { from, to } = useDateRange();
-  const { data: user, isLoading: userLoading } =
-    useAnalyticsUser(projectId, userId);
+  const { data: user, isLoading: userLoading } = useAnalyticsUser(
+    projectId,
+    userId,
+  );
   const {
     data: sessionsData,
     isLoading: sessionsLoading,
@@ -117,10 +112,7 @@ export default function UserDetailPage() {
 
   const sessionStats = useMemo(() => {
     if (userSessions.length === 0) return null;
-    const totalEvents = userSessions.reduce(
-      (sum, s) => sum + s.totalEvents,
-      0,
-    );
+    const totalEvents = userSessions.reduce((sum, s) => sum + s.totalEvents, 0);
     return {
       count: userSessions.length,
       avgEvents: Math.round(totalEvents / userSessions.length),
@@ -284,7 +276,10 @@ export default function UserDetailPage() {
                 </thead>
                 <tbody>
                   {userGroups.map((g) => (
-                    <tr key={`${g.groupType}-${g.groupId}`} className="border-b last:border-b-0">
+                    <tr
+                      key={`${g.groupType}-${g.groupId}`}
+                      className="border-b last:border-b-0"
+                    >
                       <td className="py-2 pr-4">
                         <Badge variant="secondary">{g.groupType}</Badge>
                       </td>

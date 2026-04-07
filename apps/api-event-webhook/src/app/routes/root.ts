@@ -39,14 +39,12 @@ export default async function (fastify: FastifyInstance) {
     ]);
 
     const status = {
-      kafka:
-        kafkaResult.status === 'fulfilled' ? 'connected' : 'disconnected',
+      kafka: kafkaResult.status === 'fulfilled' ? 'connected' : 'disconnected',
       redis:
         redisResult.status === 'fulfilled' && redisResult.value.success
           ? 'connected'
           : 'disconnected',
-      postgres:
-        pgResult.status === 'fulfilled' ? 'connected' : 'disconnected',
+      postgres: pgResult.status === 'fulfilled' ? 'connected' : 'disconnected',
     };
 
     const allHealthy = Object.values(status).every((s) => s === 'connected');

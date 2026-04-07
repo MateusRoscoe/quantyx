@@ -123,9 +123,7 @@ function GeoMapInner({ countries, cities, metric }: GeoMapProps) {
               const alpha3 = Object.entries(ALPHA3_TO_NUMERIC).find(
                 ([, v]) => v === id,
               )?.[0];
-              const name = alpha3
-                ? countryName(alpha3)
-                : geo.properties.name;
+              const name = alpha3 ? countryName(alpha3) : geo.properties.name;
               const flag = alpha3 ? countryToFlag(alpha3) : '';
 
               return (

@@ -179,10 +179,7 @@ export default function SessionDetailPage() {
               <div className="mt-1 flex items-center gap-1.5 text-sm font-medium">
                 {session.os ? (
                   <>
-                    <OsIcon
-                      os={session.os}
-                      className="h-3.5 w-3.5 shrink-0"
-                    />
+                    <OsIcon os={session.os} className="h-3.5 w-3.5 shrink-0" />
                     {session.os}
                   </>
                 ) : (

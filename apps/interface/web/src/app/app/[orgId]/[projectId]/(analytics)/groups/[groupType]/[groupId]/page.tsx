@@ -53,13 +53,17 @@ function useMemberColumns() {
 }
 
 export default function GroupDetailPage() {
-  const { orgId, projectId, groupType: rawGroupType, groupId: rawGroupId } =
-    useParams<{
-      orgId: string;
-      projectId: string;
-      groupType: string;
-      groupId: string;
-    }>();
+  const {
+    orgId,
+    projectId,
+    groupType: rawGroupType,
+    groupId: rawGroupId,
+  } = useParams<{
+    orgId: string;
+    projectId: string;
+    groupType: string;
+    groupId: string;
+  }>();
 
   const groupType = decodeURIComponent(rawGroupType);
   const groupId = decodeURIComponent(rawGroupId);

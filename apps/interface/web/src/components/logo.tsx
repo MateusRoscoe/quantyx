@@ -6,7 +6,11 @@ interface LogoProps {
   className?: string;
 }
 
-export function Logo({ variant = 'wordmark', size = 24, className }: LogoProps) {
+export function Logo({
+  variant = 'wordmark',
+  size = 24,
+  className,
+}: LogoProps) {
   const icon = (
     <svg
       viewBox="0 0 32 32"
@@ -31,13 +35,18 @@ export function Logo({ variant = 'wordmark', size = 24, className }: LogoProps) 
   );
 
   if (variant === 'icon') {
-    return <span className={cn('inline-flex items-center', className)}>{icon}</span>;
+    return (
+      <span className={cn('inline-flex items-center', className)}>{icon}</span>
+    );
   }
 
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       {icon}
-      <span className="font-display font-bold" style={{ fontSize: size * 0.75 }}>
+      <span
+        className="font-display font-bold"
+        style={{ fontSize: size * 0.75 }}
+      >
         Quantyx
       </span>
     </span>

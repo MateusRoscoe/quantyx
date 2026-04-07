@@ -1,7 +1,12 @@
 import { useCallback, useContext } from 'react';
 import { QuantyxContext } from './provider.js';
 import type { QuantyxClient } from '../client.js';
-import type { EventProperties, UserTraits, GroupTraits, SessionProperties } from '../types.js';
+import type {
+  EventProperties,
+  UserTraits,
+  GroupTraits,
+  SessionProperties,
+} from '../types.js';
 
 function useQuantyxClient(): QuantyxClient {
   const client = useContext(QuantyxContext);
@@ -57,7 +62,9 @@ export function useGroup(): (
 }
 
 /** Returns a stable `setSessionProperties` function for setting session-level properties. */
-export function useSetSessionProperties(): (properties: SessionProperties) => void {
+export function useSetSessionProperties(): (
+  properties: SessionProperties,
+) => void {
   const client = useQuantyxClient();
   return useCallback(
     (properties: SessionProperties) => {

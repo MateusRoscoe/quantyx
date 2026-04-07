@@ -1,7 +1,12 @@
 'use client';
 
 import { useMemo, useCallback } from 'react';
-import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
+import {
+  useParams,
+  useRouter,
+  useSearchParams,
+  usePathname,
+} from 'next/navigation';
 import { useAnalyticsGroups } from '@/hooks/use-analytics-groups';
 import {
   DataTable,

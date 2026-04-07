@@ -1,11 +1,7 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  DataTable,
-  NumberCell,
-  CountryNameCell,
-} from '@/components/dashboard';
+import { DataTable, NumberCell, CountryNameCell } from '@/components/dashboard';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { GeographyData } from '@/hooks/use-analytics-geography';
 

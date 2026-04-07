@@ -97,7 +97,10 @@ export function ProjectSwitcher({ orgId, projectId }: ProjectSwitcherProps) {
                     key={project.id}
                     onClick={() => {
                       track('project_switch', {
-                        props_str: { project_id: project.id, project_name: project.name },
+                        props_str: {
+                          project_id: project.id,
+                          project_name: project.name,
+                        },
                       });
                       router.push(`/app/${orgId}/${project.id}`);
                     }}
