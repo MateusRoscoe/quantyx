@@ -17,6 +17,7 @@ import {
 } from '@/hooks/use-analytics';
 import { useMembership } from '@/hooks/use-membership';
 import { useOrganization } from '@/hooks/use-organizations';
+import { useProjects } from '@/hooks/use-projects';
 import { getLastVisitedProject } from '@/lib/last-project';
 import { ProjectSwitcher } from '@/components/project-switcher';
 import { TimezonePicker } from '@/components/timezone-picker';
@@ -115,6 +116,8 @@ function DashboardLayoutInner({
 
   const membership = useMembership(orgId ?? '');
   const { data: org } = useOrganization(orgId ?? '');
+  const { data: projects } = useProjects(orgId ?? '');
+  const currentProject = projects?.find((p) => p.id === projectId);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -161,14 +164,21 @@ function DashboardLayoutInner({
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="flex-row items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
-          <ProjectSwitcher orgId={orgId} projectId={projectId} />
-          <Link
-            href="/app"
-            className="font-display text-lg font-bold text-primary group-data-[collapsible=icon]:hidden"
-          >
-            Quantyx
-          </Link>
+        <SidebarHeader className="gap-0 p-2 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+            <ProjectSwitcher orgId={orgId} projectId={projectId} />
+            <Link
+              href="/app"
+              className="font-display text-lg font-bold text-primary group-data-[collapsible=icon]:hidden"
+            >
+              Quantyx
+            </Link>
+          </div>
+          {currentProject && (
+            <p className="truncate px-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+              {currentProject.name}
+            </p>
+          )}
         </SidebarHeader>
 
         <SidebarContent>
