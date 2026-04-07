@@ -14,6 +14,7 @@ import { environment } from './app/helpers/env';
 import { disconnectProducer } from './app/models/kafka';
 import { disconnectRedis } from '@quantyx/redis';
 import { prisma } from '@quantyx/postgres';
+import { shutdownOtel } from '@quantyx/otel';
 
 const logger = getLogger('main');
 
@@ -93,6 +94,7 @@ for (const signal of SIGNALS) {
       await disconnectProducer();
       await disconnectRedis();
       await prisma.$disconnect();
+      await shutdownOtel();
       logger.info('Server closed gracefully.');
       process.exit(0);
     } catch (error) {

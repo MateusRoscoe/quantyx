@@ -16,4 +16,4 @@ RUN node -e "const p=require('./package.json');delete p.devDependencies;require(
 
 RUN pnpm install --prod
 
-CMD [ "node", "main.js" ]
+CMD [ "node", "--import", "@quantyx/otel/register", "main.js" ]

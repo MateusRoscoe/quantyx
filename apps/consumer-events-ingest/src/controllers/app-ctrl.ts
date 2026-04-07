@@ -1,5 +1,6 @@
 import { ClickHouseEvent } from '@quantyx/clickhouse';
 import { getLogger } from '@quantyx/shared-backend';
+import { shutdownOtel } from '@quantyx/otel';
 
 import { environment } from '../helpers/env';
 import { insertEventsToClickHouse } from '../models/clickhouse';
@@ -13,6 +14,21 @@ export class AppCtrl {
   static async start() {
     await initGeoService();
     const consumer = await getAndConnectConsumer();
+
+    for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+      process.on(signal, async () => {
+        logger.info(`Received ${signal}, disconnecting consumer...`);
+        try {
+          await consumer.disconnect();
+          await shutdownOtel();
+          logger.info('Consumer shut down gracefully.');
+          process.exit(0);
+        } catch (error) {
+          logger.error(error, 'Error during consumer shutdown');
+          process.exit(1);
+        }
+      });
+    }
 
     await consumer.subscribe({
       topics: [environment.EVENT_TOPIC],

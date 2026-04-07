@@ -13,6 +13,7 @@ import { getLogger } from '@quantyx/shared-backend';
 import { environment } from './helpers/env';
 import { prisma } from '@quantyx/postgres';
 import { disconnectRedis } from '@quantyx/redis';
+import { shutdownOtel } from '@quantyx/otel';
 
 const logger = getLogger('main');
 
@@ -67,6 +68,7 @@ for (const signal of SIGNALS) {
       logger.info(`Received ${signal}, closing server...`);
       await server.close();
       await Promise.all([prisma.$disconnect(), disconnectRedis()]);
+      await shutdownOtel();
       logger.info('Server closed gracefully.');
       process.exit(0);
     } catch (error) {

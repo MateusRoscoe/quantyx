@@ -84,7 +84,11 @@
         ],
         "options": {
           "buildTarget": "scheduler-analytics:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "runtimeArgs": [
+            "--import",
+            "@quantyx/otel/register"
+          ]
         },
         "configurations": {
           "development": {
@@ -110,6 +114,7 @@
   },
   "devDependencies": {
     "@quantyx/clickhouse": "workspace:*",
-    "@quantyx/shared-backend": "workspace:*"
+    "@quantyx/shared-backend": "workspace:*",
+    "@quantyx/otel": "workspace:*"
   }
 }

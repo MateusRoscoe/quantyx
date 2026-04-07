@@ -22,6 +22,9 @@
     },
     {
       "path": "../../libs/shared-backend/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/otel/tsconfig.lib.json"
     }
   ]
 }

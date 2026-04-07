@@ -5,6 +5,7 @@ import AutoLoad from '@fastify/autoload';
 import { connectProducer } from './models/kafka.js';
 import { getLogger } from '@quantyx/shared-backend';
 import { connectRedis } from '@quantyx/redis';
+import { fastifyOtelPlugin } from '@quantyx/otel';
 
 const logger = getLogger('app');
 
@@ -20,9 +21,8 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     logger.error('Error connecting Redis:', error);
   });
 
-  // This loads all plugins defined in plugins
-  // those should be support plugins that are reused
-  // through your application
+  fastify.register(fastifyOtelPlugin());
+
   fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'plugins'),
     options: { ...opts },

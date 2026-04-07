@@ -1,0 +1,100 @@
+# Observability stack: Tempo (traces), Loki (logs), Prometheus (metrics), Alloy (collector).
+# Connects to the shared quantyx-net network created by docker-compose.yaml.
+#
+# Prerequisites:
+#   1. Start core infrastructure: docker compose up -d
+#
+# Usage:
+#   docker compose -f docker-compose.observability.yaml up -d
+#   docker compose -f docker-compose.observability.yaml down
+#
+# UIs:
+#   Grafana (existing):  http://localhost:3003  (datasources auto-provisioned)
+#   Alloy:               http://localhost:12345
+#   Prometheus:          http://localhost:9090
+#   Tempo:               http://localhost:3200
+
+services:
+  tempo:
+    image: grafana/tempo:latest
+    container_name: quantyx-tempo
+    restart: unless-stopped
+    command: ['-config.file=/etc/tempo.yaml']
+    volumes:
+      - ./infrastructure/tempo/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/var/tempo
+    ports:
+      - '3200:3200' # Query frontend
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3200/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  loki:
+    image: grafana/loki:latest
+    container_name: quantyx-loki
+    restart: unless-stopped
+    command: ['-config.file=/etc/loki/local-config.yaml']
+    volumes:
+      - ./infrastructure/loki/loki.yaml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    ports:
+      - '3100:3100'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3100/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: quantyx-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - '9090:9090'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9090/-/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: quantyx-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - '--server.http.listen-addr=0.0.0.0:12345'
+    volumes:
+      - ./infrastructure/alloy/config.alloy:/etc/alloy/config.alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+      - '12345:12345' # Alloy UI
+    depends_on:
+      tempo:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+
+volumes:
+  tempo-data:
+  loki-data:
+  prometheus-data:
+
+networks:
+  default:
+    name: quantyx-net
+    external: true

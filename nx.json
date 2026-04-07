@@ -35,7 +35,8 @@
         "libs/clickhouse/*",
         "libs/postgres/*",
         "libs/auth/*",
-        "libs/redis/*"
+        "libs/redis/*",
+        "libs/otel/*"
       ]
     },
     {
@@ -71,7 +72,8 @@
         "libs/clickhouse/*",
         "libs/postgres/*",
         "libs/auth/*",
-        "libs/redis/*"
+        "libs/redis/*",
+        "libs/otel/*"
       ],
       "options": {
         "typecheck": {

@@ -24,6 +24,7 @@
     "@quantyx/shared-backend": "workspace:*",
     "@quantyx/kafka": "workspace:*",
     "@quantyx/postgres": "workspace:*",
-    "@quantyx/redis": "workspace:*"
+    "@quantyx/redis": "workspace:*",
+    "@quantyx/otel": "workspace:*"
   }
 }

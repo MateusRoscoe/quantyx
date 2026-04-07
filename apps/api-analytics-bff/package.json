@@ -83,7 +83,11 @@
         ],
         "options": {
           "buildTarget": "api-analytics-bff:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "runtimeArgs": [
+            "--import",
+            "@quantyx/otel/register"
+          ]
         },
         "configurations": {
           "development": {
@@ -121,6 +125,7 @@
     "@quantyx/postgres": "workspace:*",
     "@quantyx/redis": "workspace:*",
     "@quantyx/shared": "workspace:*",
-    "@quantyx/shared-backend": "workspace:*"
+    "@quantyx/shared-backend": "workspace:*",
+    "@quantyx/otel": "workspace:*"
   }
 }

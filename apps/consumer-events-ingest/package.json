@@ -86,7 +86,11 @@
         ],
         "options": {
           "buildTarget": "consumer-events-ingest:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "runtimeArgs": [
+            "--import",
+            "@quantyx/otel/register"
+          ]
         },
         "configurations": {
           "development": {
@@ -117,6 +121,7 @@
     "@quantyx/clickhouse": "workspace:*",
     "@quantyx/kafka": "workspace:*",
     "@quantyx/shared": "workspace:*",
-    "@quantyx/shared-backend": "workspace:*"
+    "@quantyx/shared-backend": "workspace:*",
+    "@quantyx/otel": "workspace:*"
   }
 }

@@ -35,6 +35,9 @@
     },
     {
       "path": "../../libs/auth/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/otel/tsconfig.lib.json"
     }
   ]
 }

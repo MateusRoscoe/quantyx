@@ -58,6 +58,8 @@ services:
       REDIS_URL: redis://redis:6379
       NODE_OPTIONS: --max-old-space-size=512
       LOG_LEVEL: error
+      OTEL_SERVICE_NAME: api-event-webhook
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
 
   consumer-events-ingest:
     image: apps-consumer-events-ingest:latest
@@ -74,6 +76,8 @@ services:
       CLICKHOUSE_USER: admin
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       LOG_LEVEL: error
+      OTEL_SERVICE_NAME: consumer-events-ingest
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
 
   api-tenant-manager:
     image: apps-api-tenant-manager:latest
@@ -92,6 +96,8 @@ services:
       KAFKA_BROKERS: kafka:9092
       POSTGRES_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/quantyx
       REDIS_URL: redis://redis:6379
+      OTEL_SERVICE_NAME: api-tenant-manager
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
 
   api-analytics-bff:
     image: apps-api-analytics-bff:latest
@@ -112,6 +118,8 @@ services:
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       POSTGRES_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/quantyx
       REDIS_URL: redis://redis:6379
+      OTEL_SERVICE_NAME: api-analytics-bff
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
 
   scheduler-analytics:
     image: apps-scheduler-analytics:latest
@@ -124,6 +132,8 @@ services:
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       SCHEDULER_MODE: daemon
       LOG_LEVEL: info
+      OTEL_SERVICE_NAME: scheduler-analytics
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
 
   interface-web:
     image: apps-interface-web:latest

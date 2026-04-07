@@ -1,4 +1,5 @@
 import { getLogger } from '@quantyx/shared-backend';
+import { shutdownOtel } from '@quantyx/otel';
 
 import { environment } from './helpers/env.js';
 import { backfillPropertyMetadata } from './services/property-metadata.js';
@@ -49,6 +50,7 @@ async function run(): Promise<void> {
     await sleep(SCHEDULER_INTERVAL_MS, signal);
   }
 
+  await shutdownOtel();
   logger.info('Shutdown complete');
 }
 

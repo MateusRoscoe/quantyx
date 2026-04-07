@@ -50,6 +50,9 @@
     },
     {
       "path": "./apps/api-server-ingest"
+    },
+    {
+      "path": "./libs/otel"
     }
   ]
 }
