@@ -200,6 +200,82 @@ var utmSources = []string{"google", "twitter", "linkedin", "newsletter", "github
 var utmMediums = []string{"cpc", "organic", "social", "email", "referral"}
 var utmCampaigns = []string{"spring-launch", "beta-invite", "docs-update", "black-friday", "webinar-q1"}
 
+// ── User identity data (for $identify events) ─────────────────────────────
+
+var firstNames = []string{
+	"Alice", "Bob", "Carlos", "Diana", "Erik", "Fatima", "George", "Hannah",
+	"Ivan", "Julia", "Kenji", "Laura", "Miguel", "Nina", "Oscar", "Priya",
+	"Quinn", "Rosa", "Stefan", "Tanya", "Ulrich", "Valentina", "Wei", "Xena",
+	"Yuki", "Zara",
+}
+
+var lastNames = []string{
+	"Anderson", "Brown", "Chen", "Díaz", "Evans", "Fischer", "García", "Huang",
+	"Ivanov", "Jensen", "Kim", "López", "Müller", "Nakamura", "O'Brien",
+	"Patel", "Quinn", "Rossi", "Silva", "Tanaka", "Ueda", "Volkov", "Wang",
+	"Xu", "Yamamoto", "Zhang",
+}
+
+var emailDomains = []string{
+	"gmail.com", "outlook.com", "yahoo.com", "proton.me", "icloud.com",
+	"company.io", "work.dev", "startup.co",
+}
+
+var userPlans = []string{"free", "starter", "pro", "enterprise"}
+var userRoles = []string{"developer", "designer", "pm", "data-analyst", "marketing", "exec"}
+
+// ── Group data (for $group_identify / $group_assign events) ────────────────
+
+var companyNames = []string{
+	"Acme Corp", "TechNova", "DataFlow Inc", "CloudPeak", "NexGen Labs",
+	"Pinnacle Systems", "Quantum Dynamics", "Vertex Solutions", "BlueSky Analytics",
+	"Ironclad Software", "Mosaic Digital", "Prism Technologies", "Stratos AI",
+	"Ember Works", "Catalyst Ventures",
+}
+
+var industries = []string{
+	"saas", "fintech", "healthtech", "e-commerce", "edtech",
+	"devtools", "cybersecurity", "ai-ml", "logistics", "media",
+}
+
+var teamNames = []string{
+	"Engineering", "Product", "Marketing", "Sales", "Design",
+	"Data", "Support", "Platform", "Growth", "Infrastructure",
+}
+
+// ── Session property data (for $session_set events) ────────────────────────
+
+var sessionLandingPages = []string{"/", "/pricing", "/docs", "/blog", "/features", "/signup"}
+var sessionReferralSources = []string{"google", "twitter", "linkedin", "direct", "github", "newsletter", "hackernews"}
+var sessionABVariants = []string{"control", "variant-a", "variant-b"}
+var sessionThemes = []string{"light", "dark", "system"}
+var sessionIntents = []string{"browsing", "evaluating", "purchasing", "support", "learning"}
+var screenWidths = []float64{1280, 1366, 1440, 1536, 1920, 2560, 375, 390, 414, 428}
+
+// ── User profile / group structs ───────────────────────────────────────────
+
+type userProfile struct {
+	userID    string
+	firstName string
+	lastName  string
+	email     string
+	plan      string
+	role      string
+}
+
+type groupDef struct {
+	groupType string
+	groupID   string
+	propsStr  map[string]string
+	propsNum  map[string]float64
+}
+
+type userGroupAssignment struct {
+	userID    string
+	groupType string
+	groupID   string
+}
+
 // ── Public IP generation ────────────────────────────────────────────────────
 
 var publicFirstOctets []int
@@ -527,19 +603,165 @@ func generateEvent(rng *mrand.Rand, s *session, randomBuf []byte) event {
 	return e
 }
 
+// ── System event generation ($identify, $group_identify, $group_assign) ────
+
+func generateSystemEvents(
+	rng *mrand.Rand,
+	profiles []userProfile,
+	groups []groupDef,
+	assignments []userGroupAssignment,
+	users []string,
+	startMs int64,
+	daysBack int,
+) []event {
+	var events []event
+	dayMs := int64(24 * 60 * 60 * 1000)
+
+	// $group_identify for each group (first 3 days)
+	for _, g := range groups {
+		ts := startMs + int64(rng.Float64()*3)*dayMs
+		s := newSession(rng, users, ts)
+		events = append(events, event{
+			EventID:   uuidv7(ts),
+			SessionID: s.sessionID,
+			UserID:    "",
+			EventName: "$group_identify",
+			Timestamp: time.UnixMilli(ts).UTC().Format("2006-01-02T15:04:05.000Z"),
+			Country:   s.country.Code,
+			State:     s.country.State,
+			City:      s.country.City,
+			DeviceType: s.device.DeviceType,
+			Browser:    s.device.Browser,
+			OS:         s.device.OS,
+			IPAddress:  s.ip,
+			UserAgent:  s.ua,
+			PropsStr:   g.propsStr,
+			PropsNum:   g.propsNum,
+		})
+	}
+
+	// $identify for each user (first ~20% of time range)
+	identifyWindow := int64(float64(daysBack) * 0.2 * float64(dayMs))
+	for _, p := range profiles {
+		ts := startMs + int64(rng.Float64()*float64(identifyWindow))
+		s := newSession(rng, users, ts)
+		events = append(events, event{
+			EventID:    uuidv7(ts),
+			SessionID:  s.sessionID,
+			UserID:     p.userID,
+			EventName:  "$identify",
+			Timestamp:  time.UnixMilli(ts).UTC().Format("2006-01-02T15:04:05.000Z"),
+			Country:    s.country.Code,
+			State:      s.country.State,
+			City:       s.country.City,
+			DeviceType: s.device.DeviceType,
+			Browser:    s.device.Browser,
+			OS:         s.device.OS,
+			IPAddress:  s.ip,
+			UserAgent:  s.ua,
+			PropsStr: map[string]string{
+				"name":  p.firstName + " " + p.lastName,
+				"email": p.email,
+				"plan":  p.plan,
+				"role":  p.role,
+			},
+		})
+	}
+
+	// $group_assign for each user-group membership (first ~25% of time range)
+	assignWindow := int64(float64(daysBack) * 0.25 * float64(dayMs))
+	for _, a := range assignments {
+		ts := startMs + int64(rng.Float64()*float64(assignWindow))
+		s := newSession(rng, users, ts)
+		events = append(events, event{
+			EventID:    uuidv7(ts),
+			SessionID:  s.sessionID,
+			UserID:     a.userID,
+			EventName:  "$group_assign",
+			Timestamp:  time.UnixMilli(ts).UTC().Format("2006-01-02T15:04:05.000Z"),
+			Country:    s.country.Code,
+			State:      s.country.State,
+			City:       s.country.City,
+			DeviceType: s.device.DeviceType,
+			Browser:    s.device.Browser,
+			OS:         s.device.OS,
+			IPAddress:  s.ip,
+			UserAgent:  s.ua,
+			PropsStr: map[string]string{
+				"$group_type": a.groupType,
+				"$group_id":   a.groupID,
+			},
+		})
+	}
+
+	return events
+}
+
+// ── Session property event ($session_set) ──────────────────────────────────
+
+func generateSessionSetEvent(rng *mrand.Rand, s *session) event {
+	eventMs := s.startMs + int64(s.eventCount)*(1000+int64(rng.Float64()*29_000))
+	s.eventCount++
+
+	propsStr := map[string]string{
+		"landing_page":    sessionLandingPages[rng.IntN(len(sessionLandingPages))],
+		"referral_source": sessionReferralSources[rng.IntN(len(sessionReferralSources))],
+		"theme":           sessionThemes[rng.IntN(len(sessionThemes))],
+		"intent":          sessionIntents[rng.IntN(len(sessionIntents))],
+	}
+	if rng.Float64() < 0.3 {
+		propsStr["ab_variant"] = sessionABVariants[rng.IntN(len(sessionABVariants))]
+	}
+
+	return event{
+		EventID:        uuidv7(eventMs),
+		SessionID:      s.sessionID,
+		UserID:         s.userID,
+		EventName:      "$session_set",
+		Timestamp:      time.UnixMilli(eventMs).UTC().Format("2006-01-02T15:04:05.000Z"),
+		Country:        s.country.Code,
+		State:          s.country.State,
+		City:           s.country.City,
+		DeviceType:     s.device.DeviceType,
+		Platform:       s.device.Platform,
+		Browser:        s.device.Browser,
+		BrowserVersion: s.device.BrowserVersion,
+		OS:             s.device.OS,
+		OSVersion:      s.device.OSVersion,
+		IPAddress:      s.ip,
+		UserAgent:      s.ua,
+		PropsStr:       propsStr,
+		PropsNum: map[string]float64{
+			"screen_width": screenWidths[rng.IntN(len(screenWidths))],
+		},
+		PropsBool: map[string]bool{
+			"is_returning": rng.Float64() < 0.4,
+			"has_adblock":  rng.Float64() < 0.2,
+		},
+	}
+}
+
 // ── Batch generation ────────────────────────────────────────────────────────
 
 func generateBatch(rng *mrand.Rand, users []string, size int, weights []dailyWeight, cdf []float64, cdfTotal float64) []byte {
-	batch := make([]event, 0, size)
+	batch := make([]event, 0, size+size/30) // extra capacity for $session_set events
 	randomBuf := make([]byte, 16)
 
 	s := newSession(rng, users, realisticTimestamp(rng, weights, cdf, cdfTotal))
 	eventsPerSession := 3 + rng.IntN(15)
 
+	// ~25% of sessions get $session_set properties
+	if rng.Float64() < 0.25 {
+		batch = append(batch, generateSessionSetEvent(rng, &s))
+	}
+
 	for range size {
 		if s.eventCount >= eventsPerSession {
 			s = newSession(rng, users, realisticTimestamp(rng, weights, cdf, cdfTotal))
 			eventsPerSession = 3 + rng.IntN(15)
+			if rng.Float64() < 0.25 {
+				batch = append(batch, generateSessionSetEvent(rng, &s))
+			}
 		}
 		batch = append(batch, generateEvent(rng, &s, randomBuf))
 	}
@@ -660,23 +882,93 @@ func main() {
 		*workers = runtime.NumCPU()
 	}
 
-	// Generate user pool — capped at 1M to avoid slow startup
+	// Generate user profiles — capped at 1M to avoid slow startup
 	numUsers := max(100, int(*total/30))
 	if numUsers > 1_000_000 {
 		numUsers = 1_000_000
 	}
-	fmt.Printf("Generating %s user IDs...\n", formatNum(int64(numUsers)))
+	fmt.Printf("Generating %s user profiles...\n", formatNum(int64(numUsers)))
+	rng := mrand.New(mrand.NewPCG(mrand.Uint64(), mrand.Uint64()))
+
+	profiles := make([]userProfile, numUsers)
 	users := make([]string, numUsers)
 	uidBuf := make([]byte, 6)
-	for i := range users {
+	for i := range profiles {
 		rand.Read(uidBuf)
-		users[i] = "user_" + hex.EncodeToString(uidBuf)
+		uid := "user_" + hex.EncodeToString(uidBuf)
+		fn := firstNames[rng.IntN(len(firstNames))]
+		ln := lastNames[rng.IntN(len(lastNames))]
+		profiles[i] = userProfile{
+			userID:    uid,
+			firstName: fn,
+			lastName:  ln,
+			email:     strings.ToLower(fn) + "." + strings.ToLower(ln) + "@" + emailDomains[rng.IntN(len(emailDomains))],
+			plan:      userPlans[rng.IntN(len(userPlans))],
+			role:      userRoles[rng.IntN(len(userRoles))],
+		}
+		users[i] = uid
 	}
 	// Anonymous users
 	users = append(users, "", "", "")
 
+	// Generate groups
+	numCompanies := min(len(companyNames), max(5, numUsers/20))
+	numTeams := min(len(teamNames), max(3, numCompanies*3/2))
+
+	groups := make([]groupDef, 0, numCompanies+numTeams)
+	empCounts := []float64{5, 10, 25, 50, 100, 250, 500, 1000}
+	for i := range numCompanies {
+		rand.Read(uidBuf)
+		gid := "company_" + hex.EncodeToString(uidBuf[:4])
+		groups = append(groups, groupDef{
+			groupType: "company",
+			groupID:   gid,
+			propsStr: map[string]string{
+				"$group_type": "company",
+				"$group_id":   gid,
+				"name":        companyNames[i],
+				"industry":    industries[rng.IntN(len(industries))],
+				"plan":        userPlans[rng.IntN(len(userPlans))],
+			},
+			propsNum: map[string]float64{
+				"employee_count": empCounts[rng.IntN(len(empCounts))],
+			},
+		})
+	}
+	memberCounts := []float64{3, 5, 8, 12, 20}
+	for i := range numTeams {
+		rand.Read(uidBuf)
+		gid := "team_" + hex.EncodeToString(uidBuf[:4])
+		groups = append(groups, groupDef{
+			groupType: "team",
+			groupID:   gid,
+			propsStr: map[string]string{
+				"$group_type": "team",
+				"$group_id":   gid,
+				"name":        teamNames[i%len(teamNames)],
+			},
+			propsNum: map[string]float64{
+				"member_count": memberCounts[rng.IntN(len(memberCounts))],
+			},
+		})
+	}
+
+	// Assign users to groups
+	companyGroups := groups[:numCompanies]
+	teamGroups := groups[numCompanies:]
+	var assignments []userGroupAssignment
+	for _, p := range profiles {
+		// Every user in one company
+		cg := companyGroups[rng.IntN(len(companyGroups))]
+		assignments = append(assignments, userGroupAssignment{p.userID, cg.groupType, cg.groupID})
+		// ~60% of users in one team
+		if rng.Float64() < 0.6 && len(teamGroups) > 0 {
+			tg := teamGroups[rng.IntN(len(teamGroups))]
+			assignments = append(assignments, userGroupAssignment{p.userID, tg.groupType, tg.groupID})
+		}
+	}
+
 	// Build daily weights (shared across workers)
-	rng := mrand.New(mrand.NewPCG(mrand.Uint64(), mrand.Uint64()))
 	weights, cdf, cdfTotal := buildDailyWeights(rng, *daysBack)
 
 	totalBatches := int((*total + int64(*batchSize) - 1) / int64(*batchSize))
@@ -690,7 +982,32 @@ func main() {
 	fmt.Printf("  Concurrency: %d per worker (%d total)\n", *concurrency, *workers**concurrency)
 	fmt.Printf("  Time range:  last %d days\n", *daysBack)
 	fmt.Printf("  Users:       ~%s\n", formatNum(int64(numUsers)))
+	fmt.Printf("  Groups:      %d (%d companies, %d teams)\n", len(groups), numCompanies, numTeams)
 	fmt.Println()
+
+	// ── Phase 1: System events ($identify, $group_identify, $group_assign)
+	endMs := time.Now().UnixMilli()
+	startMs := endMs - int64(*daysBack)*24*60*60*1000
+	systemEvents := generateSystemEvents(rng, profiles, groups, assignments, users, startMs, *daysBack)
+	fmt.Printf("Sending %s system events ($identify, $group_identify, $group_assign)...\n", formatNum(int64(len(systemEvents))))
+
+	httpClient := newHTTPClient()
+	systemSent := 0
+	for i := 0; i < len(systemEvents); i += *batchSize {
+		end := min(i+*batchSize, len(systemEvents))
+		chunk := systemEvents[i:end]
+		data, _ := json.Marshal(chunk)
+		if err := sendBatch(httpClient, url, *apiKey, data); err != nil {
+			fmt.Fprintf(os.Stderr, "\n  System batch error: %s\n", err.Error())
+		} else {
+			systemSent += len(chunk)
+		}
+		fmt.Printf("\r  Sent %d / %d system events", systemSent, len(systemEvents))
+	}
+	fmt.Println(" — done\n")
+
+	// ── Phase 2: Track events (with $session_set interspersed)
+	fmt.Println("Sending track events...")
 
 	var sent, failed atomic.Int64
 	var wg sync.WaitGroup

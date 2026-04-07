@@ -5,7 +5,7 @@
   "scripts": {
     "postinstall": "pnpm exec nx run postgres:prisma-generate",
     "generate:country-data": "npx tsx libs/shared/scripts/generate-country-data.ts",
-    "serve:ingestion": "nx run-many -t serve -p api-event-webhook,consumer-events-ingest scheduler-analytics api-server-ingest",
+    "serve:ingestion": "nx run-many -t serve -p api-event-webhook,consumer-events-ingest api-server-ingest",
     "clickhouse:migrate": "npx tsx scripts/clickhouse-migrate.ts"
   },
   "private": true,
