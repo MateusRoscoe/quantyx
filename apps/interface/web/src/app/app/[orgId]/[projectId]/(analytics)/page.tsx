@@ -23,6 +23,7 @@ import {
   PageHeader,
   MonoCell,
   NumberCell,
+  TruncateWithTooltip,
   tooltipStyle,
   axisStyle,
   gridStyle,
@@ -35,14 +36,25 @@ type PageRow = { path: string; views: number; uniqueUsers: number };
 
 const eventColumns: ColumnDef<EventRow, unknown>[] = [
   { accessorKey: 'eventName', header: 'Event', cell: MonoCell },
-  { accessorKey: 'count', header: 'Count', cell: NumberCell },
-  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell },
+  { accessorKey: 'count', header: 'Count', cell: NumberCell, size: 20 },
+  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell, size: 20 },
 ];
 
 const pageColumns: ColumnDef<PageRow, unknown>[] = [
-  { accessorKey: 'path', header: 'Path', cell: MonoCell },
-  { accessorKey: 'views', header: 'Views', cell: NumberCell },
-  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell },
+  {
+    accessorKey: 'path',
+    header: 'Path',
+    cell: (info) => {
+      const value = info.getValue() as string;
+      return (
+        <TruncateWithTooltip tooltip={value} className="font-mono text-sm">
+          {value}
+        </TruncateWithTooltip>
+      );
+    },
+  },
+  { accessorKey: 'views', header: 'Views', cell: NumberCell, size: 20 },
+  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell, size: 20 },
 ];
 
 export default function OverviewPage() {
@@ -145,6 +157,7 @@ export default function OverviewPage() {
               data={eventsData?.breakdown?.slice(0, 10) ?? []}
               isLoading={eventsLoading}
               pageSize={10}
+              disableSorting
             />
           </CardContent>
         </Card>
@@ -158,6 +171,7 @@ export default function OverviewPage() {
               data={pagesData?.pages?.slice(0, 10) ?? []}
               isLoading={pagesLoading}
               pageSize={10}
+              disableSorting
             />
           </CardContent>
         </Card>
@@ -167,9 +181,21 @@ export default function OverviewPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           {(
             [
-              { title: 'Device Types', data: devicesData.deviceTypes, type: 'device' },
-              { title: 'Browsers', data: devicesData.browsers, type: 'browser' },
-              { title: 'Operating Systems', data: devicesData.operatingSystems, type: 'os' },
+              {
+                title: 'Device Types',
+                data: devicesData.deviceTypes,
+                type: 'device',
+              },
+              {
+                title: 'Browsers',
+                data: devicesData.browsers,
+                type: 'browser',
+              },
+              {
+                title: 'Operating Systems',
+                data: devicesData.operatingSystems,
+                type: 'os',
+              },
             ] as const
           ).map(({ title, data, type }) => {
             const total = data.reduce((s, d) => s + d.count, 0);
@@ -188,9 +214,24 @@ export default function OverviewPage() {
                         <span className="flex w-28 items-center gap-1.5 truncate text-sm">
                           {item.value ? (
                             <>
-                              {type === 'browser' && <BrowserIcon browser={item.value} className="h-3.5 w-3.5 shrink-0" />}
-                              {type === 'os' && <OsIcon os={item.value} className="h-3.5 w-3.5 shrink-0" />}
-                              {type === 'device' && <DeviceIcon deviceType={item.value} className="h-3.5 w-3.5 shrink-0" />}
+                              {type === 'browser' && (
+                                <BrowserIcon
+                                  browser={item.value}
+                                  className="h-3.5 w-3.5 shrink-0"
+                                />
+                              )}
+                              {type === 'os' && (
+                                <OsIcon
+                                  os={item.value}
+                                  className="h-3.5 w-3.5 shrink-0"
+                                />
+                              )}
+                              {type === 'device' && (
+                                <DeviceIcon
+                                  deviceType={item.value}
+                                  className="h-3.5 w-3.5 shrink-0"
+                                />
+                              )}
                               {item.value}
                             </>
                           ) : (
