@@ -34,9 +34,14 @@ npx nx test <project> -- --testPathPattern=<pattern>
 # Start infrastructure (ClickHouse, Postgres, Redis, Kafka, Kafbat UI, Grafana, Mailpit)
 docker compose up -d
 
-
 # Serve an app in dev mode
 npx nx serve <project>
+
+# Serve all ingestion apps together (webhook + consumer + server-ingest)
+pnpm serve:ingestion
+
+# Apply ClickHouse schema migrations against running instance
+pnpm clickhouse:migrate
 
 # Typecheck across the workspace
 npx nx run-many -t typecheck
@@ -114,7 +119,7 @@ Composite project references with `emitDeclarationOnly`. ESM throughout (`module
 
 ### CI
 
-GitHub Actions on push to main and PRs. Single `ubuntu-latest` runner (no Nx Cloud). Pipeline: `format:check` → `lint`, `test`, `build`, `typecheck`, `e2e` (parallel via `run-many`).
+GitHub Actions on push to main and PRs. Single `ubuntu-latest` runner (no Nx Cloud). Uses `nx affected` (not `run-many`) with `nrwl/nx-set-shas` for change detection. Pipeline: `setup` (format:check + determine affected) → `checks` (lint + typecheck + build) + `test` (parallel) → `e2e` (after checks, installs Playwright Chromium).
 
 ## Conventions
 
