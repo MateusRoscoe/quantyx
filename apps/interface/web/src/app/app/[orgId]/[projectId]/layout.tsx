@@ -20,5 +20,5 @@ export default function ProjectLayout({
     }
   }, [orgId, projectId]);
 
-  return <div className="mx-auto max-w-screen-2xl space-y-6">{children}</div>;
+  return <div className="space-y-6">{children}</div>;
 }

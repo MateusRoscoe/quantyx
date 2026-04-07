@@ -87,11 +87,7 @@ export default function DashboardLayout({
   );
 }
 
-function DashboardLayoutInner({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -311,7 +307,9 @@ function DashboardLayoutInner({
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
         </header>
-        <main className="dashboard-grid-bg flex-1 p-6">{children}</main>
+        <main className="dashboard-grid-bg flex-1 px-6 py-6 md:px-8 lg:px-16 xl:px-24 2xl:px-32">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -36,8 +36,8 @@ type PageRow = { path: string; views: number; uniqueUsers: number };
 
 const eventColumns: ColumnDef<EventRow, unknown>[] = [
   { accessorKey: 'eventName', header: 'Event', cell: MonoCell },
-  { accessorKey: 'count', header: 'Count', cell: NumberCell, size: 20 },
-  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell, size: 20 },
+  { accessorKey: 'count', header: 'Count', cell: NumberCell, size: 30 },
+  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell, size: 30 },
 ];
 
 const pageColumns: ColumnDef<PageRow, unknown>[] = [
@@ -53,8 +53,8 @@ const pageColumns: ColumnDef<PageRow, unknown>[] = [
       );
     },
   },
-  { accessorKey: 'views', header: 'Views', cell: NumberCell, size: 20 },
-  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell, size: 20 },
+  { accessorKey: 'views', header: 'Views', cell: NumberCell, size: 30 },
+  { accessorKey: 'uniqueUsers', header: 'Users', cell: NumberCell, size: 30 },
 ];
 
 export default function OverviewPage() {
