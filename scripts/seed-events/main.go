@@ -39,12 +39,12 @@ import (
 // ── CLI flags ───────────────────────────────────────────────────────────────
 
 var (
-	apiKey      = flag.String("api-key", "", "X-API-Key (required)")
+	apiKey      = flag.String("api-key", "qx_EprvrzNg4NuHP_cboejTB87yqMyi9buP", "X-API-Key")
 	endpoint    = flag.String("endpoint", "http://localhost:3002", "API base URL")
-	total       = flag.Int64("total", 1_000_000_000, "Total events to generate")
+	total       = flag.Int64("total", 10_000_000, "Total events to generate")
 	batchSize   = flag.Int("batch-size", 1000, "Events per HTTP request")
 	workers     = flag.Int("workers", 0, "Parallel goroutines (default: NumCPU*2)")
-	concurrency = flag.Int("concurrency", 10, "In-flight HTTP requests per worker")
+	concurrency = flag.Int("concurrency", 4, "In-flight HTTP requests per worker")
 	daysBack    = flag.Int("days-back", 90, "Days of history")
 )
 
@@ -69,7 +69,7 @@ func uuidv7(timestampMs int64) string {
 	buf[4] = byte(timestampMs >> 8)
 	buf[5] = byte(timestampMs)
 	buf[6] = 0x70 | (buf[6] & 0x0f) // version 7
-	buf[8] = (buf[8] & 0x3f) | 0x80  // variant 10xx
+	buf[8] = (buf[8] & 0x3f) | 0x80 // variant 10xx
 
 	var sb strings.Builder
 	sb.Grow(36)
@@ -480,22 +480,22 @@ func newSession(rng *mrand.Rand, users []string, ts int64) session {
 // ── Event generation ────────────────────────────────────────────────────────
 
 type event struct {
-	EventID        string            `json:"event_id"`
-	SessionID      string            `json:"session_id"`
-	UserID         string            `json:"user_id"`
-	EventName      string            `json:"event_name"`
-	Timestamp      string            `json:"timestamp"`
-	Country        string            `json:"country"`
-	State          string            `json:"state"`
-	City           string            `json:"city"`
-	DeviceType     string            `json:"device_type"`
-	Platform       string            `json:"platform"`
-	Browser        string            `json:"browser"`
-	BrowserVersion string            `json:"browser_version"`
-	OS             string            `json:"os"`
-	OSVersion      string            `json:"os_version"`
-	IPAddress      string            `json:"ip_address"`
-	UserAgent      string            `json:"user_agent"`
+	EventID        string             `json:"event_id"`
+	SessionID      string             `json:"session_id"`
+	UserID         string             `json:"user_id"`
+	EventName      string             `json:"event_name"`
+	Timestamp      string             `json:"timestamp"`
+	Country        string             `json:"country"`
+	State          string             `json:"state"`
+	City           string             `json:"city"`
+	DeviceType     string             `json:"device_type"`
+	Platform       string             `json:"platform"`
+	Browser        string             `json:"browser"`
+	BrowserVersion string             `json:"browser_version"`
+	OS             string             `json:"os"`
+	OSVersion      string             `json:"os_version"`
+	IPAddress      string             `json:"ip_address"`
+	UserAgent      string             `json:"user_agent"`
 	PropsStr       map[string]string  `json:"props_str,omitempty"`
 	PropsNum       map[string]float64 `json:"props_num,omitempty"`
 	PropsBool      map[string]bool    `json:"props_bool,omitempty"`
@@ -622,14 +622,14 @@ func generateSystemEvents(
 		ts := startMs + int64(rng.Float64()*3)*dayMs
 		s := newSession(rng, users, ts)
 		events = append(events, event{
-			EventID:   uuidv7(ts),
-			SessionID: s.sessionID,
-			UserID:    "",
-			EventName: "$group_identify",
-			Timestamp: time.UnixMilli(ts).UTC().Format("2006-01-02T15:04:05.000Z"),
-			Country:   s.country.Code,
-			State:     s.country.State,
-			City:      s.country.City,
+			EventID:    uuidv7(ts),
+			SessionID:  s.sessionID,
+			UserID:     "",
+			EventName:  "$group_identify",
+			Timestamp:  time.UnixMilli(ts).UTC().Format("2006-01-02T15:04:05.000Z"),
+			Country:    s.country.Code,
+			State:      s.country.State,
+			City:       s.country.City,
 			DeviceType: s.device.DeviceType,
 			Browser:    s.device.Browser,
 			OS:         s.device.OS,
@@ -781,8 +781,8 @@ func newHTTPClient() *http.Client {
 			MaxConnsPerHost:     500,
 			IdleConnTimeout:     90 * time.Second,
 			DialContext: (&net.Dialer{
-				Timeout:   5 * time.Second,
-				KeepAlive: 30 * time.Second,
+				Timeout:       5 * time.Second,
+				KeepAlive:     30 * time.Second,
 				FallbackDelay: -1, // disable Happy Eyeballs, use first resolved address (IPv6 on macOS Docker)
 			}).DialContext,
 			DisableCompression: true,
@@ -790,22 +790,67 @@ func newHTTPClient() *http.Client {
 	}
 }
 
+// Global backpressure brake: when the backend signals 503, all goroutines
+// pause before their next send.  Resets once a request succeeds.
+var (
+	backpressureUntil atomic.Int64 // unix-nano timestamp; 0 = no brake
+)
+
+func waitForBackpressure() {
+	for {
+		until := backpressureUntil.Load()
+		if until == 0 {
+			return
+		}
+		wait := time.Duration(until - time.Now().UnixNano())
+		if wait <= 0 {
+			backpressureUntil.CompareAndSwap(until, 0)
+			return
+		}
+		time.Sleep(wait)
+	}
+}
+
 func sendBatch(client *http.Client, url, key string, body []byte) error {
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-API-Key", key)
+	const maxRetries = 8
+	backoff := 250 * time.Millisecond
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
+	for attempt := range maxRetries {
+		waitForBackpressure()
 
-	if resp.StatusCode >= 300 {
+		req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-API-Key", key)
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode < 300 {
+			return nil
+		}
+
+		// Retry on 503 (backpressure) and 429 (rate limit)
+		if resp.StatusCode == 503 || resp.StatusCode == 429 {
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("HTTP %d after %d retries", resp.StatusCode, maxRetries)
+			}
+			// Apply global brake so all goroutines slow down together
+			brakeUntil := time.Now().Add(backoff).UnixNano()
+			backpressureUntil.Store(brakeUntil)
+
+			jitter := time.Duration(mrand.Int64N(int64(backoff) / 2))
+			time.Sleep(backoff + jitter)
+			backoff = min(backoff*2, 10*time.Second)
+			continue
+		}
+
 		return fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 	return nil
@@ -815,8 +860,8 @@ func sendBatch(client *http.Client, url, key string, body []byte) error {
 
 // Track first N errors so we can diagnose failures
 var (
-	errSamples   []string
-	errSamplesMu sync.Mutex
+	errSamples    []string
+	errSamplesMu  sync.Mutex
 	maxErrSamples = 5
 )
 
@@ -991,20 +1036,40 @@ func main() {
 	systemEvents := generateSystemEvents(rng, profiles, groups, assignments, users, startMs, *daysBack)
 	fmt.Printf("Sending %s system events ($identify, $group_identify, $group_assign)...\n", formatNum(int64(len(systemEvents))))
 
-	httpClient := newHTTPClient()
-	systemSent := 0
-	for i := 0; i < len(systemEvents); i += *batchSize {
-		end := min(i+*batchSize, len(systemEvents))
-		chunk := systemEvents[i:end]
-		data, _ := json.Marshal(chunk)
-		if err := sendBatch(httpClient, url, *apiKey, data); err != nil {
-			fmt.Fprintf(os.Stderr, "\n  System batch error: %s\n", err.Error())
-		} else {
-			systemSent += len(chunk)
+	{
+		var systemSent, systemFailed atomic.Int64
+		totalSystem := int64(len(systemEvents))
+		systemSem := make(chan struct{}, *workers**concurrency)
+		var systemWg sync.WaitGroup
+		httpClient := newHTTPClient()
+
+		for i := 0; i < len(systemEvents); i += *batchSize {
+			end := min(i+*batchSize, len(systemEvents))
+			chunk := systemEvents[i:end]
+			data, _ := json.Marshal(chunk)
+			chunkLen := int64(len(chunk))
+
+			systemSem <- struct{}{}
+			systemWg.Add(1)
+			go func(body []byte, n int64) {
+				defer func() { <-systemSem; systemWg.Done() }()
+				if err := sendBatch(httpClient, url, *apiKey, body); err != nil {
+					systemFailed.Add(1)
+					recordError(err)
+				} else {
+					systemSent.Add(n)
+				}
+				fmt.Printf("\r  Sent %s / %s system events", formatNum(systemSent.Load()), formatNum(totalSystem))
+			}(data, chunkLen)
 		}
-		fmt.Printf("\r  Sent %d / %d system events", systemSent, len(systemEvents))
+
+		systemWg.Wait()
+		fmt.Println(" — done")
+		if f := systemFailed.Load(); f > 0 {
+			fmt.Printf("  %s system batches failed\n", formatNum(f))
+		}
+		fmt.Println()
 	}
-	fmt.Println(" — done\n")
 
 	// ── Phase 2: Track events (with $session_set interspersed)
 	fmt.Println("Sending track events...")
