@@ -10,7 +10,7 @@ import {
   PageHeader,
   MonoCell,
   NumberCell,
-  DateCell,
+  DateTimeCell,
 } from '@/components/dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,8 +49,8 @@ const columns: ColumnDef<PropertyRow, unknown>[] = [
       </span>
     ),
   },
-  { accessorKey: 'firstSeen', header: 'First Seen', cell: DateCell },
-  { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateCell },
+  { accessorKey: 'firstSeen', header: 'First Seen', cell: DateTimeCell },
+  { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateTimeCell },
 ];
 
 export default function PropertiesPage() {

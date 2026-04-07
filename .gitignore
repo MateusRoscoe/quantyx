@@ -66,3 +66,5 @@ blob-report/
 .claude/worktrees
 .claude/settings.local.json
 .nx/polygraph
+
+COMPARISON.md

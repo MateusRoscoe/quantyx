@@ -42,19 +42,6 @@ export function NumberCell<T>({ getValue }: CellContext<T, unknown>) {
   );
 }
 
-export function DateCell<T>({ getValue }: CellContext<T, unknown>) {
-  const { timezone } = useTimezone();
-  return (
-    <span className="text-sm">
-      {new Date(getValue() as string).toLocaleDateString(undefined, {
-        timeZone: timezone,
-        hour: '2-digit',
-        minute: '2-digit',
-      })}
-    </span>
-  );
-}
-
 export function DateTimeCell<T>({ getValue }: CellContext<T, unknown>) {
   const { timezone } = useTimezone();
   return (
@@ -66,7 +53,6 @@ export function DateTimeCell<T>({ getValue }: CellContext<T, unknown>) {
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        timeZoneName: 'short',
       })}
     </span>
   );

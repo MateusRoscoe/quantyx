@@ -10,7 +10,7 @@ import {
   PageHeader,
   MonoCell,
   NumberCell,
-  DateCell,
+  DateTimeCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ const columns: ColumnDef<UserRow, unknown>[] = [
     },
   },
   { accessorKey: 'userId', header: 'User ID', cell: MonoCell },
-  { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateCell },
+  { accessorKey: 'lastSeen', header: 'Last Seen', cell: DateTimeCell },
   {
     accessorKey: 'eventsInPeriod',
     header: 'Events in Period',

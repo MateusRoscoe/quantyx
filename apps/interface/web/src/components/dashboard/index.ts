@@ -16,7 +16,6 @@ export {
   TruncateWithTooltip,
   MonoCell,
   NumberCell,
-  DateCell,
   DateTimeCell,
   TruncatedIdCell,
   BrowserCell,
