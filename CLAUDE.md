@@ -127,6 +127,7 @@ GitHub Actions on push to main and PRs. Single `ubuntu-latest` runner (no Nx Clo
 - Scaffold new projects with `npx nx g`
 - ESLint flat config with `@nx/enforce-module-boundaries`
 - Prettier with single quotes
+- **Always run `npx nx format` before committing** to ensure consistent formatting across the workspace
 
 ## Verification Requirements
 
