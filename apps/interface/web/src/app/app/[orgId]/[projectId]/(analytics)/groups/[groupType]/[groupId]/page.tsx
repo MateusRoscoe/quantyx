@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useGroupDetail, useGroupMembers } from '@/hooks/use-analytics-groups';
@@ -10,10 +10,9 @@ import {
   TruncateWithTooltip,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Loader2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 interface MemberRow {
@@ -86,6 +85,24 @@ export default function GroupDetailPage() {
     () => membersData?.pages.flatMap((p) => p.users) ?? [],
     [membersData],
   );
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const properties = group?.properties ?? {};
   const hasProperties = Object.keys(properties).length > 0;
@@ -205,16 +222,10 @@ export default function GroupDetailPage() {
             disablePagination
             disableSorting
           />
-          {hasNextPage && (
-            <div className="mt-4 flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? 'Loading...' : 'Load more'}
-              </Button>
+          <div ref={sentinelRef} className="h-1" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
         </CardContent>

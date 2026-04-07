@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { useAnalyticsUsers } from '@/hooks/use-analytics-users';
 import {
   DataTable,
@@ -11,7 +12,6 @@ import {
   DateCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import type { ColumnDef } from '@tanstack/react-table';
 
 interface UserRow {
@@ -57,6 +57,24 @@ export default function UsersPage() {
     [data],
   );
 
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Users" showFilterBar={false} />
@@ -75,16 +93,10 @@ export default function UsersPage() {
               router.push(`/app/${orgId}/${projectId}/users/${row.userId}`)
             }
           />
-          {hasNextPage && (
-            <div className="mt-4 flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? 'Loading...' : 'Load more'}
-              </Button>
+          <div ref={sentinelRef} className="h-1" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
         </CardContent>

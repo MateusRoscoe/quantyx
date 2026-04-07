@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { useAnalyticsSessions } from '@/hooks/use-analytics-sessions';
 import {
   DataTable,
@@ -82,6 +83,24 @@ export default function SessionsPage() {
     [data],
   );
 
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Sessions" showFilterBar={false} />
@@ -107,16 +126,10 @@ export default function SessionsPage() {
               )
             }
           />
-          {hasNextPage && (
-            <div className="mt-4 flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? 'Loading...' : 'Load more'}
-              </Button>
+          <div ref={sentinelRef} className="h-1" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
         </CardContent>

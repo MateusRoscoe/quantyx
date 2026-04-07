@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   useParams,
   useRouter,
   useSearchParams,
   usePathname,
 } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { useAnalyticsGroups } from '@/hooks/use-analytics-groups';
 import {
   DataTable,
@@ -15,7 +16,6 @@ import {
   DateTimeCell,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -97,6 +97,24 @@ export default function GroupsPage() {
     return [...types].sort();
   }, [groups]);
 
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Groups" showFilterBar={false} />
@@ -137,16 +155,10 @@ export default function GroupsPage() {
               )
             }
           />
-          {hasNextPage && (
-            <div className="mt-4 flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? 'Loading...' : 'Load more'}
-              </Button>
+          <div ref={sentinelRef} className="h-1" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
         </CardContent>
