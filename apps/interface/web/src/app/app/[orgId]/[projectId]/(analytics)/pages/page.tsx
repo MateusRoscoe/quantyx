@@ -45,7 +45,7 @@ export default function PagesPage() {
   const top10 = data?.pages?.slice(0, 10) ?? [];
 
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 600);
 
   const {
     data: tableData,

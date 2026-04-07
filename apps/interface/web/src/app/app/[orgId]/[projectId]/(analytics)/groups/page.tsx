@@ -87,7 +87,7 @@ export default function GroupsPage() {
   );
 
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 600);
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useAnalyticsGroups(projectId, {
       groupType: groupTypeFilter,

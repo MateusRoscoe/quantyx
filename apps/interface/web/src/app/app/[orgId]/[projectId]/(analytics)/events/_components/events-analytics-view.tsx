@@ -59,7 +59,7 @@ export function EventsAnalyticsView({ projectId }: { projectId: string }) {
   }
 
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 600);
 
   const {
     data: tableData,

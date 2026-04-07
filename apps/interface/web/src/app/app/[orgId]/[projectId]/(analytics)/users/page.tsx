@@ -52,7 +52,7 @@ export default function UsersPage() {
   }>();
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 600);
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useAnalyticsUsers(projectId, {
       limit: 25,
