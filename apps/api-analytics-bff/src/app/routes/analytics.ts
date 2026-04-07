@@ -824,7 +824,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           u.user_id,
           (SELECT name FROM analytics.user_names FINAL
            WHERE project_id = {projectId:String} AND user_id = u.user_id
-           LIMIT 1) AS name,
+           ) AS name,
           max(u.last_seen) as last_seen,
           sum(u.total_events) as events_in_period
         FROM analytics.users AS u

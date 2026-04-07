@@ -72,7 +72,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           (SELECT name FROM analytics.group_names FINAL
            WHERE project_id = {projectId:String}
              AND group_type = g.group_type AND group_id = g.group_id
-           LIMIT 1) AS name
+           ) AS name
         FROM analytics.groups AS g
         WHERE g.project_id = {projectId:String}
           ${typeFilter}
