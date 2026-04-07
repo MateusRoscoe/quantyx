@@ -463,7 +463,15 @@ ARRAY JOIN
                 ('region', region),
                 ('city', city)
             ],
-            if(event_name = 'page_view' AND path != '', [('path', path)], [])
+            if(event_name = 'page_view' AND path != '', [('path', path)], []),
+            if(props_num['screen_width'] > 0 AND props_num['screen_height'] > 0,
+                [('screen_size',
+                    concat(
+                        toString(toUInt16(props_num['screen_width'])),
+                        'x',
+                        toString(toUInt16(props_num['screen_height']))
+                    ))],
+                [])
         )
     ) AS dim
 WHERE event_name NOT LIKE '$%'

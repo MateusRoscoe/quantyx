@@ -115,14 +115,29 @@ export class QuantyxClient {
   track(eventName: string, properties?: EventProperties): void {
     const now = new Date();
 
+    const { screen_width, screen_height, ...deviceFields } = this.config
+      .autoDetect
+      ? this.deviceContext
+      : ({ platform: 'web' } as const);
+
+    const screenProps: Record<string, number> = {};
+    if (screen_width) screenProps.screen_width = screen_width;
+    if (screen_height) screenProps.screen_height = screen_height;
+
+    const mergedPropsNum =
+      Object.keys(screenProps).length > 0 || properties?.props_num
+        ? { ...screenProps, ...properties?.props_num }
+        : undefined;
+
     const payload: EventPayload = {
       event_id: generateUUIDv7(),
       session_id: this.sessionId,
       user_id: this.userId,
       event_name: eventName,
       timestamp: now.toISOString(),
-      ...(this.config.autoDetect ? this.deviceContext : {}),
+      ...deviceFields,
       ...properties,
+      ...(mergedPropsNum && { props_num: mergedPropsNum }),
     };
 
     this.queue.push(payload);

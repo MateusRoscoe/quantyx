@@ -86,4 +86,6 @@ export interface DeviceContext {
   os_version?: string;
   device_type?: string;
   platform: 'web';
+  screen_width?: number;
+  screen_height?: number;
 }

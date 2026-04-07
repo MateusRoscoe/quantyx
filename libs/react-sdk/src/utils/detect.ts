@@ -33,6 +33,12 @@ export function detectDevice(): DeviceContext {
       ctx.os = uaData.platform;
     }
     ctx.device_type = uaData.mobile ? 'mobile' : 'desktop';
+
+    if (typeof screen !== 'undefined') {
+      ctx.screen_width = screen.width;
+      ctx.screen_height = screen.height;
+    }
+
     return ctx;
   }
 
@@ -78,6 +84,12 @@ export function detectDevice(): DeviceContext {
     : /iPad|Android(?!.*Mobile)|Tablet/.test(ua)
       ? 'tablet'
       : 'desktop';
+
+  // Screen dimensions
+  if (typeof screen !== 'undefined') {
+    ctx.screen_width = screen.width;
+    ctx.screen_height = screen.height;
+  }
 
   return ctx;
 }

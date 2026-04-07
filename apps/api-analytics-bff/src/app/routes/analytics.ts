@@ -232,7 +232,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
     },
   });
 
-  // ─── Pages Breakdown ───
+  // ─── Pages Overview (KPIs + timeseries + screen sizes + page list) ───
 
   fastify.get('/projects/:projectId/pages', {
     schema: {
@@ -260,6 +260,38 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
 
       await fastify.verifyProjectAccess(request, projectId);
 
+      // Dynamic granularity: hourly for <=7d, daily for >7d
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      const rangeMs = toDate.getTime() - fromDate.getTime();
+      const isHourly = rangeMs <= 7 * 24 * 60 * 60 * 1000;
+      const granularity = isHourly ? 'hour' : 'day';
+
+      const timeseriesQuery = isHourly
+        ? `SELECT
+            hour as time,
+            sumMerge(event_count) as views,
+            uniqMerge(unique_users) as users
+          FROM analytics.metrics_hourly
+          WHERE project_id = {projectId:String}
+            AND hour >= toDateTime({from:String})
+            AND hour < toDateTime({to:String})
+            AND dimension_name = 'path'
+          GROUP BY hour
+          ORDER BY hour`
+        : `SELECT
+            toStartOfDay(hour) as time,
+            sumMerge(event_count) as views,
+            uniqMerge(unique_users) as users
+          FROM analytics.metrics_hourly
+          WHERE project_id = {projectId:String}
+            AND hour >= toDateTime({from:String})
+            AND hour < toDateTime({to:String})
+            AND dimension_name = 'path'
+          GROUP BY time
+          ORDER BY time`;
+
+      // Page list query (unchanged logic)
       const searchClause = search
         ? `AND position(dimension_value, {search:String}) > 0`
         : '';
@@ -269,48 +301,219 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         : '';
       const limitClause = limit ? `LIMIT {fetchLimit:UInt32}` : '';
 
-      const pages = await queryClickHouse<{
-        path: string;
-        views: string;
-        unique_users: string;
-      }>(
-        `SELECT
-          dimension_value as path,
-          sumMerge(event_count) as views,
-          uniqMerge(unique_users) as unique_users
-        FROM analytics.metrics_hourly
-        WHERE project_id = {projectId:String}
-          AND hour >= toDateTime({from:String})
-          AND hour < toDateTime({to:String})
-          AND dimension_name = 'path'
-          ${searchClause}
-        GROUP BY dimension_value
-        ${cursorClause}
-        ORDER BY views DESC, path DESC
-        ${limitClause}`,
-        {
-          projectId,
-          from,
-          to,
-          ...(search && { search }),
-          ...(hasCursor && {
-            cursorViews: cursor_views,
-            cursorPath: cursor_path,
-          }),
-          ...(limit && { fetchLimit: limit + 1 }),
-        },
-      );
+      const [kpis, timeseries, screenSizes, pages] = await Promise.all([
+        // KPIs
+        queryClickHouse<{
+          total_page_views: string;
+          unique_pages: string;
+          unique_users: string;
+        }>(
+          `SELECT
+            sumMerge(event_count) as total_page_views,
+            count() as unique_pages,
+            uniqMerge(unique_users) as unique_users
+          FROM analytics.metrics_hourly
+          WHERE project_id = {projectId:String}
+            AND hour >= toDateTime({from:String})
+            AND hour < toDateTime({to:String})
+            AND dimension_name = 'path'`,
+          { projectId, from, to },
+        ),
+        // Timeseries
+        queryClickHouse<{ time: string; views: string; users: string }>(
+          timeseriesQuery,
+          { projectId, from, to },
+        ),
+        // Screen sizes
+        queryClickHouse<{
+          screen_size: string;
+          count: string;
+          unique_users: string;
+        }>(
+          `SELECT
+            dimension_value as screen_size,
+            sumMerge(event_count) as count,
+            uniqMerge(unique_users) as unique_users
+          FROM analytics.metrics_hourly
+          WHERE project_id = {projectId:String}
+            AND hour >= toDateTime({from:String})
+            AND hour < toDateTime({to:String})
+            AND dimension_name = 'screen_size'
+          GROUP BY dimension_value
+          ORDER BY count DESC
+          LIMIT 20`,
+          { projectId, from, to },
+        ),
+        // Page list
+        queryClickHouse<{
+          path: string;
+          views: string;
+          unique_users: string;
+        }>(
+          `SELECT
+            dimension_value as path,
+            sumMerge(event_count) as views,
+            uniqMerge(unique_users) as unique_users
+          FROM analytics.metrics_hourly
+          WHERE project_id = {projectId:String}
+            AND hour >= toDateTime({from:String})
+            AND hour < toDateTime({to:String})
+            AND dimension_name = 'path'
+            ${searchClause}
+          GROUP BY dimension_value
+          ${cursorClause}
+          ORDER BY views DESC, path DESC
+          ${limitClause}`,
+          {
+            projectId,
+            from,
+            to,
+            ...(search && { search }),
+            ...(hasCursor && {
+              cursorViews: cursor_views,
+              cursorPath: cursor_path,
+            }),
+            ...(limit && { fetchLimit: limit + 1 }),
+          },
+        ),
+      ]);
 
       const hasMore = limit ? pages.length > limit : false;
-      const page = hasMore ? pages.slice(0, limit) : pages;
+      const pageList = hasMore ? pages.slice(0, limit) : pages;
+
+      const totalPageViews = Number(kpis[0]?.total_page_views ?? 0);
+      const uniquePages = Number(kpis[0]?.unique_pages ?? 0);
 
       return {
-        pages: page.map((p) => ({
+        kpis: {
+          totalPageViews,
+          uniquePages,
+          uniqueUsers: Number(kpis[0]?.unique_users ?? 0),
+          avgViewsPerPage:
+            uniquePages > 0 ? Math.round(totalPageViews / uniquePages) : 0,
+        },
+        timeseries: timeseries.map((row) => ({
+          time: row.time,
+          views: Number(row.views),
+          users: Number(row.users),
+        })),
+        granularity,
+        screenSizes: screenSizes.map((r) => ({
+          screenSize: r.screen_size,
+          count: Number(r.count),
+          uniqueUsers: Number(r.unique_users),
+        })),
+        pages: pageList.map((p) => ({
           path: p.path,
           views: Number(p.views),
           uniqueUsers: Number(p.unique_users),
         })),
         hasMore,
+      };
+    },
+  });
+
+  // ─── Page Detail (per-page drill-down) ───
+
+  fastify.get('/projects/:projectId/pages/detail', {
+    schema: {
+      params: z.object({ projectId: z.string().uuid() }),
+      querystring: withDateRangeLimit(
+        dateRangeSchema.extend({
+          path: z.string().min(1),
+        }),
+      ),
+    },
+    handler: async (request, reply) => {
+      const { projectId } = request.params as { projectId: string };
+      const { from, to, path } = request.query as {
+        from: string;
+        to: string;
+        path: string;
+      };
+
+      await fastify.verifyProjectAccess(request, projectId);
+
+      const baseWhere = `
+        project_id = {projectId:String}
+        AND timestamp >= toDateTime({from:String})
+        AND timestamp < toDateTime({to:String})
+        AND event_name = 'page_view'
+        AND path = {path:String}`;
+      const params = { projectId, from, to, path };
+
+      const [screenSizes, deviceTypes, browsers] = await Promise.all([
+        queryClickHouse<{
+          screen_size: string;
+          count: string;
+          unique_users: string;
+        }>(
+          `SELECT
+            concat(
+              toString(toUInt16(props_num['screen_width'])),
+              'x',
+              toString(toUInt16(props_num['screen_height']))
+            ) as screen_size,
+            count() as count,
+            uniq(user_id) as unique_users
+          FROM analytics.events
+          WHERE ${baseWhere}
+            AND props_num['screen_width'] > 0
+          GROUP BY screen_size
+          ORDER BY count DESC
+          LIMIT 15`,
+          params,
+        ),
+        queryClickHouse<{
+          value: string;
+          count: string;
+          unique_users: string;
+        }>(
+          `SELECT
+            device_type as value,
+            count() as count,
+            uniq(user_id) as unique_users
+          FROM analytics.events
+          WHERE ${baseWhere}
+            AND device_type != ''
+          GROUP BY device_type
+          ORDER BY count DESC`,
+          params,
+        ),
+        queryClickHouse<{
+          value: string;
+          count: string;
+          unique_users: string;
+        }>(
+          `SELECT
+            browser as value,
+            count() as count,
+            uniq(user_id) as unique_users
+          FROM analytics.events
+          WHERE ${baseWhere}
+            AND browser != ''
+          GROUP BY browser
+          ORDER BY count DESC`,
+          params,
+        ),
+      ]);
+
+      return {
+        screenSizes: screenSizes.map((r) => ({
+          screenSize: r.screen_size,
+          count: Number(r.count),
+          uniqueUsers: Number(r.unique_users),
+        })),
+        deviceTypes: deviceTypes.map((r) => ({
+          value: r.value,
+          count: Number(r.count),
+          uniqueUsers: Number(r.unique_users),
+        })),
+        browsers: browsers.map((r) => ({
+          value: r.value,
+          count: Number(r.count),
+          uniqueUsers: Number(r.unique_users),
+        })),
       };
     },
   });

@@ -250,7 +250,12 @@ var sessionReferralSources = []string{"google", "twitter", "linkedin", "direct",
 var sessionABVariants = []string{"control", "variant-a", "variant-b"}
 var sessionThemes = []string{"light", "dark", "system"}
 var sessionIntents = []string{"browsing", "evaluating", "purchasing", "support", "learning"}
-var screenWidths = []float64{1280, 1366, 1440, 1536, 1920, 2560, 375, 390, 414, 428}
+// Screen resolution pairs: [width, height]
+var screenResolutions = [][2]float64{
+	{1920, 1080}, {1366, 768}, {1536, 864}, {1440, 900}, {1280, 720},
+	{2560, 1440}, {375, 812}, {390, 844}, {414, 896}, {428, 926},
+	{360, 780}, {393, 852}, {768, 1024}, {1024, 768}, {1280, 800},
+}
 
 // ── User profile / group structs ───────────────────────────────────────────
 
@@ -453,27 +458,32 @@ func realisticTimestamp(rng *mrand.Rand, weights []dailyWeight, cdf []float64, c
 // ── Session ─────────────────────────────────────────────────────────────────
 
 type session struct {
-	sessionID  string
-	userID     string
-	startMs    int64
-	device     deviceProfile
-	ua         string
-	ip         string
-	country    location
-	eventCount int
+	sessionID    string
+	userID       string
+	startMs      int64
+	device       deviceProfile
+	ua           string
+	ip           string
+	country      location
+	eventCount   int
+	screenWidth  float64
+	screenHeight float64
 }
 
 func newSession(rng *mrand.Rand, users []string, ts int64) session {
 	dev := pickDeviceProfile(rng)
+	res := screenResolutions[rng.IntN(len(screenResolutions))]
 	return session{
-		sessionID:  uuidv7(ts),
-		userID:     users[rng.IntN(len(users))],
-		startMs:    ts,
-		device:     dev,
-		ua:         userAgent(dev.Browser, dev.BrowserVersion, dev.OS, dev.OSVersion),
-		ip:         randomPublicIPv4(rng),
-		country:    countries[rng.IntN(len(countries))],
-		eventCount: 0,
+		sessionID:    uuidv7(ts),
+		userID:       users[rng.IntN(len(users))],
+		startMs:      ts,
+		device:       dev,
+		ua:           userAgent(dev.Browser, dev.BrowserVersion, dev.OS, dev.OSVersion),
+		ip:           randomPublicIPv4(rng),
+		country:      countries[rng.IntN(len(countries))],
+		eventCount:   0,
+		screenWidth:  res[0],
+		screenHeight: res[1],
 	}
 }
 
@@ -599,6 +609,13 @@ func generateEvent(rng *mrand.Rand, s *session, randomBuf []byte) event {
 			"quantity": float64(rng.IntN(5) + 1),
 		}
 	}
+
+	// Inject screen dimensions into props_num for all regular events
+	if e.PropsNum == nil {
+		e.PropsNum = map[string]float64{}
+	}
+	e.PropsNum["screen_width"] = s.screenWidth
+	e.PropsNum["screen_height"] = s.screenHeight
 
 	return e
 }
@@ -732,7 +749,8 @@ func generateSessionSetEvent(rng *mrand.Rand, s *session) event {
 		UserAgent:      s.ua,
 		PropsStr:       propsStr,
 		PropsNum: map[string]float64{
-			"screen_width": screenWidths[rng.IntN(len(screenWidths))],
+			"screen_width":  s.screenWidth,
+			"screen_height": s.screenHeight,
 		},
 		PropsBool: map[string]bool{
 			"is_returning": rng.Float64() < 0.4,

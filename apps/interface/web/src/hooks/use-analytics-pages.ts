@@ -3,7 +3,17 @@ import { analyticsApi } from '@/lib/analytics-api';
 import { useDateRange } from './use-date-range';
 
 interface PagesData {
+  kpis: {
+    totalPageViews: number;
+    uniquePages: number;
+    uniqueUsers: number;
+    avgViewsPerPage: number;
+  };
+  timeseries: { time: string; views: number; users: number }[];
+  granularity: 'hour' | 'day';
+  screenSizes: { screenSize: string; count: number; uniqueUsers: number }[];
   pages: { path: string; views: number; uniqueUsers: number }[];
+  hasMore: boolean;
 }
 
 export function useAnalyticsPages(projectId: string) {
@@ -64,5 +74,26 @@ export function useAnalyticsPagesTable(
       return { cursorViews: String(last.views), cursorPath: last.path };
     },
     enabled: !!projectId,
+  });
+}
+
+interface PageDetailData {
+  screenSizes: { screenSize: string; count: number; uniqueUsers: number }[];
+  deviceTypes: { value: string; count: number; uniqueUsers: number }[];
+  browsers: { value: string; count: number; uniqueUsers: number }[];
+}
+
+export function usePageDetail(projectId: string, path: string | null) {
+  const { fromStr, toStr } = useDateRange();
+
+  return useQuery({
+    queryKey: ['analytics', 'page-detail', projectId, path, fromStr, toStr],
+    queryFn: () =>
+      analyticsApi.get<PageDetailData>(`/projects/${projectId}/pages/detail`, {
+        from: fromStr,
+        to: toStr,
+        path: path!,
+      }),
+    enabled: !!projectId && !!path,
   });
 }
