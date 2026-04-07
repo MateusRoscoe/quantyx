@@ -649,7 +649,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
       const hasCursor = cursor_ts && cursor_id;
       const op = direction === 'desc' ? '<' : '>';
       const cursorClause = hasCursor
-        ? `HAVING (min(started_at), session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
+        ? `HAVING (started_at, session_id) ${op} (toDateTime({cursorTs:String}), {cursorId:String})`
         : '';
       const userFilter = user_id ? `AND sd.user_id = {userId:String}` : '';
 
