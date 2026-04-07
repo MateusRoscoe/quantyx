@@ -500,36 +500,19 @@ describe('AppCtrl integration (Kafka → ClickHouse)', () => {
       const result = await ch.query({
         query: `
           SELECT
-            s.session_id,
-            m.user_id,
-            s.started_at,
-            s.ended_at,
-            s.total_events,
-            s.page_views,
-            s.browser,
-            s.os,
-            s.device_type,
-            s.country
-          FROM (
-            SELECT
-              session_id,
-              minMerge(started_at) AS started_at,
-              maxMerge(ended_at) AS ended_at,
-              sumMerge(total_events) AS total_events,
-              sumMerge(page_views) AS page_views,
-              anyMerge(browser) AS browser,
-              anyMerge(os) AS os,
-              anyMerge(device_type) AS device_type,
-              anyMerge(country) AS country
-            FROM analytics.sessions
-            WHERE project_id = {projectId:String} AND session_id = {sessionId:String}
-            GROUP BY session_id
-          ) s
-          LEFT JOIN (
-            SELECT DISTINCT session_id, user_id
-            FROM analytics.session_user_map
-            WHERE project_id = {projectId:String} AND session_id = {sessionId:String}
-          ) m ON s.session_id = m.session_id
+            session_id,
+            maxMerge(user_id) AS user_id,
+            minMerge(started_at) AS started_at,
+            maxMerge(ended_at) AS ended_at,
+            sumMerge(total_events) AS total_events,
+            sumMerge(page_views) AS page_views,
+            anyMerge(browser) AS browser,
+            anyMerge(os) AS os,
+            anyMerge(device_type) AS device_type,
+            anyMerge(country) AS country
+          FROM analytics.sessions
+          WHERE project_id = {projectId:String} AND session_id = {sessionId:String}
+          GROUP BY session_id
         `,
         query_params: { projectId, sessionId },
         format: 'JSONEachRow',

@@ -179,16 +179,20 @@ CREATE TABLE
 ORDER BY
     (project_id, session_id);
 
--- Sessions daily (aggregated per-session data for date-filtered list queries)
+-- Sessions daily (denormalized for date-filtered list queries)
+-- Uses MergeTree (not AggregatingMergeTree) so started_at can be a plain DateTime
+-- in ORDER BY and PARTITION BY. ClickHouse 26+ forbids SimpleAggregateFunction in
+-- key expressions. Trade-off: multiple rows per session (one per Kafka batch,
+-- typically 2-5), but the query already does GROUP BY session_id to merge them.
 CREATE TABLE
     IF NOT EXISTS analytics.sessions_daily (
         project_id String,
         session_id String,
-        user_id SimpleAggregateFunction (max, String),
-        started_at SimpleAggregateFunction (min, DateTime),
-        ended_at SimpleAggregateFunction (max, DateTime),
-        total_events SimpleAggregateFunction (sum, UInt64),
-        page_views SimpleAggregateFunction (sum, UInt64),
+        user_id String,
+        started_at DateTime,
+        ended_at DateTime,
+        total_events UInt64,
+        page_views UInt64,
         browser LowCardinality (String),
         os LowCardinality (String),
         device_type LowCardinality (String),
@@ -196,7 +200,7 @@ CREATE TABLE
         continent LowCardinality (String),
         region LowCardinality (String),
         INDEX idx_started_at started_at TYPE minmax GRANULARITY 1
-    ) ENGINE = AggregatingMergeTree ()
+    ) ENGINE = MergeTree ()
 PARTITION BY
     toYYYYMM (started_at)
 ORDER BY
@@ -204,15 +208,26 @@ ORDER BY
 TTL started_at + INTERVAL 3 YEAR
 SETTINGS ttl_only_drop_parts = 1;
 
--- Session-user lookup (maps user_id → session_ids for fast user-scoped queries)
+-- NOTE: session_user_map table and mv_session_user_map were removed.
+-- User→session lookups are handled by filtering sessions_daily directly.
+
+-- Session properties (separate from sessions table for write efficiency)
+-- Only populated by $session_set/$server_session_set events via dedicated MV.
 CREATE TABLE
-    IF NOT EXISTS analytics.session_user_map (
+    IF NOT EXISTS analytics.session_properties (
         project_id String,
-        user_id String,
-        session_id String
-    ) ENGINE = ReplacingMergeTree ()
+        session_id String,
+        -- SDK-set properties (from $session_set)
+        props_str AggregateFunction (argMax, Map(String, String), DateTime),
+        props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
+        props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime),
+        -- Server-set properties (from $server_session_set)
+        server_props_str AggregateFunction (argMax, Map(String, String), DateTime),
+        server_props_num AggregateFunction (argMax, Map(String, Float64), DateTime),
+        server_props_bool AggregateFunction (argMax, Map(String, UInt8), DateTime)
+    ) ENGINE = AggregatingMergeTree ()
 ORDER BY
-    (project_id, user_id, session_id);
+    (project_id, session_id);
 
 -- User name lookup (latest name from $identify or $server_identify)
 CREATE TABLE
@@ -396,16 +411,24 @@ FROM analytics.events
 WHERE session_id != ''
 GROUP BY project_id, session_id;
 
--- MV: Populate session-user lookup
-CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_session_user_map
-TO analytics.session_user_map
+-- MV: Aggregate session properties from $session_set/$server_session_set events only.
+-- Separate from mv_sessions to avoid write amplification on regular events.
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.mv_session_properties
+TO analytics.session_properties
 AS
 SELECT
-    project_id,
-    user_id,
-    session_id
-FROM analytics.events
-WHERE session_id != '' AND user_id != '';
+    e.project_id,
+    e.session_id,
+    argMaxStateIf(e.props_str, e.timestamp, e.event_name = '$session_set') AS props_str,
+    argMaxStateIf(e.props_num, e.timestamp, e.event_name = '$session_set') AS props_num,
+    argMaxStateIf(e.props_bool, e.timestamp, e.event_name = '$session_set') AS props_bool,
+    argMaxStateIf(e.props_str, e.timestamp, e.event_name = '$server_session_set') AS server_props_str,
+    argMaxStateIf(e.props_num, e.timestamp, e.event_name = '$server_session_set') AS server_props_num,
+    argMaxStateIf(e.props_bool, e.timestamp, e.event_name = '$server_session_set') AS server_props_bool
+FROM analytics.events AS e
+WHERE e.event_name IN ('$session_set', '$server_session_set')
+  AND e.session_id != ''
+GROUP BY e.project_id, e.session_id;
 
 -- MV: Hourly metrics — consolidated overall, standard dimensions, and path.
 -- System events ($%) excluded. One MV replaces three (mv_metrics_overall,
@@ -436,8 +459,7 @@ ARRAY JOIN
                 ('country', country),
                 ('continent', continent),
                 ('region', region),
-                ('city', city),
-                ('state', state)
+                ('city', city)
             ],
             if(event_name = 'page_view' AND path != '', [('path', path)], [])
         )

@@ -398,14 +398,13 @@ Full schema in `infrastructure/clickhouse/init/01_create_tables.sql`. Aggregate 
 | `user_groups`                | AggregatingMergeTree | User → group membership mapping                                 |
 | `sessions`                   | AggregatingMergeTree | Per-session aggregates (AggregateFunction columns)               |
 | `sessions_daily`             | AggregatingMergeTree | Denormalized sessions for date-filtered list queries (SimpleAggregateFunction) |
-| `session_user_map`           | ReplacingMergeTree   | user_id → session_id lookup                                     |
 | `metrics_hourly`             | AggregatingMergeTree | Pre-aggregated hourly metrics across dimensions                  |
 | `metrics_geo`                | AggregatingMergeTree | Pre-aggregated geographic drill-down metrics                     |
 | `city_coordinates`           | AggregatingMergeTree | Representative lat/lon per city for map rendering                |
 | `property_metadata`          | AggregatingMergeTree | Tracks custom property names/types per tenant (scheduler-populated) |
 | `property_metadata_watermark`| ReplacingMergeTree   | Watermark for scheduler backfill job                             |
 
-**Materialized Views** (11 total): All aggregate tables except `property_metadata` are auto-populated from `events` inserts. System events (`$identify`, `$server_identify`, `$group_identify`, `$server_group_identify`, `$group_assign`) are excluded from metric counts via `event_name NOT LIKE '$%'`. The `mv_metrics_all` view uses `ARRAY JOIN` to consolidate all standard dimension metrics (event_name, browser, os, device_type, platform, country, continent, region, city, state) into a single view.
+**Materialized Views** (10 total): All aggregate tables except `property_metadata` are auto-populated from `events` inserts. System events (`$identify`, `$server_identify`, `$group_identify`, `$server_group_identify`, `$group_assign`) are excluded from metric counts via `event_name NOT LIKE '$%'`. The `mv_metrics_all` view uses `ARRAY JOIN` to consolidate all standard dimension metrics (event_name, browser, os, device_type, platform, country, continent, region, city) into a single view.
 
 ---
 
