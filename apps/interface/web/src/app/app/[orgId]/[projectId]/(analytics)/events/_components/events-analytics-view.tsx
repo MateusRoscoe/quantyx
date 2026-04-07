@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -9,7 +10,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useAnalyticsEvents } from '@/hooks/use-analytics-events';
+import { Loader2, Search } from 'lucide-react';
+import {
+  useAnalyticsEvents,
+  useAnalyticsEventsTable,
+} from '@/hooks/use-analytics-events';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import {
   ChartCard,
   DataTable,
@@ -21,6 +27,7 @@ import {
   gridStyle,
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import type { ColumnDef } from '@tanstack/react-table';
 
 type EventRow = { eventName: string; count: number; uniqueUsers: number };
@@ -50,6 +57,43 @@ export function EventsAnalyticsView({ projectId }: { projectId: string }) {
     }
     chartData.sort((a, b) => String(a.hour).localeCompare(String(b.hour)));
   }
+
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const {
+    data: tableData,
+    isLoading: tableLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useAnalyticsEventsTable(projectId, {
+    limit: 25,
+    search: debouncedSearch || undefined,
+  });
+
+  const allEvents = useMemo(
+    () => tableData?.pages.flatMap((p) => p.breakdown) ?? [],
+    [tableData],
+  );
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="space-y-6">
@@ -85,15 +129,33 @@ export function EventsAnalyticsView({ projectId }: { projectId: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">All Events</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-medium">All Events</CardTitle>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search events..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
-            data={data?.breakdown ?? []}
-            isLoading={isLoading}
-            pageSize={20}
+            data={allEvents}
+            isLoading={tableLoading}
+            disablePagination
+            disableSorting
           />
+          <div ref={sentinelRef} className="h-1" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

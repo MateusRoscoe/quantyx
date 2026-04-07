@@ -129,13 +129,38 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/projects/:projectId/events', {
     schema: {
       params: z.object({ projectId: z.string().uuid() }),
-      querystring: withDateRangeLimit(querySchema),
+      querystring: withDateRangeLimit(
+        querySchema.extend({
+          limit: z.coerce.number().int().min(1).max(200).optional(),
+          search: z.string().optional(),
+          cursor_count: z.coerce.number().optional(),
+          cursor_event: z.string().optional(),
+        }),
+      ),
     },
     handler: async (request, reply) => {
       const { projectId } = request.params as { projectId: string };
-      const { from, to } = request.query as { from: string; to: string };
+      const { from, to, limit, search, cursor_count, cursor_event } =
+        request.query as {
+          from: string;
+          to: string;
+          limit?: number;
+          search?: string;
+          cursor_count?: number;
+          cursor_event?: string;
+        };
 
       await fastify.verifyProjectAccess(request, projectId);
+
+      const searchClause = search
+        ? `AND position(dimension_value, {search:String}) > 0`
+        : '';
+      const hasCursor =
+        cursor_count !== undefined && cursor_event !== undefined;
+      const cursorClause = hasCursor
+        ? `HAVING (event_count, event_name) < ({cursorCount:UInt64}, {cursorEvent:String})`
+        : '';
+      const limitClause = limit ? `LIMIT {fetchLimit:UInt32}` : '';
 
       const events = await queryClickHouse<{
         event_name: string;
@@ -151,9 +176,22 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           AND hour >= toDateTime({from:String})
           AND hour < toDateTime({to:String})
           AND dimension_name = 'event_name'
+          ${searchClause}
         GROUP BY dimension_value
-        ORDER BY event_count DESC`,
-        { projectId, from, to },
+        ${cursorClause}
+        ORDER BY event_count DESC, event_name DESC
+        ${limitClause}`,
+        {
+          projectId,
+          from,
+          to,
+          ...(search && { search }),
+          ...(hasCursor && {
+            cursorCount: cursor_count,
+            cursorEvent: cursor_event,
+          }),
+          ...(limit && { fetchLimit: limit + 1 }),
+        },
       );
 
       const timeseries = await queryClickHouse<{
@@ -175,8 +213,11 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         { projectId, from, to },
       );
 
+      const hasMore = limit ? events.length > limit : false;
+      const page = hasMore ? events.slice(0, limit) : events;
+
       return {
-        breakdown: events.map((e) => ({
+        breakdown: page.map((e) => ({
           eventName: e.event_name,
           count: Number(e.event_count),
           uniqueUsers: Number(e.unique_users),
@@ -186,6 +227,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           eventName: row.event_name,
           count: Number(row.count),
         })),
+        hasMore,
       };
     },
   });
