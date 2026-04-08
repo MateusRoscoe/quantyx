@@ -316,7 +316,9 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": ["mean", "max"]
+          "calcs": ["mean", "max"],
+          "sortBy": "Max",
+          "sortDesc": true
         }
       },
       "targets": [
@@ -352,7 +354,9 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": ["mean", "max"]
+          "calcs": ["mean", "max"],
+          "sortBy": "Max",
+          "sortDesc": true
         }
       },
       "targets": [
@@ -398,7 +402,9 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": ["mean", "sum"]
+          "calcs": ["mean", "sum"],
+          "sortBy": "Mean",
+          "sortDesc": true
         }
       },
       "targets": [
@@ -441,7 +447,9 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": ["mean", "max"]
+          "calcs": ["mean", "max"],
+          "sortBy": "Max",
+          "sortDesc": true
         }
       },
       "targets": [
@@ -498,18 +506,23 @@
       "type": "table",
       "title": "Slow Queries (> 500ms)",
       "description": "Individual ClickHouse spans exceeding 500ms. Click trace ID to view full trace.",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 30 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
       "datasource": { "type": "tempo", "uid": "${ds_tempo}" },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "Start time", "desc": true }]
+        "sortBy": [{ "displayName": "Duration", "desc": true }]
       },
-      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "nested" }, "properties": [{ "id": "custom.hidden", "value": true }] }
+        ]
+      },
       "targets": [
         {
           "datasource": { "type": "tempo", "uid": "${ds_tempo}" },
           "queryType": "traceql",
-          "query": "{span.db.system = \"clickhouse\" && duration > 500ms}",
+          "query": "{span.db.system = \"clickhouse\" && duration > 500ms} | select(span.db.query.name, span.db.operation.name, span.db.statement)",
           "limit": 20,
           "refId": "A"
         }
@@ -519,18 +532,23 @@
       "type": "table",
       "title": "Error Queries",
       "description": "Failed ClickHouse queries",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 30 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 40 },
       "datasource": { "type": "tempo", "uid": "${ds_tempo}" },
       "options": {
         "showHeader": true,
         "sortBy": [{ "displayName": "Start time", "desc": true }]
       },
-      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "nested" }, "properties": [{ "id": "custom.hidden", "value": true }] }
+        ]
+      },
       "targets": [
         {
           "datasource": { "type": "tempo", "uid": "${ds_tempo}" },
           "queryType": "traceql",
-          "query": "{span.db.system = \"clickhouse\" && status = error}",
+          "query": "{span.db.system = \"clickhouse\" && status = error} | select(span.db.query.name, span.db.operation.name, span.db.statement)",
           "limit": 20,
           "refId": "A"
         }
@@ -539,14 +557,14 @@
     {
       "type": "row",
       "title": "Server-Side Analysis (system.query_log)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 50 },
       "collapsed": false,
       "panels": []
     },
     {
       "type": "timeseries",
       "title": "Server-Side P95 Query Duration",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 51 },
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "${ds_clickhouse}"
@@ -584,7 +602,7 @@
     {
       "type": "timeseries",
       "title": "Avg Read Rows & Bytes",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 51 },
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "${ds_clickhouse}"
@@ -630,7 +648,7 @@
       "type": "table",
       "title": "Top Queries by Memory",
       "description": "Heaviest queries by average memory usage, grouped by normalized query hash",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 49 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 59 },
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "${ds_clickhouse}"
@@ -657,7 +675,7 @@
       "type": "table",
       "title": "Slowest Individual Queries",
       "description": "Individual slowest queries with full details",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 49 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 59 },
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "${ds_clickhouse}"
@@ -683,14 +701,14 @@
     {
       "type": "row",
       "title": "Insert Performance",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 57 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 67 },
       "collapsed": false,
       "panels": []
     },
     {
       "type": "timeseries",
       "title": "Insert Rate by Service",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 58 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 68 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "fieldConfig": {
         "defaults": {
@@ -710,7 +728,9 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": ["mean", "max"]
+          "calcs": ["mean", "max"],
+          "sortBy": "Max",
+          "sortDesc": true
         }
       },
       "targets": [
@@ -725,7 +745,7 @@
     {
       "type": "timeseries",
       "title": "Insert P95 Latency",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 58 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 68 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "fieldConfig": {
         "defaults": {
@@ -745,7 +765,9 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": ["mean", "max"]
+          "calcs": ["mean", "max"],
+          "sortBy": "Max",
+          "sortDesc": true
         }
       },
       "targets": [
