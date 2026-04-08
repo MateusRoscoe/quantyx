@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createClient, type ClickHouseClient } from '@clickhouse/client';
 import { trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import { environment } from './env';
@@ -22,24 +23,50 @@ const rawClient = createClient({
 });
 
 const chTracer = trace.getTracer('@quantyx/clickhouse');
+const queryNameStore = new AsyncLocalStorage<string>();
+
+/**
+ * Execute a function with a query name that will be attached to ClickHouse
+ * spans as `db.query.name`. Use this to give semantic names to queries
+ * for observability (e.g., "overview-kpis", "events-feed").
+ */
+export function withQueryName<T>(
+  name: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return queryNameStore.run(name, fn);
+}
 
 function traceMethod<TArgs extends unknown[], TReturn>(
   operation: string,
   extractStatement: (...args: TArgs) => string,
   fn: (...args: TArgs) => TReturn,
+  extractCollection?: (...args: TArgs) => string | undefined,
 ): (...args: TArgs) => TReturn {
   return (...args: TArgs) => {
     const statement = extractStatement(...args);
+    const attributes: Record<string, string> = {
+      'db.system': 'clickhouse',
+      'db.operation.name': operation,
+      'db.statement': statement.slice(0, 1024),
+      'server.address': environment.CLICKHOUSE_URL,
+    };
+
+    const queryName = queryNameStore.getStore();
+    if (queryName) {
+      attributes['db.query.name'] = queryName;
+    }
+
+    const collection = extractCollection?.(...args);
+    if (collection) {
+      attributes['db.collection.name'] = collection;
+    }
+
     return chTracer.startActiveSpan(
       `clickhouse.${operation}`,
       {
         kind: SpanKind.CLIENT,
-        attributes: {
-          'db.system': 'clickhouse',
-          'db.operation.name': operation,
-          'db.statement': statement.slice(0, 1024),
-          'server.address': environment.CLICKHOUSE_URL,
-        },
+        attributes,
       },
       (span) => {
         const result = fn(...args);
@@ -51,7 +78,10 @@ function traceMethod<TArgs extends unknown[], TReturn>(
               return val;
             })
             .catch((err) => {
-              span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+              span.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: String(err),
+              });
               span.recordException(err as Error);
               span.end();
               throw err;
@@ -79,6 +109,8 @@ export const clickhouse: ClickHouseClient = new Proxy(rawClient, {
         'insert',
         (params: { table?: string }) => `INSERT INTO ${params?.table ?? '?'}`,
         target.insert.bind(target),
+        (params: { table?: string }) =>
+          params?.table?.replace(/^analytics\./, ''),
       );
     }
     if (prop === 'command') {

@@ -69,6 +69,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             AND hour < toDateTime({to:String})
             AND dimension_name = 'overall'`,
           { projectId, from, to },
+          'overview-kpis',
         ),
         queryClickHouse<{ total_sessions: string }>(
           `SELECT count() as total_sessions
@@ -81,6 +82,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             GROUP BY session_id
           )`,
           { projectId, from, to },
+          'overview-sessions',
         ),
         queryClickHouse<{ page_views: string }>(
           `SELECT sumMerge(event_count) as page_views
@@ -91,6 +93,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             AND dimension_name = 'event_name'
             AND dimension_value = 'page_view'`,
           { projectId, from, to },
+          'overview-page-views',
         ),
         queryClickHouse<{ hour: string; events: string; users: string }>(
           `SELECT
@@ -105,6 +108,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           GROUP BY hour
           ORDER BY hour`,
           { projectId, from, to },
+          'overview-timeseries',
         ),
       ]);
 
@@ -192,6 +196,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           }),
           ...(limit && { fetchLimit: limit + 1 }),
         },
+        'events-breakdown',
       );
 
       const timeseries = await queryClickHouse<{
@@ -211,6 +216,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         GROUP BY hour, dimension_value
         ORDER BY hour`,
         { projectId, from, to },
+        'events-timeseries',
       );
 
       const hasMore = limit ? events.length > limit : false;
@@ -318,11 +324,13 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             AND hour < toDateTime({to:String})
             AND dimension_name = 'path'`,
           { projectId, from, to },
+          'pages-kpis',
         ),
         // Timeseries
         queryClickHouse<{ time: string; views: string; users: string }>(
           timeseriesQuery,
           { projectId, from, to },
+          'pages-timeseries',
         ),
         // Screen sizes
         queryClickHouse<{
@@ -343,6 +351,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ORDER BY count DESC
           LIMIT 20`,
           { projectId, from, to },
+          'pages-screen-sizes',
         ),
         // Page list
         queryClickHouse<{
@@ -375,6 +384,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             }),
             ...(limit && { fetchLimit: limit + 1 }),
           },
+          'pages-list',
         ),
       ]);
 
@@ -463,6 +473,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ORDER BY count DESC
           LIMIT 15`,
           params,
+          'pages-detail-screen-sizes',
         ),
         queryClickHouse<{
           value: string;
@@ -479,6 +490,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           GROUP BY device_type
           ORDER BY count DESC`,
           params,
+          'pages-detail-device-types',
         ),
         queryClickHouse<{
           value: string;
@@ -495,6 +507,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           GROUP BY browser
           ORDER BY count DESC`,
           params,
+          'pages-detail-browsers',
         ),
       ]);
 
@@ -549,6 +562,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           GROUP BY dimension_value
           ORDER BY count DESC`,
           { projectId, from, to, dim: dimensionName },
+          `devices-${dimensionName}-breakdown`,
         );
       }
 
@@ -608,6 +622,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ORDER BY count DESC
           ${limitClause}`,
           { projectId, from, to, dim: dimensionName, ...(limit && { limit }) },
+          `geography-${dimensionName}-breakdown`,
         );
       }
 
@@ -636,6 +651,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             ORDER BY event_count DESC
             LIMIT 100`,
             { projectId },
+            'geography-city-coordinates',
           ),
         ]);
 
@@ -775,6 +791,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ) AS c ON g.value = c.city AND g.country = c.country
           ORDER BY g.count DESC`,
           params,
+          'geography-drilldown-cities',
         );
 
         return {
@@ -807,6 +824,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         ORDER BY count DESC
         LIMIT {limit:UInt32}`,
         params,
+        `geography-drilldown-${dimension}`,
       );
 
       return {
@@ -896,6 +914,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ...(hasCursor && { cursorTs: cursor_ts, cursorId: cursor_id }),
           fetchLimit: limit + 1,
         },
+        'sessions-list',
       );
 
       const hasMore = sessions.length > limit;
@@ -978,6 +997,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             AND session_id = {sessionId:String}
           GROUP BY session_id`,
           { projectId, sessionId },
+          'session-detail-metadata',
         ),
         queryClickHouse<{
           props_str: Record<string, string>;
@@ -999,6 +1019,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             AND session_id = {sessionId:String}
           GROUP BY session_id`,
           { projectId, sessionId },
+          'session-detail-properties',
         ),
       ]);
 
@@ -1061,6 +1082,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ...(hasCursor && { cursorTs: cursor_ts, cursorId: cursor_id }),
           fetchLimit: limit + 1,
         },
+        'session-detail-events',
       );
 
       const hasMore = events.length > limit;
@@ -1145,6 +1167,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ...(search && { search }),
           fetchLimit: limit + 1,
         },
+        'users-list',
       );
 
       const hasMore = users.length > limit;
@@ -1207,6 +1230,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           AND user_id = {userId:String}
         GROUP BY user_id`,
         { projectId, userId },
+        'user-detail-profile',
       );
 
       if (rows.length === 0) {
@@ -1299,6 +1323,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           }),
           ...(limit && { fetchLimit: limit + 1 }),
         },
+        'properties-list',
       );
 
       const hasMore = limit ? properties.length > limit : false;
@@ -1414,6 +1439,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ...propClauses.params,
           fetchLimit: limit + 1,
         },
+        'events-feed',
       );
 
       const hasMore = events.length > limit;
@@ -1483,6 +1509,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
           ...(search && { search: `${search}%` }),
           limit,
         },
+        'property-values',
       );
 
       return { values: rows.map((r) => r.value) };
@@ -1530,6 +1557,7 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         GROUP BY hour
         ORDER BY hour`,
         { projectId, from, to },
+        'timeseries-multi',
       );
 
       return {

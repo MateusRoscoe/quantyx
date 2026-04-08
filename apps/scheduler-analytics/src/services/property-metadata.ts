@@ -1,13 +1,15 @@
-import { clickhouse } from '@quantyx/clickhouse';
+import { clickhouse, withQueryName } from '@quantyx/clickhouse';
 import { getLogger } from '@quantyx/shared-backend';
 
 const logger = getLogger('property-metadata');
 
 async function getEarliestEventTime(): Promise<Date | null> {
-  const result = await clickhouse.query({
-    query: `SELECT min(timestamp) AS earliest FROM analytics.events`,
-    format: 'JSONEachRow',
-  });
+  const result = await withQueryName('backfill-earliest-event', () =>
+    clickhouse.query({
+      query: `SELECT min(timestamp) AS earliest FROM analytics.events`,
+      format: 'JSONEachRow',
+    }),
+  );
   const rows = await result.json<{ earliest: string }>();
   if (
     rows.length === 0 ||
@@ -19,15 +21,17 @@ async function getEarliestEventTime(): Promise<Date | null> {
 }
 
 async function getWatermark(): Promise<Date | null> {
-  const result = await clickhouse.query({
-    query: `
-      SELECT last_processed_hour
-      FROM analytics.property_metadata_watermark FINAL
-      WHERE job_name = 'property_backfill'
-      LIMIT 1
-    `,
-    format: 'JSONEachRow',
-  });
+  const result = await withQueryName('backfill-watermark', () =>
+    clickhouse.query({
+      query: `
+        SELECT last_processed_hour
+        FROM analytics.property_metadata_watermark FINAL
+        WHERE job_name = 'property_backfill'
+        LIMIT 1
+      `,
+      format: 'JSONEachRow',
+    }),
+  );
 
   const rows = await result.json<{ last_processed_hour: string }>();
   if (rows.length === 0) return null;
@@ -41,11 +45,15 @@ async function updateWatermark(hour: Date): Promise<void> {
     .toISOString()
     .replace('T', ' ')
     .replace(/\.\d{3}Z$/, '');
-  await clickhouse.insert({
-    table: 'analytics.property_metadata_watermark',
-    format: 'JSONEachRow',
-    values: [{ job_name: 'property_backfill', last_processed_hour: formatted }],
-  });
+  await withQueryName('backfill-watermark-update', () =>
+    clickhouse.insert({
+      table: 'analytics.property_metadata_watermark',
+      format: 'JSONEachRow',
+      values: [
+        { job_name: 'property_backfill', last_processed_hour: formatted },
+      ],
+    }),
+  );
 }
 
 async function backfillPropertyType(
@@ -56,8 +64,11 @@ async function backfillPropertyType(
   valueExpr: string,
 ): Promise<void> {
   const start = performance.now();
-  const result = await clickhouse.command({
-    query: `
+  const result = await withQueryName(
+    `backfill-properties-${propertyType}`,
+    () =>
+      clickhouse.command({
+        query: `
       INSERT INTO analytics.property_metadata
       SELECT
           project_id,
@@ -87,8 +98,9 @@ async function backfillPropertyType(
       )
       GROUP BY project_id, property_name
     `,
-    query_params: { from, to },
-  });
+        query_params: { from, to },
+      }),
+  );
   const elapsedMs = Math.round(performance.now() - start);
   const writtenRows = result.summary?.written_rows ?? '0';
   logger.info(

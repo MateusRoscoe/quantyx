@@ -92,6 +92,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         ORDER BY g.group_type, g.group_id
         LIMIT {limit:UInt32}`,
         params,
+        'groups-list',
       );
 
       const nextCursor =
@@ -163,6 +164,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           AND group_id = {groupId:String}
         GROUP BY group_type, group_id`,
         { projectId, groupType, groupId },
+        'group-detail',
       );
 
       if (rows.length === 0) {
@@ -235,6 +237,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           ...(cursor ? { cursor } : {}),
           limit,
         },
+        'group-members',
       );
 
       return {
@@ -279,6 +282,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         GROUP BY group_type, group_id
         ORDER BY group_type, group_id`,
         { projectId, userId },
+        'user-groups',
       );
 
       return {

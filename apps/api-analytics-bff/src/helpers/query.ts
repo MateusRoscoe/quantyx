@@ -1,4 +1,4 @@
-import { clickhouse } from '@quantyx/clickhouse';
+import { clickhouse, withQueryName } from '@quantyx/clickhouse';
 
 export interface DateRangeParams {
   from: string; // YYYY-MM-DD
@@ -127,12 +127,15 @@ export function buildMetricsFilters(filters: DimensionFilter): {
 export async function queryClickHouse<T>(
   query: string,
   params: Record<string, string | number>,
+  name?: string,
 ): Promise<T[]> {
-  const result = await clickhouse.query({
-    query,
-    query_params: params,
-    format: 'JSONEachRow',
-  });
-
-  return result.json<T>();
+  const exec = async () => {
+    const result = await clickhouse.query({
+      query,
+      query_params: params,
+      format: 'JSONEachRow',
+    });
+    return result.json<T>();
+  };
+  return name ? withQueryName(name, exec) : exec();
 }

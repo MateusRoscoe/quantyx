@@ -42,6 +42,8 @@ metrics_generator:
         - http.status_code
         - db.system
         - db.operation.name
+        - db.query.name
+        - db.collection.name
 
 overrides:
   defaults:
