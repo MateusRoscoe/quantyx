@@ -1,4 +1,4 @@
-# Observability stack: Tempo (traces), Loki (logs), Prometheus (metrics), Alloy (collector).
+# Observability stack: Grafana, Tempo (traces), Loki (logs), Prometheus (metrics), Alloy (collector).
 # Connects to the shared quantyx-net network created by docker-compose.yaml.
 #
 # Prerequisites:
@@ -9,27 +9,23 @@
 #   docker compose -f docker-compose.observability.yaml down
 #
 # UIs:
-#   Grafana (existing):  http://localhost:3003  (datasources auto-provisioned)
-#   Alloy:               http://localhost:12345
-#   Prometheus:          http://localhost:9090
-#   Tempo:               http://localhost:3200
+#   Grafana:     http://localhost:3003  (datasources auto-provisioned)
+#   Alloy:       http://localhost:12345
+#   Prometheus:  http://localhost:9090
+#   Tempo:       http://localhost:3200
 
 services:
   tempo:
     image: grafana/tempo:latest
     container_name: quantyx-tempo
     restart: unless-stopped
-    command: ['-config.file=/etc/tempo.yaml']
+    command:
+      - '-config.file=/etc/tempo.yaml'
     volumes:
       - ./infrastructure/tempo/tempo.yaml:/etc/tempo.yaml
       - tempo-data:/var/tempo
     ports:
       - '3200:3200' # Query frontend
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3200/ready']
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   loki:
     image: grafana/loki:latest
@@ -41,11 +37,6 @@ services:
       - loki-data:/loki
     ports:
       - '3100:3100'
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3100/ready']
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   prometheus:
     image: prom/prometheus:latest
@@ -60,11 +51,21 @@ services:
       - prometheus-data:/prometheus
     ports:
       - '9090:9090'
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9090/-/ready']
-      interval: 10s
-      timeout: 5s
-      retries: 5
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: quantyx-grafana
+    restart: unless-stopped
+    ports:
+      - '3003:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
 
   alloy:
     image: grafana/alloy:latest
@@ -82,14 +83,12 @@ services:
       - '4318:4318' # OTLP HTTP
       - '12345:12345' # Alloy UI
     depends_on:
-      tempo:
-        condition: service_healthy
-      loki:
-        condition: service_healthy
-      prometheus:
-        condition: service_healthy
+      - tempo
+      - loki
+      - prometheus
 
 volumes:
+  grafana-data:
   tempo-data:
   loki-data:
   prometheus-data:

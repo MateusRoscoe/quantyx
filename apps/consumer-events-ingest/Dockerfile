@@ -26,4 +26,4 @@ WORKDIR /app
 
 COPY --from=build /app .
 
-CMD [ "node", "--import", "@quantyx/otel/register", "main.js" ]
+CMD [ "node", "--require", "./libs/otel/src/lib/register.js", "main.js" ]

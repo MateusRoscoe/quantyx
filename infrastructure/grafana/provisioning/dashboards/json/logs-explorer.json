@@ -1,0 +1,290 @@
+{
+  "uid": "quantyx-logs",
+  "title": "Logs Explorer",
+  "tags": ["quantyx", "observability", "logs"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "ds_loki",
+        "label": "Loki",
+        "type": "datasource",
+        "query": "loki",
+        "current": { "selected": true, "text": "Loki", "value": "loki" },
+        "hide": 0
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "${ds_loki}" },
+        "query": "label_values(service_name)",
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "refresh": 2,
+        "sort": 1
+      },
+      {
+        "name": "search",
+        "label": "Search",
+        "type": "textbox",
+        "current": { "selected": false, "text": "", "value": "" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Error Logs",
+      "description": "Log lines containing error-level messages",
+      "gridPos": { "h": 3, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "sum(count_over_time({service_name=~\"$service\"} | level = `error` [$__auto]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Warn Logs",
+      "description": "Log lines containing warn-level messages",
+      "gridPos": { "h": 3, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "sum(count_over_time({service_name=~\"$service\"} | level = `warn` [$__auto]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Total Logs",
+      "description": "Total log lines in time range",
+      "gridPos": { "h": 3, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "sum(count_over_time({service_name=~\"$service\"} |= `$search` [$__auto]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Services",
+      "description": "Number of services emitting logs",
+      "gridPos": { "h": 3, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "purple", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "count(count by (service_name) (count_over_time({service_name=~\"$service\"} [$__auto])))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Log Volume by Service",
+      "gridPos": { "h": 7, "w": 14, "x": 0, "y": 4 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 60,
+            "pointSize": 5,
+            "showPoints": "never",
+            "stacking": { "mode": "normal" },
+            "drawStyle": "bars",
+            "barAlignment": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "sum by (service_name) (count_over_time({service_name=~\"$service\"} |= `$search` [$__auto]))",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error & Warn Rate",
+      "description": "Error and warn log lines over time",
+      "gridPos": { "h": 7, "w": 10, "x": 14, "y": 4 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 20, "pointSize": 5, "showPoints": "never", "spanNulls": true }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "error" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "warn" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }] }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "sum(count_over_time({service_name=~\"$service\"} | level = `error` [$__auto]))",
+          "legendFormat": "error",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "sum(count_over_time({service_name=~\"$service\"} | level = `warn` [$__auto]))",
+          "legendFormat": "warn",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Log Stream",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 11 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "logs",
+      "title": "Logs",
+      "description": "Application logs with JSON parsing. Click trace_id links to jump to traces.",
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 12 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": false,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${ds_loki}" },
+          "expr": "{service_name=~\"$service\"} |= `$search` | json",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "annotations": { "list": [] },
+  "links": [
+    { "title": "Services Overview", "type": "link", "icon": "dashboard", "url": "/d/quantyx-services", "tooltip": "View RED metrics" },
+    { "title": "Traces Explorer", "type": "link", "icon": "lightning", "url": "/d/quantyx-traces", "tooltip": "Search distributed traces" }
+  ]
+}

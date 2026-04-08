@@ -67,5 +67,28 @@ discovery.relabel "containers" {
 loki.source.docker "containers" {
   host    = "unix:///var/run/docker.sock"
   targets = discovery.relabel.containers.output
+  forward_to = [loki.process.pino_level.receiver]
+}
+
+// Extract Pino numeric level from JSON logs and map to standard severity.
+// Sets level as structured metadata so Loki can filter without | json at query time.
+loki.process "pino_level" {
+  stage.json {
+    expressions = { pino_level = "level" }
+  }
+
+  stage.template {
+    source   = "level_name"
+    template = "{{ if eq .pino_level \"10\" }}trace{{ else if eq .pino_level \"20\" }}debug{{ else if eq .pino_level \"30\" }}info{{ else if eq .pino_level \"40\" }}warn{{ else if eq .pino_level \"50\" }}error{{ else if eq .pino_level \"60\" }}critical{{ else }}unknown{{ end }}"
+  }
+
+  stage.structured_metadata {
+    values = { level = "level_name" }
+  }
+
+  stage.label_drop {
+    values = ["pino_level", "level_name"]
+  }
+
   forward_to = [loki.write.default.receiver]
 }

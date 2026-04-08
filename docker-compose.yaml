@@ -104,23 +104,6 @@ services:
     depends_on:
       - kafka
 
-  grafana:
-    image: grafana/grafana-oss:latest
-    container_name: quantyx-grafana
-    restart: unless-stopped
-    ports:
-      - '3003:3000'
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      GF_AUTH_ANONYMOUS_ENABLED: 'true'
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
-      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-    depends_on:
-      - clickhouse
-
   mailpit:
     image: axllent/mailpit:latest
     container_name: quantyx-mailpit
@@ -134,7 +117,6 @@ volumes:
   postgres-data:
   kafka-data:
   redis-data:
-  grafana-data:
 
 networks:
   default:

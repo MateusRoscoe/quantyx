@@ -41,7 +41,7 @@ import (
 var (
 	apiKey      = flag.String("api-key", "qx_EprvrzNg4NuHP_cboejTB87yqMyi9buP", "X-API-Key")
 	endpoint    = flag.String("endpoint", "http://localhost:3002", "API base URL")
-	total       = flag.Int64("total", 10_000_000, "Total events to generate")
+	total       = flag.Int64("total", 1000, "Total events to generate")
 	batchSize   = flag.Int("batch-size", 1000, "Events per HTTP request")
 	workers     = flag.Int("workers", 0, "Parallel goroutines (default: NumCPU*2)")
 	concurrency = flag.Int("concurrency", 4, "In-flight HTTP requests per worker")
@@ -250,6 +250,7 @@ var sessionReferralSources = []string{"google", "twitter", "linkedin", "direct",
 var sessionABVariants = []string{"control", "variant-a", "variant-b"}
 var sessionThemes = []string{"light", "dark", "system"}
 var sessionIntents = []string{"browsing", "evaluating", "purchasing", "support", "learning"}
+
 // Screen resolution pairs: [width, height]
 var screenResolutions = [][2]float64{
 	{1920, 1080}, {1366, 768}, {1536, 864}, {1440, 900}, {1280, 720},

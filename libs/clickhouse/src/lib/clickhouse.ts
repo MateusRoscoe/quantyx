@@ -1,7 +1,8 @@
-import { createClient } from '@clickhouse/client';
+import { createClient, type ClickHouseClient } from '@clickhouse/client';
+import { trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import { environment } from './env';
 
-export const clickhouse = createClient({
+const rawClient = createClient({
   url: environment.CLICKHOUSE_URL,
   username: environment.CLICKHOUSE_USER,
   password: environment.CLICKHOUSE_PASSWORD,
@@ -17,6 +18,84 @@ export const clickhouse = createClient({
     async_insert_deduplicate: environment.CLICKHOUSE_ASYNC_INSERT_DEDUPLICATE
       ? 1
       : 0,
+  },
+});
+
+const chTracer = trace.getTracer('@quantyx/clickhouse');
+
+function traceMethod<TArgs extends unknown[], TReturn>(
+  operation: string,
+  extractStatement: (...args: TArgs) => string,
+  fn: (...args: TArgs) => TReturn,
+): (...args: TArgs) => TReturn {
+  return (...args: TArgs) => {
+    const statement = extractStatement(...args);
+    return chTracer.startActiveSpan(
+      `clickhouse.${operation}`,
+      {
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'db.system': 'clickhouse',
+          'db.operation.name': operation,
+          'db.statement': statement.slice(0, 1024),
+          'server.address': environment.CLICKHOUSE_URL,
+        },
+      },
+      (span) => {
+        const result = fn(...args);
+        if (result instanceof Promise) {
+          return result
+            .then((val) => {
+              span.setStatus({ code: SpanStatusCode.OK });
+              span.end();
+              return val;
+            })
+            .catch((err) => {
+              span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+              span.recordException(err as Error);
+              span.end();
+              throw err;
+            }) as TReturn;
+        }
+        span.setStatus({ code: SpanStatusCode.OK });
+        span.end();
+        return result;
+      },
+    ) as TReturn;
+  };
+}
+
+export const clickhouse: ClickHouseClient = new Proxy(rawClient, {
+  get(target, prop, receiver) {
+    if (prop === 'query') {
+      return traceMethod(
+        'query',
+        (params: { query?: string }) => params?.query ?? '',
+        target.query.bind(target),
+      );
+    }
+    if (prop === 'insert') {
+      return traceMethod(
+        'insert',
+        (params: { table?: string }) => `INSERT INTO ${params?.table ?? '?'}`,
+        target.insert.bind(target),
+      );
+    }
+    if (prop === 'command') {
+      return traceMethod(
+        'command',
+        (params: { query?: string }) => params?.query ?? '',
+        target.command.bind(target),
+      );
+    }
+    if (prop === 'exec') {
+      return traceMethod(
+        'exec',
+        (params: { query?: string }) => params?.query ?? '',
+        target.exec.bind(target),
+      );
+    }
+    return Reflect.get(target, prop, receiver);
   },
 });
 
