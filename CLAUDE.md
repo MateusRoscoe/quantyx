@@ -134,6 +134,13 @@ GitHub Actions on push to main and PRs. Single `ubuntu-latest` runner (no Nx Clo
 - Prettier with single quotes
 - **Always run `npx nx format` before committing** to ensure consistent formatting across the workspace
 
+## Known gotchas
+
+- `@nx/vitest` plugin name in `nx.json` is `@nx/vitest`, **not** `@nx/vitest/plugin`.
+- `tsconfig.app.json` and `tsconfig.lib.json` exclude `vitest.config.ts` (they used to exclude `jest.config.ts`).
+- After a clean state, run `tsc --build --force` on the app tsconfig before the first typecheck — TypeScript composite projects need the `.d.ts` files in `dist/` to exist.
+- Fastify 5.7+ tightened the typings for empty responses: use `reply.status(204).send(null)`, not `reply.status(204).send()`.
+
 ## Verification Requirements
 
 - **Always verify changes with tests.** After modifying code, run the relevant project's tests (`npx nx test <project>`). If tests don't exist for the change, run typecheck at minimum (`npx nx run-many -t typecheck`).
