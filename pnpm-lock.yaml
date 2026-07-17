@@ -269,6 +269,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
+      '@fastify/otel':
+        specifier: ^0.18.0
+        version: 0.18.0(@opentelemetry/api@1.9.1)
       '@fastify/sensible':
         specifier: ~6.0.4
         version: 6.0.4
@@ -278,6 +281,36 @@ importers:
       '@fastify/swagger-ui':
         specifier: ~5.2.5
         version: 5.2.5
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.9.1
+      '@opentelemetry/auto-instrumentations-node':
+        specifier: ^0.72.0
+        version: 0.72.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))
+      '@opentelemetry/exporter-logs-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-logs':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-node':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: ^1.40.0
+        version: 1.40.0
       '@prisma/adapter-pg':
         specifier: ^7.6.0
         version: 7.6.0
@@ -308,6 +341,9 @@ importers:
       pino:
         specifier: ^10.3.1
         version: 10.3.1
+      pino-opentelemetry-transport:
+        specifier: ^3.0.0
+        version: 3.0.0(@opentelemetry/api@1.9.1)(pino@10.3.1)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -345,6 +381,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
+      '@fastify/otel':
+        specifier: ^0.18.0
+        version: 0.18.0(@opentelemetry/api@1.9.1)
       '@fastify/sensible':
         specifier: ~6.0.4
         version: 6.0.4
@@ -354,6 +393,36 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^5.2.5
         version: 5.2.5
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.9.1
+      '@opentelemetry/auto-instrumentations-node':
+        specifier: ^0.72.0
+        version: 0.72.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))
+      '@opentelemetry/exporter-logs-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-logs':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-node':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: ^1.40.0
+        version: 1.40.0
       '@prisma/adapter-pg':
         specifier: ^7.6.0
         version: 7.6.0
@@ -378,6 +447,9 @@ importers:
       pino:
         specifier: ^10.3.1
         version: 10.3.1
+      pino-opentelemetry-transport:
+        specifier: ^3.0.0
+        version: 3.0.0(@opentelemetry/api@1.9.1)(pino@10.3.1)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -409,6 +481,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
+      '@fastify/otel':
+        specifier: ^0.18.0
+        version: 0.18.0(@opentelemetry/api@1.9.1)
       '@fastify/sensible':
         specifier: ~6.0.4
         version: 6.0.4
@@ -418,6 +493,36 @@ importers:
       '@fastify/swagger-ui':
         specifier: ~5.2.5
         version: 5.2.5
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.9.1
+      '@opentelemetry/auto-instrumentations-node':
+        specifier: ^0.72.0
+        version: 0.72.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))
+      '@opentelemetry/exporter-logs-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-logs':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-node':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: ^1.40.0
+        version: 1.40.0
       '@prisma/adapter-pg':
         specifier: ^7.6.0
         version: 7.6.0
@@ -448,6 +553,9 @@ importers:
       pino:
         specifier: ^10.3.1
         version: 10.3.1
+      pino-opentelemetry-transport:
+        specifier: ^3.0.0
+        version: 3.0.0(@opentelemetry/api@1.9.1)(pino@10.3.1)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -482,6 +590,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
+      '@fastify/otel':
+        specifier: ^0.18.0
+        version: 0.18.0(@opentelemetry/api@1.9.1)
       '@fastify/sensible':
         specifier: ~6.0.4
         version: 6.0.4
@@ -491,6 +602,36 @@ importers:
       '@fastify/swagger-ui':
         specifier: ~5.2.5
         version: 5.2.5
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.9.1
+      '@opentelemetry/auto-instrumentations-node':
+        specifier: ^0.72.0
+        version: 0.72.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))
+      '@opentelemetry/exporter-logs-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-logs':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-node':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: ^1.40.0
+        version: 1.40.0
       '@prisma/adapter-pg':
         specifier: ^7.6.0
         version: 7.6.0
@@ -521,6 +662,9 @@ importers:
       pino:
         specifier: ^10.3.1
         version: 10.3.1
+      pino-opentelemetry-transport:
+        specifier: ^3.0.0
+        version: 3.0.0(@opentelemetry/api@1.9.1)(pino@10.3.1)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -552,15 +696,51 @@ importers:
       '@confluentinc/kafka-javascript':
         specifier: ^1.9.0
         version: 1.9.0(encoding@0.1.13)
+      '@fastify/otel':
+        specifier: ^0.18.0
+        version: 0.18.0(@opentelemetry/api@1.9.1)
       '@ip-location-db/dbip-city-mmdb':
         specifier: ^2.3.2026040119
         version: 2.3.2026040119
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.9.1
+      '@opentelemetry/auto-instrumentations-node':
+        specifier: ^0.72.0
+        version: 0.72.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))
+      '@opentelemetry/exporter-logs-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-logs':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-node':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: ^1.40.0
+        version: 1.40.0
       maxmind:
         specifier: ^5.0.6
         version: 5.0.6
       pino:
         specifier: ^10.3.1
         version: 10.3.1
+      pino-opentelemetry-transport:
+        specifier: ^3.0.0
+        version: 3.0.0(@opentelemetry/api@1.9.1)(pino@10.3.1)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -693,9 +873,45 @@ importers:
       '@clickhouse/client':
         specifier: ^1.18.2
         version: 1.18.2
+      '@fastify/otel':
+        specifier: ^0.18.0
+        version: 0.18.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.9.1
+      '@opentelemetry/auto-instrumentations-node':
+        specifier: ^0.72.0
+        version: 0.72.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))
+      '@opentelemetry/exporter-logs-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-logs':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: ^2.6.1
+        version: 2.6.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-node':
+        specifier: ^0.214.0
+        version: 0.214.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: ^1.40.0
+        version: 1.40.0
       pino:
         specifier: ^10.3.1
         version: 10.3.1
+      pino-opentelemetry-transport:
+        specifier: ^3.0.0
+        version: 3.0.0(@opentelemetry/api@1.9.1)(pino@10.3.1)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
