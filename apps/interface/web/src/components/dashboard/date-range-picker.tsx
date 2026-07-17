@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import type { DateRange as DayPickerDateRange } from 'react-day-picker';
@@ -91,6 +91,17 @@ export function DateRangePicker() {
     }
   }
 
+  const MAX_RANGE_DAYS = 90;
+
+  const disabledDays = useMemo(() => {
+    if (!draft?.from || draft?.to) return undefined;
+    const anchor = draft.from;
+    return (date: Date) => {
+      const diff = Math.abs(date.getTime() - anchor.getTime());
+      return diff > MAX_RANGE_DAYS * 24 * 60 * 60 * 1000;
+    };
+  }, [draft?.from, draft?.to]);
+
   const { abbreviation: tzAbbr } = useTimezone();
 
   return (
@@ -136,6 +147,7 @@ export function DateRangePicker() {
             onSelect={handleCalendarSelect}
             numberOfMonths={1}
             defaultMonth={draft?.from ?? from}
+            disabled={disabledDays}
           />
         </div>
       )}
