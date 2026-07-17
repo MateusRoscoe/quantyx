@@ -63,7 +63,11 @@
       "options": {
         "buildTarget": "api-event-webhook:build",
         "runBuildTargetDependencies": false,
-        "runtimeArgs": ["--expose-gc", "--import", "@quantyx/otel/register"]
+        "runtimeArgs": [
+          "--expose-gc",
+          "--import",
+          "../../libs/otel/src/lib/register.ts"
+        ]
       },
       "configurations": {
         "development": {
