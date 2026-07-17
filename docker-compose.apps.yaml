@@ -29,10 +29,10 @@ services:
       - --api.insecure=true
       - --entrypoints.dashboard.address=:8081
     ports:
-      - "0.0.0.0:3002:3002"
-      - "0.0.0.0:3001:3001"
-      - "0.0.0.0:3004:3004"
-      - "0.0.0.0:8081:8081"
+      - '0.0.0.0:3002:3002'
+      - '0.0.0.0:3001:3001'
+      - '0.0.0.0:3004:3004'
+      - '0.0.0.0:8081:8081'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
@@ -128,7 +128,7 @@ services:
     image: apps-scheduler-analytics:latest
     restart: unless-stopped
     deploy:
-      replicas: ${SCHEDULER_REPLICAS:-0}
+      replicas: ${SCHEDULER_REPLICAS:-1}
     environment:
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_USER: admin
@@ -143,7 +143,7 @@ services:
     image: apps-interface-web:latest
     restart: unless-stopped
     ports:
-      - "0.0.0.0:3000:3000"
+      - '0.0.0.0:3000:3000'
     env_file:
       - .env
       - apps/interface/web/.env
